@@ -38,3 +38,57 @@
 #define EMBED_VERSION "v" EMBED_VERSION_STRING
 
 #define EMBED_EXTERN _declspec(dllexport)
+
+//includes
+#include "v8.h"
+#include "node_internals.h"
+namespace embed {
+
+  //
+  void Init();
+  void Fini();
+
+  class IBaseIntf {
+  public:
+    virtual ~IBaseIntf() {};
+    virtual void APIENTRY Delete();
+    virtual int APIENTRY Test();
+  };
+
+  //keeps isolate locked and entered
+  class ScriptParams {
+  public:
+    inline ScriptParams(v8::Isolate * iso) : locker(iso), isolate_scope(iso), h_scope(iso) {};
+    ~ScriptParams() {
+    };
+  private:
+    v8::Locker locker;
+    v8::Isolate::Scope isolate_scope;
+    v8::HandleScope h_scope;
+  };
+
+  //base class for JS engine 
+  class BaseEngine : public IBaseIntf {
+  private:
+    ScriptParams * script_params;
+    v8::Isolate* iso;
+    node::ArrayBufferAllocator allocator;
+    bool running = false;
+
+    node::IsolateData* isolate_data = nullptr;
+    node::Environment* env;
+
+  public:
+    BaseEngine();
+    ~BaseEngine();
+    virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+    //runs script and keep it alive
+    // to allow application send callbacks
+    void Run(int argc, const char * argv[]);
+    //stops script execution
+    void Stop();
+  };
+
+  // index of isolate's data slot, where engine is stored
+  const uint32_t ENGINE_SLOT = 0;
+}
