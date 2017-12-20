@@ -7,7 +7,8 @@ program Test;
 uses
   System.SysUtils,
   Math,
-  NodeInterface in 'src\NodeInterface.pas';
+  NodeInterface in 'src\NodeInterface.pas',
+  NodeEngine in 'src\NodeEngine.pas';
 
 const
   NewLine = #10#13;
@@ -19,15 +20,15 @@ const
 {$endif}
 
 var
-  Engine: INodeEngine;
+  Engine: TJSEngine;
 begin
   Math.SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow,
     exUnderflow, exPrecision]);
   try
     InitNode(StringToPUtf8Char(ParamStr(0)));
-    Engine := NewDelphiEngine(nil);
+    Engine := TJSEngine.Create;
     try
-      Engine.RunString(StringToPUtf8Char('' + NewLine
+      Engine.RunString('' + NewLine
         + 'console.log(''hello, world!'')' + NewLine
         + 'const NS_PER_SEC = 1e9;' + NewLine
         + 'var sum = 0;' + NewLine
@@ -39,9 +40,9 @@ begin
         + 'console.log(`sum = ${sum}`);' + NewLine
         + 'console.log(`this took ${diff[0] * NS_PER_SEC + diff[1]}'
         + ' nanoseconds or about ${diff[0]} seconds`);' + NewLine
-        + ''));
+        + '');
     finally
-      Engine.Delete;
+      Engine.Free;
     end;
     Readln;
   except
