@@ -139,6 +139,12 @@
       'deps/node-inspect/lib/internal/inspect_client.js',
       'deps/node-inspect/lib/internal/inspect_repl.js',
     ],
+    'embed_files':[
+      'src/delphi_intf.h',
+      'src/delphi_intf.cpp',
+      'src/embed.h',
+      'src/embed.cpp'
+    ],
     'conditions': [
       [ 'node_shared=="true"', {
         'node_target_type%': 'shared_library',
@@ -282,6 +288,8 @@
         'deps/v8/include/v8-debug.h',
         # javascript files to make for an even more pleasant IDE experience
         '<@(library_files)',
+        # files for embedding
+        '<@(embed_files)',
         # node.gyp is added to the project by default.
         'common.gypi',
         '<(SHARED_INTERMEDIATE_DIR)/node_javascript.cc',
