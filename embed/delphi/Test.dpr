@@ -7,7 +7,7 @@ program Test;
 uses
   System.SysUtils,
   Math,
-  NodeInterface in 'NodeInterface.pas';
+  NodeInterface in 'src\NodeInterface.pas';
 
 const
   NewLine = #10#13;
