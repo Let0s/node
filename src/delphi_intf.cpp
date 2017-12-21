@@ -1,5 +1,9 @@
 #include "delphi_intf.h"
 namespace embed {
+  const int CLASS_INTERNAL_FIELD_COUNT = 2;
+  const int CLASSTYPE_INTERNAL_FIELD_NUMBER = 0;
+  const int OBJECT_INTERNAL_FIELD_NUMBER = 1;
+
   //full path to executable (argv0)
   std::string exeName;
 
@@ -22,6 +26,12 @@ namespace embed {
       globalTemplate->ModifyTemplate(isolate, global);
     }
     auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
+    if (globalTemplate) {
+      auto globalObject = context->Global();
+      CHECK(globalObject->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT);
+      globalObject->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER, v8::External::New(isolate, globalTemplate->dClass));
+      globalObject->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER, v8::Undefined(isolate));
+    }
     return context;
   }
 
@@ -123,6 +133,7 @@ namespace embed {
     v8::Local<v8::FunctionTemplate> templ)
   {
     auto proto = templ->PrototypeTemplate();
+    proto->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
     for (auto &method : methods) {
       v8::Local<v8::FunctionTemplate> methodCallBack = v8::FunctionTemplate::New(isolate, FunctionCallBack, v8::External::New(isolate, method->call));
       proto->Set(isolate, method->name.c_str(), methodCallBack);
