@@ -6,6 +6,46 @@
 namespace embed {
   class IEmbedEngine;
 
+  //wrapper for JS value
+  class IJSValue: public IBaseIntf {
+  public:
+    IJSValue(v8::Isolate * iso, v8::Local<v8::Value> val);
+    v8::Local<v8::Value> V8Value();
+    virtual bool APIENTRY IsUndefined();
+    virtual bool APIENTRY IsNull();
+    virtual bool APIENTRY IsBool();
+    virtual bool APIENTRY IsInt();
+    virtual bool APIENTRY IsString();
+    virtual bool APIENTRY IsFloat();
+    virtual bool APIENTRY IsObject();
+    virtual bool APIENTRY IsDelphiObject();
+    virtual bool APIENTRY IsArray();
+    virtual bool APIENTRY IsFunction();
+  protected:
+    v8::Isolate * isolate;
+  private:
+    v8::Persistent<v8::Value> value;
+  };
+
+  //wrapper for JS object
+  class IJSObject : public IJSValue {
+    v8::Local<v8::Object> V8Object();
+  };
+
+  //wrapper for JS delphi object
+  class IJSDelphiObject : public IJSObject {
+  };
+
+  //wrapper for JS array
+  class IJSArray : public IJSValue {
+    v8::Local<v8::Array> V8Array();
+  };
+
+  //wrapper for JS function
+  class IJSFunction : public IJSValue {
+
+  };
+
   //wrapper for Delphi class property
   struct IClassProp{
   public:

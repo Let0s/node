@@ -237,4 +237,61 @@ namespace embed {
     }
     return nullptr;
   }
+  IJSValue::IJSValue(v8::Isolate * iso, v8::Local<v8::Value> val)
+  {
+    isolate = iso;
+    value.Reset(iso, val);
+  }
+  v8::Local<v8::Value> IJSValue::V8Value()
+  {
+    return value.Get(isolate);
+  }
+  v8::Local<v8::Object> IJSObject::V8Object()
+  {
+    return V8Value()->ToObject(isolate);
+  }
+  bool IJSValue::IsObject()
+  {
+    return !(dynamic_cast<IJSObject *>(this) == nullptr);
+  }
+  bool IJSValue::IsDelphiObject()
+  {
+    return !(dynamic_cast<IJSDelphiObject *>(this) == nullptr);
+  }
+  bool IJSValue::IsArray()
+  {
+    return !(dynamic_cast<IJSArray *>(this) == nullptr);
+  }
+  bool IJSValue::IsFunction()
+  {
+    return !(dynamic_cast<IJSFunction *>(this) == nullptr);
+  }
+  bool IJSValue::IsUndefined()
+  {
+    return V8Value()->IsUndefined();
+  }
+  bool IJSValue::IsNull()
+  {
+    return V8Value()->IsNull();
+  }
+  bool IJSValue::IsBool()
+  {
+    return V8Value()->IsBoolean();
+  }
+  bool IJSValue::IsInt()
+  {
+    return V8Value()->IsInt32();
+  }
+  bool IJSValue::IsString()
+  {
+    return V8Value()->IsString();
+  }
+  bool IJSValue::IsFloat()
+  {
+    return V8Value()->IsNumber();
+  }
+  v8::Local<v8::Array> IJSArray::V8Array()
+  {
+    return V8Value().As<v8::Array>();
+  }
 }

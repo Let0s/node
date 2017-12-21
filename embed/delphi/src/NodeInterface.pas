@@ -14,11 +14,39 @@ type
     procedure Delete; virtual; stdcall; abstract;
     function Test: Integer; virtual; stdcall; abstract;
   end;
-
   // don't use functions from this class
   //   these functions are virtual for its child classes
   IBaseEngine = class(IBaseInterface)
     function CreateContext(): Pointer; virtual; stdcall; abstract;
+  end;
+
+  IJSValue = class(IBaseInterface)
+    function IsUndefined: boolean; virtual; stdcall; abstract;
+    function IsNull: boolean; virtual; stdcall; abstract;
+    function IsBool: boolean; virtual; stdcall; abstract;
+    function IsInt: boolean; virtual; stdcall; abstract;
+    function IsString: boolean; virtual; stdcall; abstract;
+    function IsFloat: boolean; virtual; stdcall; abstract;
+    function IsObject: boolean; virtual; stdcall; abstract;
+    function IsDelphiObject: boolean; virtual; stdcall; abstract;
+    function IsArray: boolean; virtual; stdcall; abstract;
+    function IsFunction: boolean; virtual; stdcall; abstract;
+  end;
+
+  IJSObject = class(IJSValue)
+
+  end;
+
+  IJSDelphiObject = class(IJSObject)
+
+  end;
+
+  IJSArray = class(IJSValue)
+
+  end;
+
+  IJSFunction = class(IJSValue)
+
   end;
 
   // delphi class wrapper
