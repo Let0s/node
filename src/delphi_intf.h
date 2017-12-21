@@ -23,7 +23,7 @@ namespace embed {
 
   class IObjectTemplate : public IBaseIntf {
   public:
-    IObjectTemplate(char * objclasstype, void * delphiClass, v8::Isolate * isolate);
+    IObjectTemplate(char * objclasstype, void * delphiClass);
 
     virtual void APIENTRY SetMethod(char * methodName, void * methodCall);
     ////maybe there isn't needed propObj
@@ -46,24 +46,25 @@ namespace embed {
     //??
     std::vector<char> runStringResult;
   private:
-    //result object template for JS
-    v8::Local<v8::FunctionTemplate> objTempl;
 
     std::vector<std::unique_ptr<IObjectProp>> props;
     std::vector<std::unique_ptr<IObjectProp>> indexed_props;
     std::vector<std::string> fields;
     std::vector<std::unique_ptr<IObjectMethod>> methods;
-
-    v8::Isolate * iso = nullptr;
   };
 
   class IEmbedEngine : public BaseEngine {
+  public:
+    IEmbedEngine(void * dEng);
+    virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+    virtual IObjectTemplate * AddObject(char * className, void * classType);
+    virtual void APIENTRY RunString(char * code);
+    void * DelphiEngine();
+    static IEmbedEngine * GetEngine(v8::Isolate * isolate);
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
-  public:
-    IEmbedEngine(void * dEng);
-    virtual void APIENTRY RunString(char * code);
+    std::vector<std::unique_ptr<IObjectTemplate>> objects;
   };
 
   extern "C" {

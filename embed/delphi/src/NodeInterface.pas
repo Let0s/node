@@ -21,14 +21,29 @@ type
     function CreateContext(): Pointer; virtual; stdcall; abstract;
   end;
 
+  // delphi class wrapper
+  IObjectTemplate = class(IBaseEngine)
+    procedure SetMethod(name: PAnsiChar; method: Pointer); virtual;
+      stdcall; abstract;
+    procedure SetProperty(name: PAnsiChar; prop: Pointer;
+      read, write: Boolean); virtual; stdcall; abstract;
+    procedure SetIndexedProperty(name: PAnsiChar; prop: Pointer;
+      read, write: Boolean); virtual; stdcall; abstract;
+    procedure SetField(name: PAnsiChar); virtual; stdcall; abstract;
+    procedure SetParent(parent: IObjectTemplate); virtual; stdcall; abstract;
+  end;
+
   // Engine class;
   INodeEngine = class(IBaseEngine)
+    function AddObject(className: PAnsiChar; classType: Pointer);
+      virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
   end;
 
   function NewDelphiEngine(DEngine: TObject): INodeEngine stdcall;
     external LIB_NAME delayed;
-  procedure InitNode(executableName: PAnsiChar); stdcall; external LIB_NAME delayed;
+  procedure InitNode(executableName: PAnsiChar); stdcall;
+    external LIB_NAME delayed;
 
 
   function PUtf8CharToString(s: PAnsiChar): string;

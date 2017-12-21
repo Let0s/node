@@ -8,6 +8,25 @@ namespace embed {
     dEngine = dEng;
   }
 
+  v8::Local<v8::Context> IEmbedEngine::CreateContext(v8::Isolate * isolate)
+  {
+    v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
+    for (auto &obj : objects) {
+      auto objTemplate = obj.get();
+      //global->Set()
+    }
+    auto context = v8::Context::New(isolate, NULL, global);
+    return context;
+  }
+
+  IObjectTemplate * IEmbedEngine::AddObject(char * className, void * classType)
+  {
+    auto object = std::make_unique<IObjectTemplate>(className, classType);
+    auto result = object.get();
+    objects.push_back(std::move(object));
+    return result;
+  }
+
   void IEmbedEngine::RunString(char * code)
   {
     std::vector<const char *> args;
@@ -15,6 +34,23 @@ namespace embed {
     args.push_back("-e");
     args.push_back(code);
     Run(args.size(), args.data());
+  }
+
+  void * IEmbedEngine::DelphiEngine()
+  {
+    return dEngine;
+  }
+
+  IEmbedEngine * IEmbedEngine::GetEngine(v8::Isolate * isolate)
+  {
+    if (isolate) {
+      return static_cast<IEmbedEngine *>(isolate->GetData(ENGINE_SLOT));
+    }
+    return nullptr;
+  }
+
+  void FieldGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+  {    
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -37,11 +73,10 @@ namespace embed {
     name = mName;
     call = mCall;
   }
-  IObjectTemplate::IObjectTemplate(char * objclasstype, void * delphiClass, v8::Isolate * isolate)
+  IObjectTemplate::IObjectTemplate(char * objclasstype, void * delphiClass)
   {
     classTypeName = objclasstype;
     dClass = delphiClass;
-    iso = isolate;
   }
   void IObjectTemplate::SetMethod(char * methodName, void * methodCall)
   {
