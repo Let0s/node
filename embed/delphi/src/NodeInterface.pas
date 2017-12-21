@@ -33,6 +33,23 @@ type
     procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;
 
+  IMethodArgs = class (IBaseInterface)
+    function GetEngine: TObject; virtual; stdcall; abstract;
+    function GetDelphiObject: TObject; virtual; stdcall; abstract;
+    function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
+
+    function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
+
+    procedure SetReturnValue(val: integer); overload; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: boolean); overload; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: PAnsiChar); overload; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: Double); overload; virtual; stdcall; abstract;
+
+    function GetDelphiMethod: TObject; virtual; stdcall; abstract;
+  end;
+
+  TMethodCallBack = procedure(args: IMethodArgs); stdcall;
+
   // Engine class;
   INodeEngine = class(IBaseEngine)
     function AddGlobal(classType: Pointer): IClassTemplate;
@@ -40,6 +57,8 @@ type
     function AddObject(className: PAnsiChar; classType: Pointer): IClassTemplate;
       virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
+    procedure SetMethodCallBack(callBack: TMethodCallBack);
+      virtual; stdcall; abstract;
   end;
 
   function NewDelphiEngine(DEngine: TObject): INodeEngine stdcall;

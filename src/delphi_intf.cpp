@@ -61,9 +61,42 @@ namespace embed {
     Run(args.size(), args.data());
   }
 
+  void IEmbedEngine::SetFunctionCallBack(TMethodCallBack functionCB)
+  {
+    functionCallBack = functionCB;
+  }
+
   void * IEmbedEngine::DelphiEngine()
   {
     return dEngine;
+  }
+
+  void * IEmbedEngine::GetDelphiObject(v8::Local<v8::Object> holder)
+  {
+    void* result = nullptr;
+    if (holder->InternalFieldCount() > OBJECT_INTERNAL_FIELD_NUMBER) {
+      auto internalfield = holder->GetInternalField(
+        OBJECT_INTERNAL_FIELD_NUMBER);
+      if (internalfield->IsExternal()) {
+        auto classtype = internalfield.As<v8::External>();
+        result = classtype->Value();
+      }
+    }
+    return result;
+  }
+
+  void * IEmbedEngine::GetDelphiClasstype(v8::Local<v8::Object> obj)
+  {
+    void * result = nullptr;
+    if ((obj->InternalFieldCount() > CLASSTYPE_INTERNAL_FIELD_NUMBER)) {
+      auto internalfield = obj->GetInternalField(
+        CLASSTYPE_INTERNAL_FIELD_NUMBER);
+      if (internalfield->IsExternal()) {
+        auto classtype = internalfield.As<v8::External>();
+        result = classtype->Value();
+      }
+    }
+    return result;
   }
 
   IEmbedEngine * IEmbedEngine::GetEngine(v8::Isolate * isolate)
@@ -76,9 +109,9 @@ namespace embed {
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
-    auto result = v8::String::NewFromUtf8(args.GetIsolate(), "function called",
-      v8::NewStringType::kNormal).ToLocalChecked();
-    args.GetReturnValue().Set(result);
+    IMethodArgs methodArgs(args);
+    auto engine = IEmbedEngine::GetEngine(args.GetIsolate());
+    engine->functionCallBack(&methodArgs);
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -138,5 +171,70 @@ namespace embed {
       v8::Local<v8::FunctionTemplate> methodCallBack = v8::FunctionTemplate::New(isolate, FunctionCallBack, v8::External::New(isolate, method->call));
       proto->Set(isolate, method->name.c_str(), methodCallBack);
     }
+  }
+  IMethodArgs::IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs)
+  {
+    args = &newArgs;
+    iso = args->GetIsolate();
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  void * IMethodArgs::GetEngine()
+  {
+    void * result = nullptr;
+    if (engine) {
+      result = engine->DelphiEngine();
+    }
+    return result;
+  }
+  void * IMethodArgs::GetDelphiObject()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = args->Holder();
+      result = engine->GetDelphiObject(holder);
+    }
+    return result;
+  }
+  void * IMethodArgs::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = args->Holder();
+      result = engine->GetDelphiClasstype(holder);
+    }
+    return result;
+  }
+  char * IMethodArgs::GetMethodName()
+  {
+    v8::Isolate * iso = args->GetIsolate();
+    v8::String::Utf8Value str(args->Callee()->GetName());
+    run_string_result = *str;
+    run_string_result.push_back(0);
+    return const_cast<char *>(run_string_result.c_str());
+  }
+  void IMethodArgs::SetReturnValueInt(int val)
+  {
+    args->GetReturnValue().Set(val);
+  }
+  void IMethodArgs::SetReturnValueBool(bool val)
+  {
+    args->GetReturnValue().Set(val);
+  }
+  void IMethodArgs::SetReturnValueString(char * val)
+  {
+    auto value = v8::String::NewFromUtf8(iso, val,
+      v8::NewStringType::kNormal).ToLocalChecked();
+    args->GetReturnValue().Set(value);
+  }
+  void IMethodArgs::SetReturnValueDouble(double val)
+  {
+    args->GetReturnValue().Set(val);
+  }
+  void * IMethodArgs::GetDelphiMethod()
+  {
+    if (args->Data()->IsExternal()) {
+      return args->Data().As<v8::External>()->Value();
+    }
+    return nullptr;
   }
 }

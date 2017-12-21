@@ -9,6 +9,7 @@ type
   TJSEngine = class(TObject)
   private
     FEngine: INodeEngine;
+    FGlobal: TObject;
   public
     constructor Create();
     procedure AddGlobal(Global: TObject);
@@ -17,10 +18,54 @@ type
     destructor Destroy; override;
   end;
 
+  procedure MethodCallBack(Args: IMethodArgs); stdcall;
+
 implementation
 
 var
   Context: TRttiContext;
+
+procedure MethodCallBack(Args: IMethodArgs);
+var
+  Engine: TJSEngine;
+  Method: TRttiMethod;
+  Obj: TObject;
+  Result: TValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Method := Args.GetDelphiMethod as TRttiMethod;
+    Result := Method.Invoke(Obj, []);
+    case Result.Kind of
+      tkInteger: Args.SetReturnValue(Result.AsInteger);
+      tkInt64: Args.SetReturnValue(Result.AsInt64);
+      tkEnumeration: Args.SetReturnValue(Result.AsOrdinal);
+      tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+        Args.SetReturnValue(StringToPUtf8Char(Result.AsString));
+      tkFloat: args.SetReturnValue(Result.AsExtended);
+      tkSet: ;
+      tkClass: ;
+      tkMethod: ;
+      tkVariant: ;
+      tkArray: ;
+      tkRecord: ;
+      tkInterface: ;
+      tkDynArray: ;
+      tkClassRef: ;
+      tkPointer: ;
+      tkProcedure: ;
+    end;
+  end;
+end;
 
 { TJSEngine }
 
@@ -30,6 +75,7 @@ var
   GlobalTyp: TRttiType;
   Method: TRttiMethod;
 begin
+  FGlobal := Global;
   GlobalTyp := Context.GetType(Global.ClassType);
   GlobalTemplate := FEngine.AddGlobal(Global.ClassType);
   for Method in GlobalTyp.GetMethods do
@@ -37,7 +83,7 @@ begin
     if (Method.Visibility = mvPublic) and
       (Method.Parent.Handle = GlobalTyp.Handle) then
     begin
-      GlobalTemplate.SetMethod(StringToPUtf8Char(Method.Name), nil);
+      GlobalTemplate.SetMethod(StringToPUtf8Char(Method.Name), Method);
     end;
   end;
 end;
@@ -48,7 +94,8 @@ begin
     //TODO: CheckNodeversion and raise exception if major_ver mismatch
 //      Format('Failed to intialize node.dll. ' +
 //        'Incorrect version. Required %d version', [NODE_AVAILABLE_VER]);
-    FEngine := NewDelphiEngine(Self)
+    FEngine := NewDelphiEngine(Self);
+    FEngine.SetMethodCallBack(MethodCallBack);
   except
     on E: EExternalException do
     begin

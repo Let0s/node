@@ -4,6 +4,8 @@
 //here will be export functions and classes to use NodeJS in delphi projects
 
 namespace embed {
+  class IEmbedEngine;
+
   //wrapper for Delphi class property
   struct IClassProp{
   public:
@@ -58,6 +60,30 @@ namespace embed {
     std::vector<std::unique_ptr<IClassMethod>> methods;
   };
 
+  class IMethodArgs : public IBaseIntf {
+  public:
+    IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs);
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+
+    virtual char * APIENTRY GetMethodName();
+
+    virtual void APIENTRY SetReturnValueInt(int val);
+    virtual void APIENTRY SetReturnValueBool(bool val);
+    virtual void APIENTRY SetReturnValueString(char * val);
+    virtual void APIENTRY SetReturnValueDouble(double val);
+
+    virtual void * APIENTRY GetDelphiMethod();
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    const v8::FunctionCallbackInfo<v8::Value>* args = nullptr;
+    std::string run_string_result;
+  };
+
+  typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
+
   class IEmbedEngine : public BaseEngine {
   public:
     IEmbedEngine(void * dEng);
@@ -67,8 +93,14 @@ namespace embed {
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
     virtual void APIENTRY RunString(char * code);
+    virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
+
     void * DelphiEngine();
+    void* GetDelphiObject(v8::Local<v8::Object> holder);
+    void* GetDelphiClasstype(v8::Local<v8::Object> obj);
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
+
+    TMethodCallBack functionCallBack;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
