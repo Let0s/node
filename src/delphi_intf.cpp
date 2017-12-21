@@ -8,15 +8,30 @@ namespace embed {
     dEngine = dEng;
   }
 
+  IEmbedEngine::~IEmbedEngine()
+  {
+    if (globalTemplate) {
+      delete globalTemplate;
+    }
+  }
+
   v8::Local<v8::Context> IEmbedEngine::CreateContext(v8::Isolate * isolate)
   {
-    v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
-    for (auto &obj : objects) {
-      auto objTemplate = obj.get();
-      //global->Set()
+    v8::Local<v8::FunctionTemplate> global = v8::FunctionTemplate::New(isolate);
+    if (globalTemplate) {
+      globalTemplate->ModifyTemplate(isolate, global);
     }
-    auto context = v8::Context::New(isolate, NULL, global);
+    auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
     return context;
+  }
+
+  IClassTemplate * IEmbedEngine::AddGlobal(void * dClass)
+  {
+    if (globalTemplate) {
+      delete globalTemplate;
+    }
+    globalTemplate = new IClassTemplate("global", dClass);
+    return globalTemplate;
   }
 
   IClassTemplate * IEmbedEngine::AddObject(char * className, void * classType)
@@ -49,8 +64,11 @@ namespace embed {
     return nullptr;
   }
 
-  void FieldGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
-  {    
+  void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    auto result = v8::String::NewFromUtf8(args.GetIsolate(), "function called",
+      v8::NewStringType::kNormal).ToLocalChecked();
+    args.GetReturnValue().Set(result);
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -100,5 +118,14 @@ namespace embed {
   void IClassTemplate::SetParent(IClassTemplate * parent)
   {
     parentTemplate = parent;
+  }
+  void IClassTemplate::ModifyTemplate(v8::Isolate * isolate,
+    v8::Local<v8::FunctionTemplate> templ)
+  {
+    auto proto = templ->PrototypeTemplate();
+    for (auto &method : methods) {
+      v8::Local<v8::FunctionTemplate> methodCallBack = v8::FunctionTemplate::New(isolate, FunctionCallBack, v8::External::New(isolate, method->call));
+      proto->Set(isolate, method->name.c_str(), methodCallBack);
+    }
   }
 }

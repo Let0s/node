@@ -3,7 +3,7 @@ unit NodeEngine;
 interface
 
 uses
-  NodeInterface, SysUtils;
+  NodeInterface, SysUtils, RTTI, Types, TypInfo;
 
 type
   TJSEngine = class(TObject)
@@ -11,6 +11,7 @@ type
     FEngine: INodeEngine;
   public
     constructor Create();
+    procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
     destructor Destroy; override;
@@ -18,7 +19,28 @@ type
 
 implementation
 
+var
+  Context: TRttiContext;
+
 { TJSEngine }
+
+procedure TJSEngine.AddGlobal(Global: TObject);
+var
+  GlobalTemplate: IClassTemplate;
+  GlobalTyp: TRttiType;
+  Method: TRttiMethod;
+begin
+  GlobalTyp := Context.GetType(Global.ClassType);
+  GlobalTemplate := FEngine.AddGlobal(Global.ClassType);
+  for Method in GlobalTyp.GetMethods do
+  begin
+    if (Method.Visibility = mvPublic) and
+      (Method.Parent.Handle = GlobalTyp.Handle) then
+    begin
+      GlobalTemplate.SetMethod(StringToPUtf8Char(Method.Name), nil);
+    end;
+  end;
+end;
 
 constructor TJSEngine.Create;
 begin
@@ -51,5 +73,11 @@ procedure TJSEngine.RunString(code: string);
 begin
   FEngine.RunString(StringToPUtf8Char(code));
 end;
+
+initialization
+  Context := TRttiContext.Create;
+
+finalization
+  Context.Free;
 
 end.

@@ -37,6 +37,9 @@ namespace embed {
     virtual void APIENTRY SetField(char* fieldName);
     virtual void APIENTRY SetParent(IClassTemplate * parent);
 
+    void ModifyTemplate(v8::Isolate * isolate,
+      v8::Local<v8::FunctionTemplate> templ);
+
     //pointer to delphi classtype
     void * dClass = nullptr;
     // class name
@@ -49,7 +52,6 @@ namespace embed {
     //??
     std::vector<char> runStringResult;
   private:
-
     std::vector<std::unique_ptr<IClassProp>> props;
     std::vector<std::unique_ptr<IClassProp>> indexed_props;
     std::vector<std::string> fields;
@@ -59,16 +61,23 @@ namespace embed {
   class IEmbedEngine : public BaseEngine {
   public:
     IEmbedEngine(void * dEng);
+    ~IEmbedEngine();
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
-    virtual IClassTemplate * AddObject(char * className, void * classType);
+    virtual IClassTemplate * APIENTRY AddGlobal(void * dClass);
+    virtual IClassTemplate * APIENTRY AddObject(char * className,
+      void * classType);
     virtual void APIENTRY RunString(char * code);
     void * DelphiEngine();
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
+    //global template, which is used for creating context
+    IClassTemplate * globalTemplate = nullptr;
     std::vector<std::unique_ptr<IClassTemplate>> objects;
   };
+
+  void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   extern "C" {
     EMBED_EXTERN IEmbedEngine * APIENTRY NewDelphiEngine(void * dEngine);
