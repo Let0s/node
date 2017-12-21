@@ -32,21 +32,9 @@ begin
     Global := TTestGlobal.Create;
     try
       Engine.AddGlobal(Global);
-      Engine.RunString('' + NewLine
-        + 'console.log(''hello, world!'')' + NewLine
-        + 'const NS_PER_SEC = 1e9;' + NewLine
-        + 'var sum = 0;' + NewLine
-        + 'const iter_count = ' + IntToStr(iter_count) + ';' + NewLine
-        + 'const time = process.hrtime();' + NewLine
-        + 'for (var i = 0; i < iter_count; i ++)'  + NewLine
-        + '  sum += i;'  + NewLine
-        + 'const diff = process.hrtime(time);' + NewLine
-        + 'console.log(`sum = ${sum}`);' + NewLine
-        + 'console.log(`this took ${diff[0] * NS_PER_SEC + diff[1]}'
-        + ' nanoseconds or about ${diff[0]} seconds`);' + NewLine
-        + '');
-      Engine.RunString('console.log("now we call Delphi function");' + NewLine
-        + 'console.log(Func());');
+      Engine.RunString('console.log("start Test");' + NewLine
+        + 'Func();'  + NewLine
+        + 'console.log("success")');
     finally
       Global.Free;
       Engine.Free;
