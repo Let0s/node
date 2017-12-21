@@ -22,7 +22,7 @@ type
   end;
 
   // delphi class wrapper
-  IObjectTemplate = class(IBaseEngine)
+  IClassTemplate = class(IBaseEngine)
     procedure SetMethod(name: PAnsiChar; method: Pointer); virtual;
       stdcall; abstract;
     procedure SetProperty(name: PAnsiChar; prop: Pointer;
@@ -30,12 +30,12 @@ type
     procedure SetIndexedProperty(name: PAnsiChar; prop: Pointer;
       read, write: Boolean); virtual; stdcall; abstract;
     procedure SetField(name: PAnsiChar); virtual; stdcall; abstract;
-    procedure SetParent(parent: IObjectTemplate); virtual; stdcall; abstract;
+    procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;
 
   // Engine class;
   INodeEngine = class(IBaseEngine)
-    function AddObject(className: PAnsiChar; classType: Pointer);
+    function AddObject(className: PAnsiChar; classType: Pointer): IClassTemplate;
       virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
   end;

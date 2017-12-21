@@ -19,9 +19,9 @@ namespace embed {
     return context;
   }
 
-  IObjectTemplate * IEmbedEngine::AddObject(char * className, void * classType)
+  IClassTemplate * IEmbedEngine::AddObject(char * className, void * classType)
   {
-    auto object = std::make_unique<IObjectTemplate>(className, classType);
+    auto object = std::make_unique<IClassTemplate>(className, classType);
     auto result = object.get();
     objects.push_back(std::move(object));
     return result;
@@ -61,43 +61,43 @@ namespace embed {
   {
     Init();
   }
-  IObjectProp::IObjectProp(const char * pName, void * pObj, bool pRead, bool Pwrite)
+  IClassProp::IClassProp(const char * pName, void * pObj, bool pRead, bool Pwrite)
   {
     name = pName;
     obj = pObj;
     read = pRead;
     write = Pwrite;
   }
-  IObjectMethod::IObjectMethod(const char * mName, void * mCall)
+  IClassMethod::IClassMethod(const char * mName, void * mCall)
   {
     name = mName;
     call = mCall;
   }
-  IObjectTemplate::IObjectTemplate(char * objclasstype, void * delphiClass)
+  IClassTemplate::IClassTemplate(char * objclasstype, void * delphiClass)
   {
     classTypeName = objclasstype;
     dClass = delphiClass;
   }
-  void IObjectTemplate::SetMethod(char * methodName, void * methodCall)
+  void IClassTemplate::SetMethod(char * methodName, void * methodCall)
   {
-    auto method = std::make_unique<IObjectMethod>(methodName, methodCall);
+    auto method = std::make_unique<IClassMethod>(methodName, methodCall);
     methods.push_back(std::move(method));
   }
-  void IObjectTemplate::SetProperty(char * propName, void * propObj, bool read, bool write)
+  void IClassTemplate::SetProperty(char * propName, void * propObj, bool read, bool write)
   {
-    auto prop = std::make_unique<IObjectProp>(propName, propObj, read, write);
+    auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     props.push_back(std::move(prop));
   }
-  void IObjectTemplate::SetIndexedProperty(char * propName, void * propObj, bool read, bool write)
+  void IClassTemplate::SetIndexedProperty(char * propName, void * propObj, bool read, bool write)
   {
-    auto prop = std::make_unique<IObjectProp>(propName, propObj, read, write);
+    auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     indexed_props.push_back(std::move(prop));
   }
-  void IObjectTemplate::SetField(char * fieldName)
+  void IClassTemplate::SetField(char * fieldName)
   {
     fields.push_back(fieldName);
   }
-  void IObjectTemplate::SetParent(IObjectTemplate * parent)
+  void IClassTemplate::SetParent(IClassTemplate * parent)
   {
     parentTemplate = parent;
   }
