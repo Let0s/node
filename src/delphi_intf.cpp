@@ -39,6 +39,12 @@ namespace embed {
     return context;
   }
 
+  void IEmbedEngine::Stop()
+  {
+    JSObjects.clear();
+    BaseEngine::Stop();
+  }
+
   IClassTemplate * IEmbedEngine::AddGlobal(void * dClass)
   {
     if (globalTemplate) {
@@ -52,7 +58,7 @@ namespace embed {
   {
     auto object = std::make_unique<IClassTemplate>(className, classType);
     auto result = object.get();
-    objects.push_back(std::move(object));
+    classes.push_back(std::move(object));
     return result;
   }
 

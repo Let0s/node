@@ -90,7 +90,7 @@ namespace embed {
     // to allow application send callbacks
     void Run(int argc, const char * argv[]);
     //stops script execution
-    void Stop();
+    virtual void APIENTRY Stop();
   };
 
   // index of isolate's data slot, where engine is stored

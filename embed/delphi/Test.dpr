@@ -33,7 +33,7 @@ begin
     try
       Engine.AddGlobal(Global);
       Engine.RunString('console.log("start Test");' + NewLine
-        + 'Func();'  + NewLine
+        + 'console.log(Func());'  + NewLine
         + 'console.log("success")');
     finally
       Global.Free;

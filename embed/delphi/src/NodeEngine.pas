@@ -31,6 +31,7 @@ var
   Method: TRttiMethod;
   Obj: TObject;
   Result: TValue;
+  JSResult: IJSValue;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -46,12 +47,12 @@ begin
     Method := Args.GetDelphiMethod as TRttiMethod;
     Result := Method.Invoke(Obj, []);
     case Result.Kind of
-      tkInteger: Args.SetReturnValue(Result.AsInteger);
-      tkInt64: Args.SetReturnValue(Result.AsInt64);
-      tkEnumeration: Args.SetReturnValue(Result.AsOrdinal);
+      tkInteger: JSResult := Engine.FEngine.NewInt32(Result.AsInteger);
+      tkInt64: ;//Args.SetReturnValue(Result.AsInt64);
+      tkEnumeration: JSResult := Engine.FEngine.NewInt32(Result.AsOrdinal);
       tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-        Args.SetReturnValue(StringToPUtf8Char(Result.AsString));
-      tkFloat: args.SetReturnValue(Result.AsExtended);
+        JSResult := Engine.FEngine.NewString(StringToPUtf8Char(Result.AsString));
+      tkFloat: JSResult := Engine.FEngine.NewNumber(Result.AsExtended);
       tkSet: ;
       tkClass: ;
       tkMethod: ;
@@ -64,6 +65,8 @@ begin
       tkPointer: ;
       tkProcedure: ;
     end;
+    if Assigned(JSResult) then
+      Args.SetReturnValue(JSResult);
   end;
 end;
 

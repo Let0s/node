@@ -86,8 +86,8 @@ namespace embed {
       argv,
       exec_argc,
       exec_argv);
-    node::LoadEnvironment(env);
     running = true;
+    node::LoadEnvironment(env);
   }
   void BaseEngine::Stop()
   {

@@ -152,7 +152,10 @@ namespace embed {
   public:
     IEmbedEngine(void * dEng);
     ~IEmbedEngine();
+    //parent functions
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+    virtual void APIENTRY Stop();
+
     virtual IClassTemplate * APIENTRY AddGlobal(void * dClass);
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
@@ -165,6 +168,7 @@ namespace embed {
     virtual IJSValue * APIENTRY NewBoolean(bool value);
     virtual IJSValue * APIENTRY NewString(char * value);
 
+
     void * DelphiEngine();
     void* GetDelphiObject(v8::Local<v8::Object> holder);
     void* GetDelphiClasstype(v8::Local<v8::Object> obj);
@@ -176,7 +180,10 @@ namespace embed {
     void * dEngine = nullptr;
     //global template, which is used for creating context
     IClassTemplate * globalTemplate = nullptr;
-    std::vector<std::unique_ptr<IClassTemplate>> objects;
+    std::vector<std::unique_ptr<IClassTemplate>> classes;
+    std::unordered_map<int64_t,
+                       v8::Persistent<v8::Object,
+                       v8::CopyablePersistentTraits<v8::Object>> > JSObjects;
   };
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);

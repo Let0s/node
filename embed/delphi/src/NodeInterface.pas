@@ -19,10 +19,11 @@ type
     procedure Delete; virtual; stdcall; abstract;
     function Test: Integer; virtual; stdcall; abstract;
   end;
-  // don't use functions from this class
-  //   these functions are virtual for its child classes
+
   IBaseEngine = class(IBaseInterface)
-    function CreateContext(): Pointer; virtual; stdcall; abstract;
+    //do not call
+    function _CreateContext(param: Pointer): Pointer; virtual; abstract;
+    procedure Stop(); virtual; stdcall; abstract;
   end;
 
   IJSValue = class(IBaseInterface)
@@ -101,7 +102,10 @@ type
       virtual; stdcall; abstract;
 
     // if no script running it will return nil;
-
+    function NewInt32(value: Int32): IJSValue; virtual; stdcall; abstract;
+    function NewNumber(value: double): IJSValue; virtual; stdcall; abstract;
+    function NewBool(value: Boolean): IJSValue; virtual; stdcall; abstract;
+    function NewString(value: PAnsiChar): IJSValue; virtual; stdcall; abstract;
 
   end;
 
