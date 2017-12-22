@@ -57,6 +57,8 @@ namespace embed {
   class IJSDelphiObject : public IJSObject {
   public:
     IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val);
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
   };
 
   //wrapper for JS array
@@ -109,18 +111,20 @@ namespace embed {
     void ModifyTemplate(v8::Isolate * isolate,
       v8::Local<v8::FunctionTemplate> templ);
 
+    v8::Local<v8::FunctionTemplate> FunctionTemplate(v8::Isolate * isolate);
     //pointer to delphi classtype
     void * dClass = nullptr;
     // class name
     std::string classTypeName;
-
-    // it will be need for type check like:
-    // childObject instanceof parentClass
-    IClassTemplate * parentTemplate = nullptr;
   protected:
     //??
     std::vector<char> runStringResult;
   private:
+    // it will be need for type check like:
+    // childObject instanceof parentClass
+    IClassTemplate * parentTemplate = nullptr;
+
+    v8::Persistent<v8::FunctionTemplate> v8Template;
     std::vector<std::unique_ptr<IClassProp>> props;
     std::vector<std::unique_ptr<IClassProp>> indexed_props;
     std::vector<std::string> fields;
@@ -167,11 +171,13 @@ namespace embed {
     virtual IJSValue * APIENTRY NewNumber(double value);
     virtual IJSValue * APIENTRY NewBoolean(bool value);
     virtual IJSValue * APIENTRY NewString(char * value);
+    virtual IJSDelphiObject * APIENTRY NewObject(void * value, void * cType);
 
 
     void * DelphiEngine();
     void* GetDelphiObject(v8::Local<v8::Object> holder);
     void* GetDelphiClasstype(v8::Local<v8::Object> obj);
+    IClassTemplate * GetDelphiClassTemplate(void * classType);
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
 
     TMethodCallBack functionCallBack;
@@ -181,9 +187,7 @@ namespace embed {
     //global template, which is used for creating context
     IClassTemplate * globalTemplate = nullptr;
     std::vector<std::unique_ptr<IClassTemplate>> classes;
-    std::unordered_map<int64_t,
-                       v8::Persistent<v8::Object,
-                       v8::CopyablePersistentTraits<v8::Object>> > JSObjects;
+    std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
   };
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);

@@ -41,7 +41,7 @@ namespace embed {
 
   void IEmbedEngine::Stop()
   {
-    JSObjects.clear();
+    JSDelphiObjects.clear();
     BaseEngine::Stop();
   }
 
@@ -117,6 +117,37 @@ namespace embed {
     return result;
   }
 
+  IJSDelphiObject * IEmbedEngine::NewObject(void * value, void * cType)
+  {
+    IJSDelphiObject * result = nullptr;
+    uint64_t hash = (uint64_t(value) << 32) + uint32_t(cType);
+    {
+      auto item = JSDelphiObjects.find(hash);
+      if (item != JSDelphiObjects.end())
+      {
+        result = item->second;
+      }
+    }
+    if (!result) {
+      auto templ = GetDelphiClassTemplate(cType);
+      if (templ) {
+        auto funcTemplate = templ->FunctionTemplate(Isolate());
+        if (!funcTemplate.IsEmpty()) {
+          auto obj = funcTemplate->InstanceTemplate()->NewInstance();
+          if (!obj.IsEmpty()) {
+            obj->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER,
+              v8::External::New(Isolate(), cType));
+            obj->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
+              v8::External::New(Isolate(), value));
+            result = new IJSDelphiObject(Isolate(), obj);
+            JSDelphiObjects.emplace(std::make_pair(hash, result));
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   void * IEmbedEngine::DelphiEngine()
   {
     return dEngine;
@@ -148,6 +179,15 @@ namespace embed {
       }
     }
     return result;
+  }
+
+  IClassTemplate * IEmbedEngine::GetDelphiClassTemplate(void * classType)
+  {
+    for (auto &clas : classes) {
+      if (clas->dClass == classType)
+        return clas.get();
+    }
+    return nullptr;
   }
 
   IEmbedEngine * IEmbedEngine::GetEngine(v8::Isolate * isolate)
@@ -228,6 +268,12 @@ namespace embed {
                                   v8::External::New(isolate, method->call));
       proto->Set(isolate, method->name.c_str(), methodCallBack);
     }
+    v8Template.Reset(isolate, templ);
+  }
+  v8::Local<v8::FunctionTemplate> IClassTemplate::FunctionTemplate(
+    v8::Isolate * isolate)
+  {
+    return v8Template.Get(isolate);
   }
   IMethodArgs::IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs)
   {
@@ -418,5 +464,23 @@ namespace embed {
   IJSDelphiObject::IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val):
     IJSObject(iso, val)
   {
+  }
+  void * IJSDelphiObject::GetDelphiObject()
+  {
+    void * result = nullptr;
+    auto engine = IEmbedEngine::GetEngine(isolate);
+    if (engine) {
+      engine->GetDelphiObject(V8Object());
+    }
+    return result;
+  }
+  void * IJSDelphiObject::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    auto engine = IEmbedEngine::GetEngine(isolate);
+    if (engine) {
+      engine->GetDelphiClasstype(V8Object());
+    }
+    return result;
   }
 }
