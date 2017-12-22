@@ -29,8 +29,12 @@ namespace embed {
     if (globalTemplate) {
       auto globalObject = context->Global();
       CHECK(globalObject->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT);
-      globalObject->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER, v8::External::New(isolate, globalTemplate->dClass));
-      globalObject->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER, v8::Undefined(isolate));
+      globalObject->SetInternalField(
+        CLASSTYPE_INTERNAL_FIELD_NUMBER,
+        v8::External::New(isolate, globalTemplate->dClass));
+      globalObject->SetInternalField(
+        OBJECT_INTERNAL_FIELD_NUMBER,
+        v8::Undefined(isolate));
     }
     return context;
   }
@@ -122,7 +126,8 @@ namespace embed {
   {
     Init();
   }
-  IClassProp::IClassProp(const char * pName, void * pObj, bool pRead, bool Pwrite)
+  IClassProp::IClassProp(const char * pName, void * pObj,
+    bool pRead, bool Pwrite)
   {
     name = pName;
     obj = pObj;
@@ -144,12 +149,14 @@ namespace embed {
     auto method = std::make_unique<IClassMethod>(methodName, methodCall);
     methods.push_back(std::move(method));
   }
-  void IClassTemplate::SetProperty(char * propName, void * propObj, bool read, bool write)
+  void IClassTemplate::SetProperty(char * propName, void * propObj,
+    bool read, bool write)
   {
     auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     props.push_back(std::move(prop));
   }
-  void IClassTemplate::SetIndexedProperty(char * propName, void * propObj, bool read, bool write)
+  void IClassTemplate::SetIndexedProperty(char * propName, void * propObj,
+    bool read, bool write)
   {
     auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     indexed_props.push_back(std::move(prop));
@@ -168,7 +175,10 @@ namespace embed {
     auto proto = templ->PrototypeTemplate();
     proto->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
     for (auto &method : methods) {
-      v8::Local<v8::FunctionTemplate> methodCallBack = v8::FunctionTemplate::New(isolate, FunctionCallBack, v8::External::New(isolate, method->call));
+      v8::Local<v8::FunctionTemplate> methodCallBack =
+        v8::FunctionTemplate::New(isolate,
+                                  FunctionCallBack,
+                                  v8::External::New(isolate, method->call));
       proto->Set(isolate, method->name.c_str(), methodCallBack);
     }
   }

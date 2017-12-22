@@ -10,7 +10,9 @@ namespace embed {
     if (!initialized) {
 
       // Initialize v8.
-      v8_platform = new node::NodePlatform(DEFAULT_THREAD_POOL_SIZE, uv_default_loop(), nullptr);
+      v8_platform = new node::NodePlatform(DEFAULT_THREAD_POOL_SIZE,
+                                           uv_default_loop(),
+                                           nullptr);
       v8::V8::InitializePlatform(v8_platform);
       v8::V8::Initialize();
 

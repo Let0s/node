@@ -58,7 +58,9 @@ namespace embed {
   //keeps isolate locked and entered
   class ScriptParams {
   public:
-    inline ScriptParams(v8::Isolate * iso) : locker(iso), isolate_scope(iso), h_scope(iso) {};
+    inline ScriptParams(v8::Isolate * iso) : locker(iso),
+                                             isolate_scope(iso),
+                                             h_scope(iso) {};
     ~ScriptParams() {
     };
   private:
