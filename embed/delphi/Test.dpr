@@ -9,7 +9,8 @@ uses
   Math,
   NodeInterface in 'src\NodeInterface.pas',
   NodeEngine in 'src\NodeEngine.pas',
-  TestClasses in 'src\TestClasses.pas';
+  TestClasses in 'src\TestClasses.pas',
+  EngineHelper in 'src\EngineHelper.pas';
 
 const
   NewLine = #10#13;

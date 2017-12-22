@@ -54,7 +54,8 @@ type
   end;
 
   IJSDelphiObject = class(IJSObject)
-
+    function GetDelphiObject: TObject; virtual; stdcall; abstract;
+    function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
   end;
 
   IJSArray = class(IJSValue)
@@ -106,6 +107,8 @@ type
     function NewNumber(value: double): IJSValue; virtual; stdcall; abstract;
     function NewBool(value: Boolean): IJSValue; virtual; stdcall; abstract;
     function NewString(value: PAnsiChar): IJSValue; virtual; stdcall; abstract;
+    function NewDelphiObject(value: TObject;
+      classType: TClass): IJSDelphiObject; virtual; stdcall; abstract;
 
   end;
 

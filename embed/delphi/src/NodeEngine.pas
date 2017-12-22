@@ -45,6 +45,7 @@ begin
         Obj := Engine.FGlobal;
     end;
     Method := Args.GetDelphiMethod as TRttiMethod;
+    JSResult := nil;
     Result := Method.Invoke(Obj, []);
     case Result.Kind of
       tkInteger: JSResult := Engine.FEngine.NewInt32(Result.AsInteger);
@@ -54,7 +55,8 @@ begin
         JSResult := Engine.FEngine.NewString(StringToPUtf8Char(Result.AsString));
       tkFloat: JSResult := Engine.FEngine.NewNumber(Result.AsExtended);
       tkSet: ;
-      tkClass: ;
+      tkClass: JSResult := Engine.FEngine.NewDelphiObject(Result.AsObject,
+        Result.AsObject.ClassType);
       tkMethod: ;
       tkVariant: ;
       tkArray: ;
