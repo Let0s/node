@@ -15,6 +15,8 @@ namespace embed {
   class IJSValue: public IBaseIntf {
   public:
     IJSValue(v8::Isolate * iso, v8::Local<v8::Value> val);
+    static IJSValue * MakeValue(v8::Isolate * isolate,
+                                v8::Local<v8::Value> val);
     v8::Local<v8::Value> V8Value();
     virtual bool APIENTRY IsUndefined();
     virtual bool APIENTRY IsNull();
@@ -46,21 +48,29 @@ namespace embed {
 
   //wrapper for JS object
   class IJSObject : public IJSValue {
+  public:
+    IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Object> V8Object();
   };
 
   //wrapper for JS delphi object
   class IJSDelphiObject : public IJSObject {
+  public:
+    IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val);
   };
 
   //wrapper for JS array
   class IJSArray : public IJSValue {
+  public:
+    IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Array> V8Array();
   };
 
   //wrapper for JS function
   class IJSFunction : public IJSValue {
-
+  public:
+    IJSFunction(v8::Isolate * iso, v8::Local<v8::Value> val);
+    v8::Local<v8::Function> V8Function();
   };
 
   //wrapper for Delphi class property

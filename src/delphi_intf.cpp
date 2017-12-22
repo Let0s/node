@@ -252,9 +252,39 @@ namespace embed {
     isolate = iso;
     value.Reset(iso, val);
   }
+  IJSValue * IJSValue::MakeValue(v8::Isolate * isolate,
+    v8::Local<v8::Value> val)
+  {
+    IJSValue * result = nullptr;
+    if (val->IsObject()) {
+      auto obj = val->ToObject();
+      if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
+        result = new IJSDelphiObject(isolate, val);
+      }
+      else {
+        result = new IJSObject(isolate, val);
+      }
+    }
+    else if (val->IsFunction()) {
+      result = new IJSFunction(isolate, val);
+    }
+    else if (val->IsArray()) {
+      result = new IJSArray(isolate, val);
+    }
+    else if (val->IsInt32() || val->IsString() || val->IsNumber() ||
+      val->IsBoolean() || val->IsUndefined() || val->IsNull()) {
+      result = new IJSValue(isolate, val);
+    }
+
+    return result;
+  }
   v8::Local<v8::Value> IJSValue::V8Value()
   {
     return value.Get(isolate);
+  }
+  IJSObject::IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val): IJSValue(
+    iso, val)
+  {
   }
   v8::Local<v8::Object> IJSObject::V8Object()
   {
@@ -334,8 +364,24 @@ namespace embed {
   {
     return V8Value()->IsNumber();
   }
+  IJSArray::IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val) : IJSValue(
+    iso, val)
+  {
+  }
   v8::Local<v8::Array> IJSArray::V8Array()
   {
     return V8Value().As<v8::Array>();
+  }
+  IJSFunction::IJSFunction(v8::Isolate * iso, v8::Local<v8::Value> val) :
+    IJSValue(iso, val)
+  {
+  }
+  v8::Local<v8::Function> IJSFunction::V8Function()
+  {
+    return V8Value().As<v8::Function>();
+  }
+  IJSDelphiObject::IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val):
+    IJSObject(iso, val)
+  {
   }
 }
