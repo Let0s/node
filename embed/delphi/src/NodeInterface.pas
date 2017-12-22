@@ -32,7 +32,7 @@ type
     function IsBool: boolean; virtual; stdcall; abstract;
     function IsInt32: boolean; virtual; stdcall; abstract;
     function IsString: boolean; virtual; stdcall; abstract;
-    function IsFloat: boolean; virtual; stdcall; abstract;
+    function IsNumber: boolean; virtual; stdcall; abstract;
     function IsObject: boolean; virtual; stdcall; abstract;
     function IsDelphiObject: boolean; virtual; stdcall; abstract;
     function IsArray: boolean; virtual; stdcall; abstract;
@@ -41,7 +41,7 @@ type
     function AsBool: boolean; virtual; stdcall; abstract;
     function AsInt32: Int32; virtual; stdcall; abstract;
     function AsString: PAnsiChar; virtual; stdcall; abstract;
-    function AsFloat: double; virtual; stdcall; abstract;
+    function AsNumber: double; virtual; stdcall; abstract;
     function AsObject: IJSObject; virtual; stdcall; abstract;
     function AsDelphiObject: IJSDelphiObject; virtual; stdcall; abstract;
     function AsArray: IJSArray; virtual; stdcall; abstract;
@@ -83,10 +83,7 @@ type
 
     function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
 
-    procedure SetReturnValue(val: Int32); overload; virtual; stdcall; abstract;
-    procedure SetReturnValue(val: boolean); overload; virtual; stdcall; abstract;
-    procedure SetReturnValue(val: PAnsiChar); overload; virtual; stdcall; abstract;
-    procedure SetReturnValue(val: Double); overload; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: IJSValue); virtual; stdcall; abstract;
 
     function GetDelphiMethod: TObject; virtual; stdcall; abstract;
   end;
@@ -102,6 +99,10 @@ type
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
     procedure SetMethodCallBack(callBack: TMethodCallBack);
       virtual; stdcall; abstract;
+
+    // if no script running it will return nil;
+
+
   end;
 
   function NewDelphiEngine(DEngine: TObject): INodeEngine stdcall;

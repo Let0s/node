@@ -52,6 +52,18 @@ namespace embed {
     return context;
   }
 
+  bool BaseEngine::IsRunning()
+  {
+    return running;
+  }
+
+  v8::Isolate * BaseEngine::Isolate()
+  {
+    if (IsRunning())
+      return iso;
+    return nullptr;
+  }
+
   void BaseEngine::Run(int argc, const char * argv[])
   {
     Stop();

@@ -24,7 +24,7 @@ namespace embed {
     virtual bool APIENTRY IsBool();
     virtual bool APIENTRY IsInt32();
     virtual bool APIENTRY IsString();
-    virtual bool APIENTRY IsFloat();
+    virtual bool APIENTRY IsNumber();
     virtual bool APIENTRY IsObject();
     virtual bool APIENTRY IsDelphiObject();
     virtual bool APIENTRY IsArray();
@@ -33,7 +33,7 @@ namespace embed {
     virtual bool APIENTRY AsBool();
     virtual int32_t APIENTRY AsInt32();
     virtual char * APIENTRY AsString();
-    virtual double APIENTRY AsFloat();
+    virtual double APIENTRY AsNumber();
     virtual IJSObject * APIENTRY AsObject();
     virtual IJSDelphiObject * APIENTRY AsDelphiObject();
     virtual IJSArray * APIENTRY AsArray();
@@ -136,10 +136,7 @@ namespace embed {
 
     virtual char * APIENTRY GetMethodName();
 
-    virtual void APIENTRY SetReturnValueInt(int32_t val);
-    virtual void APIENTRY SetReturnValueBool(bool val);
-    virtual void APIENTRY SetReturnValueString(char * val);
-    virtual void APIENTRY SetReturnValueDouble(double val);
+    virtual void APIENTRY SetReturnValue(IJSValue * val);
 
     virtual void * APIENTRY GetDelphiMethod();
   private:
@@ -161,6 +158,12 @@ namespace embed {
       void * classType);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
+
+    //these functions avaliable only when script running
+    virtual IJSValue * APIENTRY NewInt32(int32_t value);
+    virtual IJSValue * APIENTRY NewNumber(double value);
+    virtual IJSValue * APIENTRY NewBoolean(bool value);
+    virtual IJSValue * APIENTRY NewString(char * value);
 
     void * DelphiEngine();
     void* GetDelphiObject(v8::Local<v8::Object> holder);

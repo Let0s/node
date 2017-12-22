@@ -70,6 +70,47 @@ namespace embed {
     functionCallBack = functionCB;
   }
 
+  IJSValue * IEmbedEngine::NewInt32(int32_t value)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      auto val = v8::Int32::New(Isolate(), value);
+      result = new IJSValue(Isolate(), val);
+    }
+    return result;
+  }
+
+  IJSValue * IEmbedEngine::NewNumber(double value)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      auto val = v8::Number::New(Isolate(), value);
+      result = new IJSValue(Isolate(), val);
+    }
+    return result;
+  }
+
+  IJSValue * IEmbedEngine::NewBoolean(bool value)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      auto val = v8::Boolean::New(Isolate(), value);
+      result = new IJSValue(Isolate(), val);
+    }
+    return result;
+  }
+
+  IJSValue * IEmbedEngine::NewString(char * value)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      auto val = v8::String::NewFromUtf8(Isolate(), value,
+        v8::NewStringType::kNormal).ToLocalChecked();
+      result = new IJSValue(Isolate(), val);
+    }
+    return result;
+  }
+
   void * IEmbedEngine::DelphiEngine()
   {
     return dEngine;
@@ -222,23 +263,11 @@ namespace embed {
     run_string_result.push_back(0);
     return const_cast<char *>(run_string_result.c_str());
   }
-  void IMethodArgs::SetReturnValueInt(int32_t val)
+  void IMethodArgs::SetReturnValue(IJSValue * val)
   {
-    args->GetReturnValue().Set(val);
-  }
-  void IMethodArgs::SetReturnValueBool(bool val)
-  {
-    args->GetReturnValue().Set(val);
-  }
-  void IMethodArgs::SetReturnValueString(char * val)
-  {
-    auto value = v8::String::NewFromUtf8(iso, val,
-      v8::NewStringType::kNormal).ToLocalChecked();
-    args->GetReturnValue().Set(value);
-  }
-  void IMethodArgs::SetReturnValueDouble(double val)
-  {
-    args->GetReturnValue().Set(val);
+    if (val) {
+      args->GetReturnValue().Set(val->V8Value());
+    }
   }
   void * IMethodArgs::GetDelphiMethod()
   {
@@ -320,7 +349,7 @@ namespace embed {
     runStringResult = *str;
     return const_cast<char *>(runStringResult.c_str());
   }
-  double IJSValue::AsFloat()
+  double IJSValue::AsNumber()
   {
     return V8Value()->NumberValue();
   }
@@ -360,7 +389,7 @@ namespace embed {
   {
     return V8Value()->IsString();
   }
-  bool IJSValue::IsFloat()
+  bool IJSValue::IsNumber()
   {
     return V8Value()->IsNumber();
   }
