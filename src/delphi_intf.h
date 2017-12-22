@@ -5,6 +5,11 @@
 
 namespace embed {
   class IEmbedEngine;
+  class IJSObject;
+  class IJSDelphiObject;
+  class IJSArray;
+  class IJSFunction;
+
 
   //wrapper for JS value
   class IJSValue: public IBaseIntf {
@@ -13,18 +18,30 @@ namespace embed {
     v8::Local<v8::Value> V8Value();
     virtual bool APIENTRY IsUndefined();
     virtual bool APIENTRY IsNull();
+
     virtual bool APIENTRY IsBool();
-    virtual bool APIENTRY IsInt();
+    virtual bool APIENTRY IsInt32();
     virtual bool APIENTRY IsString();
     virtual bool APIENTRY IsFloat();
     virtual bool APIENTRY IsObject();
     virtual bool APIENTRY IsDelphiObject();
     virtual bool APIENTRY IsArray();
     virtual bool APIENTRY IsFunction();
+
+    virtual bool APIENTRY AsBool();
+    virtual int32_t APIENTRY AsInt32();
+    virtual char * APIENTRY AsString();
+    virtual double APIENTRY AsFloat();
+    virtual IJSObject * APIENTRY AsObject();
+    virtual IJSDelphiObject * APIENTRY AsDelphiObject();
+    virtual IJSArray * APIENTRY AsArray();
+    virtual IJSFunction * APIENTRY AsFunction();
   protected:
     v8::Isolate * isolate;
   private:
     v8::Persistent<v8::Value> value;
+    //it will stor char*, returned by AsString() method
+    std::string runStringResult;
   };
 
   //wrapper for JS object
@@ -109,7 +126,7 @@ namespace embed {
 
     virtual char * APIENTRY GetMethodName();
 
-    virtual void APIENTRY SetReturnValueInt(int val);
+    virtual void APIENTRY SetReturnValueInt(int32_t val);
     virtual void APIENTRY SetReturnValueBool(bool val);
     virtual void APIENTRY SetReturnValueString(char * val);
     virtual void APIENTRY SetReturnValueDouble(double val);

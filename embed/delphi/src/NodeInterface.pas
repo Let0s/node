@@ -7,6 +7,11 @@ interface
   const EMBED_MINOR_VERSION = 1;
 
 type
+  IJSObject = class;
+  IJSDelphiObject = class;
+  IJSArray = class;
+  IJSFunction = class;
+
   IBaseInterface = class
     // do not call!
     // here because implementation needs virtual C++ destructor
@@ -23,14 +28,24 @@ type
   IJSValue = class(IBaseInterface)
     function IsUndefined: boolean; virtual; stdcall; abstract;
     function IsNull: boolean; virtual; stdcall; abstract;
+
     function IsBool: boolean; virtual; stdcall; abstract;
-    function IsInt: boolean; virtual; stdcall; abstract;
+    function IsInt32: boolean; virtual; stdcall; abstract;
     function IsString: boolean; virtual; stdcall; abstract;
     function IsFloat: boolean; virtual; stdcall; abstract;
     function IsObject: boolean; virtual; stdcall; abstract;
     function IsDelphiObject: boolean; virtual; stdcall; abstract;
     function IsArray: boolean; virtual; stdcall; abstract;
     function IsFunction: boolean; virtual; stdcall; abstract;
+
+    function AsBool: boolean; virtual; stdcall; abstract;
+    function AsInt32: Int32; virtual; stdcall; abstract;
+    function AsString: PAnsiChar; virtual; stdcall; abstract;
+    function AsFloat: double; virtual; stdcall; abstract;
+    function AsObject: IJSObject; virtual; stdcall; abstract;
+    function AsDelphiObject: IJSDelphiObject; virtual; stdcall; abstract;
+    function AsArray: IJSArray; virtual; stdcall; abstract;
+    function AsFunction: IJSFunction; virtual; stdcall; abstract;
   end;
 
   IJSObject = class(IJSValue)
@@ -68,7 +83,7 @@ type
 
     function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
 
-    procedure SetReturnValue(val: integer); overload; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: Int32); overload; virtual; stdcall; abstract;
     procedure SetReturnValue(val: boolean); overload; virtual; stdcall; abstract;
     procedure SetReturnValue(val: PAnsiChar); overload; virtual; stdcall; abstract;
     procedure SetReturnValue(val: Double); overload; virtual; stdcall; abstract;

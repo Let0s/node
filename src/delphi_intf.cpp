@@ -212,7 +212,7 @@ namespace embed {
     run_string_result.push_back(0);
     return const_cast<char *>(run_string_result.c_str());
   }
-  void IMethodArgs::SetReturnValueInt(int val)
+  void IMethodArgs::SetReturnValueInt(int32_t val)
   {
     args->GetReturnValue().Set(val);
   }
@@ -266,6 +266,40 @@ namespace embed {
   {
     return !(dynamic_cast<IJSFunction *>(this) == nullptr);
   }
+  bool IJSValue::AsBool()
+  {
+    return V8Value()->BooleanValue();
+  }
+  int32_t IJSValue::AsInt32()
+  {
+    return V8Value()->Int32Value();
+  }
+  char * IJSValue::AsString()
+  {
+    v8::String::Utf8Value str(V8Value());
+    runStringResult = *str;
+    return const_cast<char *>(runStringResult.c_str());
+  }
+  double IJSValue::AsFloat()
+  {
+    return V8Value()->NumberValue();
+  }
+  IJSObject * IJSValue::AsObject()
+  {
+    return dynamic_cast<IJSObject *>(this);
+  }
+  IJSDelphiObject * IJSValue::AsDelphiObject()
+  {
+    return dynamic_cast<IJSDelphiObject *>(this);
+  }
+  IJSArray * IJSValue::AsArray()
+  {
+    return dynamic_cast<IJSArray *>(this);
+  }
+  IJSFunction * IJSValue::AsFunction()
+  {
+    return dynamic_cast<IJSFunction *>(this);
+  }
   bool IJSValue::IsUndefined()
   {
     return V8Value()->IsUndefined();
@@ -278,7 +312,7 @@ namespace embed {
   {
     return V8Value()->IsBoolean();
   }
-  bool IJSValue::IsInt()
+  bool IJSValue::IsInt32()
   {
     return V8Value()->IsInt32();
   }
