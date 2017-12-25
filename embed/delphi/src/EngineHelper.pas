@@ -50,7 +50,7 @@ end;
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
   Engine: INodeEngine): TValue;
 begin
-
+  Result := TValue.Empty;
   case typ.TypeKind of
     tkUnknown: ;
     tkInteger: Result := value.AsInt32;
