@@ -58,7 +58,9 @@ namespace embed {
   //keeps isolate locked and entered
   class ScriptParams {
   public:
-    inline ScriptParams(v8::Isolate * iso) : locker(iso), isolate_scope(iso), h_scope(iso) {};
+    inline ScriptParams(v8::Isolate * iso) : locker(iso),
+                                             isolate_scope(iso),
+                                             h_scope(iso) {};
     ~ScriptParams() {
     };
   private:
@@ -82,11 +84,13 @@ namespace embed {
     BaseEngine();
     ~BaseEngine();
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+    bool IsRunning();
+    v8::Isolate * Isolate();
     //runs script and keep it alive
     // to allow application send callbacks
     void Run(int argc, const char * argv[]);
     //stops script execution
-    void Stop();
+    virtual void APIENTRY Stop();
   };
 
   // index of isolate's data slot, where engine is stored

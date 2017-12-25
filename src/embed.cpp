@@ -10,7 +10,9 @@ namespace embed {
     if (!initialized) {
 
       // Initialize v8.
-      v8_platform = new node::NodePlatform(DEFAULT_THREAD_POOL_SIZE, uv_default_loop(), nullptr);
+      v8_platform = new node::NodePlatform(DEFAULT_THREAD_POOL_SIZE,
+                                           uv_default_loop(),
+                                           nullptr);
       v8::V8::InitializePlatform(v8_platform);
       v8::V8::Initialize();
 
@@ -50,6 +52,18 @@ namespace embed {
     return context;
   }
 
+  bool BaseEngine::IsRunning()
+  {
+    return running;
+  }
+
+  v8::Isolate * BaseEngine::Isolate()
+  {
+    if (IsRunning())
+      return iso;
+    return nullptr;
+  }
+
   void BaseEngine::Run(int argc, const char * argv[])
   {
     Stop();
@@ -72,8 +86,8 @@ namespace embed {
       argv,
       exec_argc,
       exec_argv);
-    node::LoadEnvironment(env);
     running = true;
+    node::LoadEnvironment(env);
   }
   void BaseEngine::Stop()
   {
