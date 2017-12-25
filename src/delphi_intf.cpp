@@ -85,6 +85,11 @@ namespace embed {
     functionCallBack = functionCB;
   }
 
+  void IEmbedEngine::SetPropGetterCallBack(TGetterCallBack functionCB)
+  {
+    propGetterCallBack = functionCB;
+  }
+
   IJSValue * IEmbedEngine::NewInt32(int32_t value)
   {
     IJSValue * result = nullptr;
@@ -219,7 +224,16 @@ namespace embed {
   {
     IMethodArgs methodArgs(args);
     auto engine = IEmbedEngine::GetEngine(args.GetIsolate());
-    engine->functionCallBack(&methodArgs);
+    if (engine->functionCallBack)
+      engine->functionCallBack(&methodArgs);
+  }
+
+  void PropGetter(v8::Local<v8::String> prop, const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IGetterArgs propArgs(info, prop);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->propGetterCallBack)
+      engine->propGetterCallBack(&propArgs);
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -285,6 +299,13 @@ namespace embed {
                                   v8::External::New(isolate, method->call));
       proto->Set(isolate, method->name.c_str(), methodCallBack);
     }
+    for (auto &prop : props) {
+      auto propname = v8::String::NewFromUtf8(isolate,
+                                              prop->name.c_str(),
+                                              v8::NewStringType::kNormal);
+      proto->SetAccessor(propname.ToLocalChecked(), PropGetter, NULL,
+        v8::External::New(isolate, prop->obj));
+    }
     v8Template.Reset(isolate, templ);
   }
   v8::Local<v8::FunctionTemplate> IClassTemplate::FunctionTemplate(
@@ -310,7 +331,7 @@ namespace embed {
   {
     void * result = nullptr;
     if (engine) {
-      auto holder = args->Holder();
+      auto holder = args->This();
       result = engine->GetDelphiObject(holder);
     }
     return result;
@@ -319,7 +340,7 @@ namespace embed {
   {
     void * result = nullptr;
     if (engine) {
-      auto holder = args->Holder();
+      auto holder = args->This();
       result = engine->GetDelphiClasstype(holder);
     }
     return result;
@@ -499,5 +520,63 @@ namespace embed {
       engine->GetDelphiClasstype(V8Object());
     }
     return result;
+  }
+  IGetterArgs::IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info, v8::Local<v8::Value> prop)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    propValue.Reset(iso, prop);
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IGetterArgs::~IGetterArgs()
+  {
+    if (propWrapper) {
+      delete propWrapper;
+    }
+  }
+  void * IGetterArgs::GetEngine()
+  {
+    void * result = nullptr;
+    if (engine) {
+      result = engine->DelphiEngine();
+    }
+    return result;
+  }
+  void * IGetterArgs::GetDelphiObject()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiObject(holder);
+    }
+    return result;
+  }
+  void * IGetterArgs::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiClasstype(holder);
+    }
+    return result;
+  }
+  IJSValue * IGetterArgs::GetPropName()
+  {
+    if (!propWrapper) {
+      propWrapper = new IJSValue(iso, propValue.Get(iso));
+    }
+    return propWrapper;
+  }
+  void * IGetterArgs::GetPropPointer()
+  {
+    if (propinfo->Data()->IsExternal()) {
+      return propinfo->Data().As<v8::External>()->Value();
+    }
+    return nullptr;
+  }
+  void IGetterArgs::SetGetterResult(IJSValue * val)
+  {
+    if (val)
+      propinfo->GetReturnValue().Set(val->V8Value());
   }
 }

@@ -150,7 +150,29 @@ namespace embed {
     std::string run_string_result;
   };
 
+  class IGetterArgs : public IBaseIntf {
+  public:
+    IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      v8::Local<v8::Value> prop);
+    ~IGetterArgs();
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+    virtual IJSValue * APIENTRY GetPropName();
+    virtual void * APIENTRY GetPropPointer();
+
+    virtual void APIENTRY SetGetterResult(IJSValue * val);
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    v8::Persistent<v8::Value> propValue;
+    IJSValue * propWrapper = nullptr;
+    const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
+  };
+
+
   typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
+  typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
 
   class IEmbedEngine : public BaseEngine {
   public:
@@ -166,6 +188,7 @@ namespace embed {
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
+    virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -182,6 +205,7 @@ namespace embed {
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
 
     TMethodCallBack functionCallBack;
+    TGetterCallBack propGetterCallBack;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
@@ -193,6 +217,9 @@ namespace embed {
   };
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);
+  void PropGetter(v8::Local<v8::String> prop,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+
 
   extern "C" {
     EMBED_EXTERN IEmbedEngine * APIENTRY NewDelphiEngine(void * dEngine);

@@ -90,7 +90,18 @@ type
     function GetDelphiMethod: TObject; virtual; stdcall; abstract;
   end;
 
+  IGetterArgs = class (IBaseInterface)
+    function GetEngine: TObject; virtual; stdcall; abstract;
+    function GetDelphiObject: Pointer; virtual; stdcall; abstract;
+    function GetDelphiClasstype: Pointer; virtual; stdcall; abstract;
+    function GetPropName: IJSValue; virtual; stdcall; abstract;
+    function GetProp: TObject; virtual; stdcall; abstract;
+
+    procedure SetGetterResult(val: IJSValue); virtual; stdcall; abstract;
+  end;
+
   TMethodCallBack = procedure(args: IMethodArgs); stdcall;
+  TGetterCallBack = procedure(args: IGetterArgs); stdcall;
 
   // Engine class;
   INodeEngine = class(IBaseEngine)
@@ -101,6 +112,8 @@ type
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
     procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
     procedure SetMethodCallBack(callBack: TMethodCallBack);
+      virtual; stdcall; abstract;
+    procedure SetPropGetterCallBack(callBack: TGetterCallBack);
       virtual; stdcall; abstract;
 
     // if no script running it will return nil;
