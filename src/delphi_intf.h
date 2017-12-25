@@ -164,6 +164,7 @@ namespace embed {
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
     virtual void APIENTRY RunString(char * code);
+    virtual void APIENTRY RunFile(char * filename);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
 
     //these functions avaliable only when script running
