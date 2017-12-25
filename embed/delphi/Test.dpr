@@ -33,9 +33,7 @@ begin
     Global := TTestGlobal.Create;
     try
       Engine.AddGlobal(Global);
-      Engine.RunString('console.log("start Test");' + NewLine
-        + 'console.log(Func());'  + NewLine
-        + 'console.log("success")');
+      Engine.RunFile('../embed/delphi/test/test.js');
     finally
       Global.Free;
       Engine.Free;
