@@ -87,6 +87,9 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="src\NodeInterface.pas"/>
+        <DCCReference Include="src\NodeEngine.pas"/>
+        <DCCReference Include="src\TestClasses.pas"/>
+        <DCCReference Include="src\EngineHelper.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
