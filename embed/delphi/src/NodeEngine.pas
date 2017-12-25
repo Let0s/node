@@ -98,7 +98,7 @@ end;
 
 procedure TJSEngine.RunFile(filename: string);
 begin
-  //TODO:
+  FEngine.RunFile(StringToPUtf8Char(filename));
 end;
 
 procedure TJSEngine.RunString(code: string);

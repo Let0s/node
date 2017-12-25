@@ -99,6 +99,7 @@ type
     function AddObject(className: PAnsiChar; classType: Pointer): IClassTemplate;
       virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
+    procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
     procedure SetMethodCallBack(callBack: TMethodCallBack);
       virtual; stdcall; abstract;
 

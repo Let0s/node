@@ -72,6 +72,14 @@ namespace embed {
     Run(args.size(), args.data());
   }
 
+  void IEmbedEngine::RunFile(char * filename)
+  {
+    std::vector<const char *> args;
+    args.push_back(exeName.c_str());
+    args.push_back(filename);
+    Run(args.size(), args.data());
+  }
+
   void IEmbedEngine::SetFunctionCallBack(TMethodCallBack functionCB)
   {
     functionCallBack = functionCB;
