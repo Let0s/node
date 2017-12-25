@@ -5,24 +5,25 @@ interface
 type
   TTestGlobal = class(TObject)
   private
-    function GetProp: string;
+    FProp: string;
   public
+    constructor Create;
     function Func(): string;
-    property Prop: string read GetProp;
+    property Prop: string read FProp write FProp;
   end;
 
 implementation
 
 { TScriptGlobal }
 
+constructor TTestGlobal.Create;
+begin
+  FProp := 'TTestGlobal.Prop property';
+end;
+
 function TTestGlobal.Func: string;
 begin
   Result := 'Function TTestGlobal.Func called';
-end;
-
-function TTestGlobal.GetProp: string;
-begin
-  Result := 'TTestGlobal.GetProp called';
 end;
 
 end.

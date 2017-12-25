@@ -90,6 +90,11 @@ namespace embed {
     propGetterCallBack = functionCB;
   }
 
+  void IEmbedEngine::SetPropSetterCallBack(TSetterCallBack callBack)
+  {
+    propSetterCallBack = callBack;
+  }
+
   IJSValue * IEmbedEngine::NewInt32(int32_t value)
   {
     IJSValue * result = nullptr;
@@ -236,6 +241,14 @@ namespace embed {
       engine->propGetterCallBack(&propArgs);
   }
 
+  void PropSetter(v8::Local<v8::String> prop, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+  {
+    ISetterArgs propArgs(info, prop, value);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->propSetterCallBack)
+      engine->propSetterCallBack(&propArgs);
+  }
+
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
   {
     return new IEmbedEngine(dEngine);
@@ -303,8 +316,10 @@ namespace embed {
       auto propname = v8::String::NewFromUtf8(isolate,
                                               prop->name.c_str(),
                                               v8::NewStringType::kNormal);
-      proto->SetAccessor(propname.ToLocalChecked(), PropGetter, NULL,
-        v8::External::New(isolate, prop->obj));
+      proto->SetAccessor(propname.ToLocalChecked(),
+                         prop->read? PropGetter : NULL,
+                         prop->write? PropSetter : NULL,
+                         v8::External::New(isolate, prop->obj));
     }
     v8Template.Reset(isolate, templ);
   }
@@ -525,7 +540,7 @@ namespace embed {
   {
     iso = info.GetIsolate();
     propinfo = &info;
-    propValue.Reset(iso, prop);
+    propName.Reset(iso, prop);
     engine = IEmbedEngine::GetEngine(iso);
   }
   IGetterArgs::~IGetterArgs()
@@ -563,7 +578,7 @@ namespace embed {
   IJSValue * IGetterArgs::GetPropName()
   {
     if (!propWrapper) {
-      propWrapper = new IJSValue(iso, propValue.Get(iso));
+      propWrapper = new IJSValue(iso, propName.Get(iso));
     }
     return propWrapper;
   }
@@ -578,5 +593,63 @@ namespace embed {
   {
     if (val)
       propinfo->GetReturnValue().Set(val->V8Value());
+  }
+  ISetterArgs::ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    propName = new IJSValue(iso, prop);
+    propValue = new IJSValue(iso, newValue);
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  ISetterArgs::~ISetterArgs()
+  {
+    delete propName;
+    delete propValue;
+  }
+  void * ISetterArgs::GetEngine()
+  {
+    void * result = nullptr;
+    if (engine) {
+      result = engine->DelphiEngine();
+    }
+    return result;
+  }
+  void * ISetterArgs::GetDelphiObject()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiObject(holder);
+    }
+    return result;
+  }
+  void * ISetterArgs::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiClasstype(holder);
+    }
+    return result;
+  }
+  IJSValue * ISetterArgs::GetPropName()
+  {
+    return propName;
+  }
+  void * ISetterArgs::GetPropPointer()
+  {
+    if (propinfo->Data()->IsExternal()) {
+      return propinfo->Data().As<v8::External>()->Value();
+    }
+    return nullptr;
+  }
+  IJSValue * ISetterArgs::GetValue()
+  {
+    return propValue;
+  }
+  void ISetterArgs::SetSetterResult(IJSValue * val)
+  {
+    propinfo->GetReturnValue().Set(val->V8Value());
   }
 }
