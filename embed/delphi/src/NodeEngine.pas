@@ -3,7 +3,7 @@ unit NodeEngine;
 interface
 
 uses
-  NodeInterface, SysUtils, RTTI, Types, TypInfo;
+  NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper;
 
 type
   TJSEngine = class(TObject)
@@ -45,28 +45,8 @@ begin
         Obj := Engine.FGlobal;
     end;
     Method := Args.GetDelphiMethod as TRttiMethod;
-    JSResult := nil;
     Result := Method.Invoke(Obj, []);
-    case Result.Kind of
-      tkInteger: JSResult := Engine.FEngine.NewInt32(Result.AsInteger);
-      tkInt64: ;//Args.SetReturnValue(Result.AsInt64);
-      tkEnumeration: JSResult := Engine.FEngine.NewInt32(Result.AsOrdinal);
-      tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-        JSResult := Engine.FEngine.NewString(StringToPUtf8Char(Result.AsString));
-      tkFloat: JSResult := Engine.FEngine.NewNumber(Result.AsExtended);
-      tkSet: ;
-      tkClass: JSResult := Engine.FEngine.NewDelphiObject(Result.AsObject,
-        Result.AsObject.ClassType);
-      tkMethod: ;
-      tkVariant: ;
-      tkArray: ;
-      tkRecord: ;
-      tkInterface: ;
-      tkDynArray: ;
-      tkClassRef: ;
-      tkPointer: ;
-      tkProcedure: ;
-    end;
+    JSResult := TValueToJSValue(Result, Engine.FEngine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
   end;
