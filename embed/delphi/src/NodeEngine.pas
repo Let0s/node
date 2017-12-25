@@ -12,10 +12,10 @@ type
     FGlobal: TObject;
   public
     constructor Create();
+    destructor Destroy; override;
     procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
-    destructor Destroy; override;
   end;
 
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
@@ -92,7 +92,7 @@ end;
 
 destructor TJSEngine.Destroy;
 begin
-
+  FEngine.Delete;
   inherited;
 end;
 

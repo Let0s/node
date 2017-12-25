@@ -42,6 +42,7 @@ namespace embed {
   void IEmbedEngine::Stop()
   {
     JSDelphiObjects.clear();
+    jsValues.clear();
     BaseEngine::Stop();
   }
 
@@ -81,7 +82,9 @@ namespace embed {
     IJSValue * result = nullptr;
     if (IsRunning()) {
       auto val = v8::Int32::New(Isolate(), value);
-      result = new IJSValue(Isolate(), val);
+      auto jsVal = std::make_unique<IJSValue>(Isolate(), val);
+      result = jsVal.get();
+      jsValues.push_back(std::move(jsVal));
     }
     return result;
   }
@@ -91,7 +94,9 @@ namespace embed {
     IJSValue * result = nullptr;
     if (IsRunning()) {
       auto val = v8::Number::New(Isolate(), value);
-      result = new IJSValue(Isolate(), val);
+      auto jsVal = std::make_unique<IJSValue>(Isolate(), val);
+      result = jsVal.get();
+      jsValues.push_back(std::move(jsVal));
     }
     return result;
   }
@@ -101,7 +106,9 @@ namespace embed {
     IJSValue * result = nullptr;
     if (IsRunning()) {
       auto val = v8::Boolean::New(Isolate(), value);
-      result = new IJSValue(Isolate(), val);
+      auto jsVal = std::make_unique<IJSValue>(Isolate(), val);
+      result = jsVal.get();
+      jsValues.push_back(std::move(jsVal));
     }
     return result;
   }
@@ -112,7 +119,9 @@ namespace embed {
     if (IsRunning()) {
       auto val = v8::String::NewFromUtf8(Isolate(), value,
         v8::NewStringType::kNormal).ToLocalChecked();
-      result = new IJSValue(Isolate(), val);
+      auto jsVal = std::make_unique<IJSValue>(Isolate(), val);
+      result = jsVal.get();
+      jsValues.push_back(std::move(jsVal));
     }
     return result;
   }

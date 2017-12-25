@@ -188,6 +188,7 @@ namespace embed {
     IClassTemplate * globalTemplate = nullptr;
     std::vector<std::unique_ptr<IClassTemplate>> classes;
     std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
+    std::vector<std::unique_ptr<IJSValue>> jsValues;
   };
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);
