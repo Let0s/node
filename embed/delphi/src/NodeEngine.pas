@@ -19,6 +19,7 @@ type
   end;
 
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
+  procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
 
 implementation
 
@@ -52,6 +53,33 @@ begin
   end;
 end;
 
+procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Prop: TRttiProperty;
+  Obj: TObject;
+  Result: TValue;
+  JSResult: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Prop := Args.GetProp as TRttiProperty;
+    Result := Prop.GetValue(Obj);
+    JSResult := TValueToJSValue(Result, Engine.FEngine);
+    if Assigned(JSResult) then
+      Args.SetGetterResult(JSResult);
+  end;
+end;
+
 { TJSEngine }
 
 procedure TJSEngine.AddGlobal(Global: TObject);
@@ -59,6 +87,7 @@ var
   GlobalTemplate: IClassTemplate;
   GlobalTyp: TRttiType;
   Method: TRttiMethod;
+  Prop: TRttiProperty;
 begin
   FGlobal := Global;
   GlobalTyp := Context.GetType(Global.ClassType);
@@ -71,6 +100,15 @@ begin
       GlobalTemplate.SetMethod(StringToPUtf8Char(Method.Name), Method);
     end;
   end;
+  for Prop in GlobalTyp.GetProperties do
+  begin
+    if (Prop.Visibility = mvPublic) and
+      (Prop.Parent.Handle = GlobalTyp.Handle) then
+    begin
+      GlobalTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
+        Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
 end;
 
 constructor TJSEngine.Create;
@@ -81,6 +119,7 @@ begin
 //        'Incorrect version. Required %d version', [NODE_AVAILABLE_VER]);
     FEngine := NewDelphiEngine(Self);
     FEngine.SetMethodCallBack(MethodCallBack);
+    FEngine.SetPropGetterCallBack(PropGetterCallBack);
   except
     on E: EExternalException do
     begin
