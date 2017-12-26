@@ -20,11 +20,10 @@ type
 
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
   procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
+  procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
 
 implementation
 
-var
-  Context: TRttiContext;
 
 procedure MethodCallBack(Args: IMethodArgs);
 var
@@ -80,6 +79,37 @@ begin
   end;
 end;
 
+procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Prop: TRttiProperty;
+  Obj: TObject;
+  Result: TValue;
+  JSValue: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Prop := Args.GetProp as TRttiProperty;
+    JSValue := Args.GetPropValue;
+    if Assigned(JSValue) then
+      Prop.SetValue(Obj,
+        JSValueToTValue(JSValue, Prop.PropertyType, Engine.FEngine));
+    Result := Prop.GetValue(Obj);
+    JSValue := TValueToJSValue(Result, Engine.FEngine);
+    if Assigned(JSValue) then
+      Args.SetSetterResult(JSValue);
+  end;
+end;
+
 { TJSEngine }
 
 procedure TJSEngine.AddGlobal(Global: TObject);
@@ -120,6 +150,7 @@ begin
     FEngine := NewDelphiEngine(Self);
     FEngine.SetMethodCallBack(MethodCallBack);
     FEngine.SetPropGetterCallBack(PropGetterCallBack);
+    FEngine.SetPropSetterCallBack(PropSetterCallBack);
   except
     on E: EExternalException do
     begin
@@ -144,11 +175,5 @@ procedure TJSEngine.RunString(code: string);
 begin
   FEngine.RunString(StringToPUtf8Char(code));
 end;
-
-initialization
-  Context := TRttiContext.Create;
-
-finalization
-  Context.Free;
 
 end.

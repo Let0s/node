@@ -165,14 +165,36 @@ namespace embed {
   private:
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
-    v8::Persistent<v8::Value> propValue;
+    v8::Persistent<v8::Value> propName;
     IJSValue * propWrapper = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
+  };
+
+  class ISetterArgs : public IBaseIntf {
+  public:
+    ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue);
+    ~ISetterArgs();
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+    virtual IJSValue * APIENTRY GetPropName();
+    virtual void * APIENTRY GetPropPointer();
+
+    virtual IJSValue * APIENTRY GetValue();
+
+    virtual void APIENTRY SetSetterResult(IJSValue * val);
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    IJSValue * propName = nullptr;
+    IJSValue * propValue = nullptr;
+    const v8::PropertyCallbackInfo<void> * propinfo = nullptr;
   };
 
 
   typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
   typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
+  typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
 
   class IEmbedEngine : public BaseEngine {
   public:
@@ -189,6 +211,7 @@ namespace embed {
     virtual void APIENTRY RunFile(char * filename);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
     virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);
+    virtual void APIENTRY SetPropSetterCallBack(TSetterCallBack callBack);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -206,6 +229,7 @@ namespace embed {
 
     TMethodCallBack functionCallBack;
     TGetterCallBack propGetterCallBack;
+    TSetterCallBack propSetterCallBack;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
@@ -219,6 +243,9 @@ namespace embed {
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);
   void PropGetter(v8::Local<v8::String> prop,
     const v8::PropertyCallbackInfo<v8::Value>& info);
+  void PropSetter(v8::Local<v8::String> prop,
+                  v8::Local<v8::Value> value,
+                  const v8::PropertyCallbackInfo<void>& info);
 
 
   extern "C" {
