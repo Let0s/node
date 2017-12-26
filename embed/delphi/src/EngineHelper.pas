@@ -8,6 +8,12 @@ uses
 
   function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
 
+  function JSValueToTValue(value: IJSValue; typ: TRttiType;
+    Engine: INodeEngine): TValue;
+
+var
+  Context: TRttiContext;
+
 implementation
 
 function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
@@ -39,5 +45,42 @@ begin
     tkProcedure: ;
   end;
 end;
+
+
+function JSValueToTValue(value: IJSValue; typ: TRttiType;
+  Engine: INodeEngine): TValue;
+begin
+  Result := TValue.Empty;
+  case typ.TypeKind of
+    tkUnknown: ;
+    tkInteger: Result := value.AsInt32;
+    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+      Result := PUtf8CharToString(value.AsString);
+    tkEnumeration:
+      if typ.Handle = TypeInfo(Boolean) then
+        Result := value.AsBool
+      else
+        Result := TValue.FromOrdinal(typ.Handle, value.AsInt32);
+    tkFloat: Result := value.AsNumber;
+    tkSet: ;
+    tkClass: Result := value.AsDelphiObject.GetDelphiObject;
+    tkMethod: ;
+    tkVariant: ;
+    tkArray: ;
+    tkRecord: ;
+    tkInterface: ;
+    tkInt64: ;
+    tkDynArray: ;
+    tkClassRef: ;
+    tkPointer: ;
+    tkProcedure: ;
+  end;
+end;
+
+initialization
+  Context := TRttiContext.Create;
+
+finalization
+  Context.Free;
 
 end.
