@@ -3,13 +3,25 @@ unit NodeEngine;
 interface
 
 uses
-  NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper;
+  NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper,
+  Generics.Collections;
 
 type
+
+  TClassWrapper = class(TObject)
+  private
+    FType: TClass;
+    FEngine: INodeEngine;
+  public
+    constructor Create(cType: TClass; Engine: INodeEngine);
+    destructor Destroy; override;
+  end;
+
   TJSEngine = class(TObject)
   private
     FEngine: INodeEngine;
     FGlobal: TObject;
+    FClasses: TObjectList<TClassWrapper>;
   public
     constructor Create();
     destructor Destroy; override;
@@ -114,31 +126,11 @@ end;
 
 procedure TJSEngine.AddGlobal(Global: TObject);
 var
-  GlobalTemplate: IClassTemplate;
-  GlobalTyp: TRttiType;
-  Method: TRttiMethod;
-  Prop: TRttiProperty;
+  GlobalWrapper: TClassWrapper;
 begin
   FGlobal := Global;
-  GlobalTyp := Context.GetType(Global.ClassType);
-  GlobalTemplate := FEngine.AddGlobal(Global.ClassType);
-  for Method in GlobalTyp.GetMethods do
-  begin
-    if (Method.Visibility = mvPublic) and
-      (Method.Parent.Handle = GlobalTyp.Handle) then
-    begin
-      GlobalTemplate.SetMethod(StringToPUtf8Char(Method.Name), Method);
-    end;
-  end;
-  for Prop in GlobalTyp.GetProperties do
-  begin
-    if (Prop.Visibility = mvPublic) and
-      (Prop.Parent.Handle = GlobalTyp.Handle) then
-    begin
-      GlobalTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
-        Prop.IsReadable, Prop.IsWritable);
-    end;
-  end;
+  GlobalWrapper := TClassWrapper.Create(Global.ClassType, FEngine);
+  FClasses.Add(GlobalWrapper);
 end;
 
 constructor TJSEngine.Create;
@@ -174,6 +166,43 @@ end;
 procedure TJSEngine.RunString(code: string);
 begin
   FEngine.RunString(StringToPUtf8Char(code));
+end;
+
+{ TClassWrapper }
+
+constructor TClassWrapper.Create(cType: TClass; Engine: INodeEngine);
+var
+  Template: IClassTemplate;
+  ClasslTyp: TRttiType;
+  Method: TRttiMethod;
+  Prop: TRttiProperty;
+begin
+  FType := cType;
+  FEngine := Engine;
+  ClasslTyp := Context.GetType(FType);
+  Template := FEngine.AddGlobal(FType);
+  for Method in ClasslTyp.GetMethods do
+  begin
+    if (Method.Visibility = mvPublic) and
+      (Method.Parent.Handle = ClasslTyp.Handle) then
+    begin
+      Template.SetMethod(StringToPUtf8Char(Method.Name), Method);
+    end;
+  end;
+  for Prop in ClasslTyp.GetProperties do
+  begin
+    if (Prop.Visibility = mvPublic) and
+      (Prop.Parent.Handle = ClasslTyp.Handle) then
+    begin
+      Template.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
+        Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
+end;
+
+destructor TClassWrapper.Destroy;
+begin
+  inherited;
 end;
 
 end.
