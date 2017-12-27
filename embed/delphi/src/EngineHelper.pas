@@ -3,13 +3,22 @@ unit EngineHelper;
 interface
 
 uses
-  NodeInterface, RTTI, TypInfo;
+  NodeInterface, EventWrapper, RTTI, TypInfo, Generics.Collections;
 
+type
+  // It will collect all objects, were created by script
+  TGarbageCollector = class(TObject)
+  private
+    FObjectList: TObjectList<TObject>;
+    FCallbackList: TObjectList<TEventWrapper>;
+  public
+    constructor Create();
+  end;
 
   function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
 
-  function JSValueToTValue(value: IJSValue; typ: TRttiType;
-    Engine: INodeEngine): TValue;
+  function JSValueToTValue(value: IJSValue; typ: TRttiType): TValue;
+  function JSValueToMethod(value: IJSValue; typ: TRttiType): TValue;
 
 var
   Context: TRttiContext;
@@ -47,8 +56,7 @@ begin
 end;
 
 
-function JSValueToTValue(value: IJSValue; typ: TRttiType;
-  Engine: INodeEngine): TValue;
+function JSValueToTValue(value: IJSValue; typ: TRttiType): TValue;
 begin
   Result := TValue.Empty;
   case typ.TypeKind of
@@ -64,7 +72,7 @@ begin
     tkFloat: Result := value.AsNumber;
     tkSet: ;
     tkClass: Result := value.AsDelphiObject.GetDelphiObject;
-    tkMethod: ;
+    tkMethod: Result := JSValueToMethod(value, typ);
     tkVariant: ;
     tkArray: ;
     tkRecord: ;
@@ -75,6 +83,26 @@ begin
     tkPointer: ;
     tkProcedure: ;
   end;
+end;
+
+function JSValueToMethod(value: IJSValue; typ: TRttiType): TValue;
+var
+  EventWrapper: TEventWrapper;
+begin
+  Result := TValue.Empty;
+  if value.IsFunction then
+  begin
+    EventWrapper := GetEventWrapper(typ.Handle).Create(value.AsFunction);
+    TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+  end;
+end;
+
+{ TGarbageCollector }
+
+constructor TGarbageCollector.Create;
+begin
+  FObjectList := TObjectList<TObject>.Create;
+  FCallbackList := TObjectList<TEventWrapper>.Create;
 end;
 
 initialization

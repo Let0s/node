@@ -175,6 +175,17 @@ namespace embed {
     return result;
   }
 
+  IJSValue * IEmbedEngine::MakeValue(v8::Local<v8::Value> value)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      result = IJSValue::MakeValue(Isolate(), value);
+      auto jsVal = std::unique_ptr<IJSValue>(result);
+      jsValues.push_back(std::move(jsVal));
+    }
+    return result;
+  }
+
   void * IEmbedEngine::DelphiEngine()
   {
     return dEngine;
@@ -390,16 +401,7 @@ namespace embed {
     v8::Local<v8::Value> val)
   {
     IJSValue * result = nullptr;
-    if (val->IsObject()) {
-      auto obj = val->ToObject();
-      if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
-        result = new IJSDelphiObject(isolate, val);
-      }
-      else {
-        result = new IJSObject(isolate, val);
-      }
-    }
-    else if (val->IsFunction()) {
+    if (val->IsFunction()) {
       result = new IJSFunction(isolate, val);
     }
     else if (val->IsArray()) {
@@ -408,6 +410,15 @@ namespace embed {
     else if (val->IsInt32() || val->IsString() || val->IsNumber() ||
       val->IsBoolean() || val->IsUndefined() || val->IsNull()) {
       result = new IJSValue(isolate, val);
+    }
+    else if (val->IsObject()) {
+      auto obj = val->ToObject();
+      if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
+        result = new IJSDelphiObject(isolate, val);
+      }
+      else {
+        result = new IJSObject(isolate, val);
+      }
     }
 
     return result;
@@ -514,6 +525,19 @@ namespace embed {
   {
     return V8Value().As<v8::Function>();
   }
+  IJSValue * IJSFunction::Call(IJSArray * argv)
+  {
+    v8::Local<v8::Array> args;
+    if (argv) {
+      args = argv->V8Array();
+    }
+    else
+      args = v8::Array::New(isolate, 0);
+    auto v8result = V8Function()->Call(V8Function(), 0, 0);
+    auto result = IJSValue::MakeValue(isolate, v8result);
+
+    return result;
+  }
   IJSDelphiObject::IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val):
     IJSObject(iso, val)
   {
@@ -597,15 +621,14 @@ namespace embed {
   ISetterArgs::ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue)
   {
     iso = info.GetIsolate();
-    propinfo = &info;
-    propName = new IJSValue(iso, prop);
-    propValue = new IJSValue(iso, newValue);
     engine = IEmbedEngine::GetEngine(iso);
+    propinfo = &info;
+    propName = IJSValue::MakeValue(iso, prop);
+    propValue = engine->MakeValue(newValue);
   }
   ISetterArgs::~ISetterArgs()
   {
     delete propName;
-    delete propValue;
   }
   void * ISetterArgs::GetEngine()
   {
