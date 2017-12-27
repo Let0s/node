@@ -13,12 +13,15 @@ type
     FCallbackList: TObjectList<TEventWrapper>;
   public
     constructor Create();
+    procedure AddCallback(Event: TEventWrapper);
   end;
 
   function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
 
-  function JSValueToTValue(value: IJSValue; typ: TRttiType): TValue;
-  function JSValueToMethod(value: IJSValue; typ: TRttiType): TValue;
+  function JSValueToTValue(value: IJSValue; typ: TRttiType;
+    GC: TGarbageCollector): TValue;
+  function JSValueToMethod(value: IJSValue; typ: TRttiType;
+    GC: TGarbageCollector): TValue;
 
 var
   Context: TRttiContext;
@@ -56,7 +59,8 @@ begin
 end;
 
 
-function JSValueToTValue(value: IJSValue; typ: TRttiType): TValue;
+function JSValueToTValue(value: IJSValue; typ: TRttiType;
+  GC: TGarbageCollector): TValue;
 begin
   Result := TValue.Empty;
   case typ.TypeKind of
@@ -72,7 +76,7 @@ begin
     tkFloat: Result := value.AsNumber;
     tkSet: ;
     tkClass: Result := value.AsDelphiObject.GetDelphiObject;
-    tkMethod: Result := JSValueToMethod(value, typ);
+    tkMethod: Result := JSValueToMethod(value, typ, GC);
     tkVariant: ;
     tkArray: ;
     tkRecord: ;
@@ -85,7 +89,8 @@ begin
   end;
 end;
 
-function JSValueToMethod(value: IJSValue; typ: TRttiType): TValue;
+function JSValueToMethod(value: IJSValue; typ: TRttiType;
+  GC: TGarbageCollector): TValue;
 var
   EventWrapper: TEventWrapper;
 begin
@@ -93,11 +98,17 @@ begin
   if value.IsFunction then
   begin
     EventWrapper := GetEventWrapper(typ.Handle).Create(value.AsFunction);
+    GC.AddCallback(EventWrapper);
     TValue.Make(@EventWrapper.Method, typ.Handle, Result);
   end;
 end;
 
 { TGarbageCollector }
+
+procedure TGarbageCollector.AddCallback(Event: TEventWrapper);
+begin
+  FCallbackList.Add(Event);
+end;
 
 constructor TGarbageCollector.Create;
 begin

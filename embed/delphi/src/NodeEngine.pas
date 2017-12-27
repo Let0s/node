@@ -22,6 +22,7 @@ type
     FEngine: INodeEngine;
     FGlobal: TObject;
     FClasses: TObjectList<TClassWrapper>;
+    FGarbageCollector: TGarbageCollector;
   public
     constructor Create();
     destructor Destroy; override;
@@ -114,7 +115,7 @@ begin
     JSValue := Args.GetPropValue;
     if Assigned(JSValue) then
       Prop.SetValue(Obj,
-        JSValueToTValue(JSValue, Prop.PropertyType));
+        JSValueToTValue(JSValue, Prop.PropertyType, Engine.FGarbageCollector));
     Result := Prop.GetValue(Obj);
     JSValue := TValueToJSValue(Result, Engine.FEngine);
     if Assigned(JSValue) then
@@ -144,6 +145,7 @@ begin
     FEngine.SetPropGetterCallBack(PropGetterCallBack);
     FEngine.SetPropSetterCallBack(PropSetterCallBack);
     FClasses := TObjectList<TClassWrapper>.Create;
+    FGarbageCollector := TGarbageCollector.Create;
   except
     on E: EExternalException do
     begin
@@ -156,6 +158,7 @@ end;
 destructor TJSEngine.Destroy;
 begin
   FClasses.Free;
+  FGarbageCollector.Free;
   FEngine.Delete;
   inherited;
 end;
