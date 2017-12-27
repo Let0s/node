@@ -244,7 +244,8 @@ namespace embed {
       engine->functionCallBack(&methodArgs);
   }
 
-  void PropGetter(v8::Local<v8::String> prop, const v8::PropertyCallbackInfo<v8::Value>& info)
+  void PropGetter(v8::Local<v8::String> prop,
+                  const v8::PropertyCallbackInfo<v8::Value>& info)
   {
     IGetterArgs propArgs(info, prop);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
@@ -252,7 +253,8 @@ namespace embed {
       engine->propGetterCallBack(&propArgs);
   }
 
-  void PropSetter(v8::Local<v8::String> prop, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+  void PropSetter(v8::Local<v8::String> prop, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<void>& info)
   {
     ISetterArgs propArgs(info, prop, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
@@ -427,8 +429,8 @@ namespace embed {
   {
     return value.Get(isolate);
   }
-  IJSObject::IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val): IJSValue(
-    iso, val)
+  IJSObject::IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val):
+    IJSValue(iso, val)
   {
   }
   v8::Local<v8::Object> IJSObject::V8Object()
@@ -560,7 +562,8 @@ namespace embed {
     }
     return result;
   }
-  IGetterArgs::IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info, v8::Local<v8::Value> prop)
+  IGetterArgs::IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+                           v8::Local<v8::Value> prop)
   {
     iso = info.GetIsolate();
     propinfo = &info;
@@ -618,7 +621,9 @@ namespace embed {
     if (val)
       propinfo->GetReturnValue().Set(val->V8Value());
   }
-  ISetterArgs::ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue)
+  ISetterArgs::ISetterArgs(const v8::PropertyCallbackInfo<void>& info,
+                           v8::Local<v8::Value> prop,
+                           v8::Local<v8::Value> newValue)
   {
     iso = info.GetIsolate();
     engine = IEmbedEngine::GetEngine(iso);

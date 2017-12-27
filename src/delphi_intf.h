@@ -173,7 +173,9 @@ namespace embed {
 
   class ISetterArgs : public IBaseIntf {
   public:
-    ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue);
+    ISetterArgs(const v8::PropertyCallbackInfo<void>& info,
+                v8::Local<v8::Value> prop,
+                v8::Local<v8::Value> newValue);
     ~ISetterArgs();
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
