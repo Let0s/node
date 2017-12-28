@@ -585,13 +585,13 @@ namespace embed {
   }
   IJSValue * IJSFunction::Call(IJSArray * argv)
   {
-    v8::Local<v8::Array> args;
+    std::vector<v8::Local<v8::Value>> args;
     if (argv) {
-      args = argv->V8Array();
+      for (int32_t i = 0; i < argv->GetCount(); i++) {
+        args.push_back(argv->GetValue(i)->V8Value());
+      }
     }
-    else
-      args = v8::Array::New(isolate, 0);
-    auto v8result = V8Function()->Call(V8Function(), 0, 0);
+    auto v8result = V8Function()->Call(V8Function(), args.size(), args.data());
     auto result = IJSValue::MakeValue(isolate, v8result);
 
     return result;
