@@ -130,29 +130,31 @@ end;
 function DefaultTValue(typ: TRttiType): TValue;
 begin
   Result := TValue.Empty;
+  if not Assigned(typ) then
+    Exit;
   case typ.TypeKind of
     tkUnknown: ;
     tkInteger: Result := 0;
-    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-      Result := '';
-    tkEnumeration:
-      if typ.Handle = TypeInfo(Boolean) then
-        Result := false
-      else
-        Result := TValue.FromOrdinal(typ.Handle, 0);
-    tkFloat: Result := 0;
+    tkChar: Result := '';
+    tkEnumeration: Result := TValue.FromOrdinal(typ.Handle, 0);
+    tkFloat: Result := 0.0;
+    tkString: Result := '';
     tkSet: ;
     tkClass: Result := nil;
     tkMethod: Result := nil;
-    tkVariant: ;
+    tkWChar: Result := '';
+    tkLString: Result := '';
+    tkWString: Result := '';
+    tkVariant: Result := '';
     tkArray: ;
     tkRecord: ;
-    tkInterface: ;
-    tkInt64: ;
+    tkInterface: Result := nil;
+    tkInt64: Result := 0;
     tkDynArray: ;
+    tkUString: Result := '';
     tkClassRef: ;
-    tkPointer: ;
-    tkProcedure: ;
+    tkPointer: Result := nil;
+    tkProcedure: Result := nil;
   end;
 end;
 
