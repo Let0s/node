@@ -144,6 +144,18 @@ namespace embed {
     return result;
   }
 
+  IJSArray * IEmbedEngine::NewArray(int32_t length)
+  {
+    IJSArray * result = nullptr;
+    if (IsRunning()) {
+      auto arr = v8::Array::New(Isolate(), length);
+      auto resultValue = std::make_unique<IJSArray>(Isolate(), arr);
+      result = resultValue.get();
+      jsValues.push_back(std::move(resultValue));
+    }
+    return result;
+  }
+
   IJSDelphiObject * IEmbedEngine::NewObject(void * value, void * cType)
   {
     IJSDelphiObject * result = nullptr;
@@ -346,6 +358,15 @@ namespace embed {
     args = &newArgs;
     iso = args->GetIsolate();
     engine = IEmbedEngine::GetEngine(iso);
+    //setup arguments
+    {
+      auto length = args->Length();
+      auto arr = v8::Array::New(iso, length);
+      for (uint32_t i = 0; i < length; i++) {
+        arr->Set(i, newArgs[i]);
+      }
+      argv = new IJSArray(iso, arr);
+    }
   }
   void * IMethodArgs::GetEngine()
   {
@@ -372,6 +393,10 @@ namespace embed {
       result = engine->GetDelphiClasstype(holder);
     }
     return result;
+  }
+  IJSArray * IMethodArgs::GetArguments()
+  {
+    return argv;
   }
   char * IMethodArgs::GetMethodName()
   {
@@ -428,6 +453,10 @@ namespace embed {
   v8::Local<v8::Value> IJSValue::V8Value()
   {
     return value.Get(isolate);
+  }
+  IEmbedEngine * IJSValue::GetEngine()
+  {
+    return IEmbedEngine::GetEngine(isolate);
   }
   IJSObject::IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val):
     IJSValue(iso, val)
@@ -515,6 +544,33 @@ namespace embed {
     iso, val)
   {
   }
+  IJSArray::~IJSArray()
+  {
+    values.clear();
+  }
+  int32_t IJSArray::GetCount()
+  {
+    return V8Array()->Length();
+  }
+  IJSValue * IJSArray::GetValue(int32_t index)
+  {
+    IJSValue * result = nullptr;
+    auto findresult = values.find(index);
+    if (findresult == values.end())
+    {
+      result = IJSValue::MakeValue(isolate, V8Array()->Get(index));
+      values.emplace(index, result);
+    }
+    else
+      result = findresult->second;
+    return result;
+  }
+  void IJSArray::SetValue(IJSValue * value, int32_t index)
+  {
+    if (value) {
+      V8Array()->Set(index, value->V8Value());
+    }
+  }
   v8::Local<v8::Array> IJSArray::V8Array()
   {
     return V8Value().As<v8::Array>();
@@ -529,13 +585,13 @@ namespace embed {
   }
   IJSValue * IJSFunction::Call(IJSArray * argv)
   {
-    v8::Local<v8::Array> args;
+    std::vector<v8::Local<v8::Value>> args;
     if (argv) {
-      args = argv->V8Array();
+      for (int32_t i = 0; i < argv->GetCount(); i++) {
+        args.push_back(argv->GetValue(i)->V8Value());
+      }
     }
-    else
-      args = v8::Array::New(isolate, 0);
-    auto v8result = V8Function()->Call(V8Function(), 0, 0);
+    auto v8result = V8Function()->Call(V8Function(), args.size(), args.data());
     auto result = IJSValue::MakeValue(isolate, v8result);
 
     return result;
