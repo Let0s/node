@@ -11,6 +11,7 @@ type
   IJSDelphiObject = class;
   IJSArray = class;
   IJSFunction = class;
+  INodeEngine = class;
 
   IBaseInterface = class
     // do not call!
@@ -27,6 +28,7 @@ type
   end;
 
   IJSValue = class(IBaseInterface)
+    function GetEngine: INodeEngine; virtual; stdcall; abstract;
     function IsUndefined: boolean; virtual; stdcall; abstract;
     function IsNull: boolean; virtual; stdcall; abstract;
 
@@ -140,6 +142,7 @@ type
     function NewNumber(value: double): IJSValue; virtual; stdcall; abstract;
     function NewBool(value: Boolean): IJSValue; virtual; stdcall; abstract;
     function NewString(value: PAnsiChar): IJSValue; virtual; stdcall; abstract;
+    function NewArray(length: Int32): IJSArray; virtual; stdcall; abstract;
     function NewDelphiObject(value: TObject;
       classType: TClass): IJSDelphiObject; virtual; stdcall; abstract;
 

@@ -3,9 +3,32 @@ unit EngineHelper;
 interface
 
 uses
-  NodeInterface, EventWrapper, RTTI, TypInfo, Generics.Collections;
+  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes;
 
 type
+  TEventWrapper = class(TObject)
+  private
+    FFunction: IJSFunction;
+    FMethod: TMethod;
+  protected
+    procedure SetMethod(NewMethod: TMethod);
+    function CallFunction(Args: array of TValue): TValue;
+  public
+    constructor Create(Func: IJSFunction); virtual;
+    property Method: TMethod read FMethod;
+  end;
+
+  TEventWrapperClass = class of TEventWrapper;
+
+  TNotifyEventWrapper = class(TEventWrapper)
+  public
+    constructor Create(Func: IJSFunction); override;
+    procedure Event(Sender: TObject);
+  end;
+
+  TEventWrapperList = class(TObjectList<TEventWrapper>)
+  end;
+
   // It will collect all objects, were created by script
   TGarbageCollector = class(TObject)
   private
@@ -27,8 +50,13 @@ type
     GC: TGarbageCollector): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
 
+  function RegisterEventWrapper(Event: PTypeInfo;
+    Wrapper: TEventWrapperClass): boolean;
+  function GetEventWrapper(Event: PTypeInfo): TEventWrapperClass;
+
 var
   Context: TRttiContext;
+  EventWrapperClassList: TDictionary<PTypeInfo, TEventWrapperClass>;
 
 implementation
 
@@ -158,6 +186,74 @@ begin
   end;
 end;
 
+function RegisterEventWrapper(Event: PTypeInfo;
+  Wrapper: TEventWrapperClass): boolean;
+begin
+  Result := False;
+  if not EventWrapperClassList.ContainsKey(Event) then
+  begin
+    EventWrapperClassList.Add(Event, Wrapper);
+    Result := True;
+  end;
+end;
+
+function GetEventWrapper(Event: PTypeInfo): TEventWrapperClass;
+begin
+  if not EventWrapperClassList.TryGetValue(Event, Result) then
+    Result := nil;
+end;
+
+{ TEventWrapper }
+
+function TEventWrapper.CallFunction(Args: array of TValue): TValue;
+var
+  Engine: INodeEngine;
+  ArgLength: Int32;
+  i: Integer;
+  ArgArray: IJSArray;
+  ResultValue: IJSValue;
+begin
+  Result := TValue.Empty;
+  Engine := FFunction.GetEngine;
+  if Assigned(Engine) then
+  begin
+    ArgLength := Length(Args);
+    ArgArray := Engine.NewArray(ArgLength);
+    for i := 0 to ArgLength - 1 do
+    begin
+      ArgArray.SetValue(TValueToJSValue(Args[i], Engine), 0);
+    end;
+    FFunction.Call(ArgArray);
+  end;
+end;
+
+constructor TEventWrapper.Create(Func: IJSFunction);
+begin
+  FFunction := Func;
+end;
+
+procedure TEventWrapper.SetMethod(NewMethod: TMethod);
+begin
+  FMethod := NewMethod;
+end;
+
+{ TNotifyEventWrapper }
+
+constructor TNotifyEventWrapper.Create(Func: IJSFunction);
+var
+  TempMethod: TMethod;
+begin
+  inherited;
+  TempMethod.Code := @TNotifyEventWrapper.Event;
+  TempMethod.Data := Self;
+  SetMethod(TempMethod);
+end;
+
+procedure TNotifyEventWrapper.Event(Sender: TObject);
+begin
+  CallFunction([Sender]);
+end;
+
 { TGarbageCollector }
 
 procedure TGarbageCollector.AddCallback(Event: TEventWrapper);
@@ -178,8 +274,11 @@ end;
 
 initialization
   Context := TRttiContext.Create;
+  EventWrapperClassList := TDictionary<PTypeInfo, TEventWrapperClass>.Create;
+  RegisterEventWrapper(TypeInfo(TNotifyEvent), TNotifyEventWrapper);
 
 finalization
   Context.Free;
+  EventWrapperClassList.Free;
 
 end.

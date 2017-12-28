@@ -18,6 +18,7 @@ namespace embed {
     static IJSValue * MakeValue(v8::Isolate * isolate,
                                 v8::Local<v8::Value> val);
     v8::Local<v8::Value> V8Value();
+    virtual IEmbedEngine * APIENTRY GetEngine();
     virtual bool APIENTRY IsUndefined();
     virtual bool APIENTRY IsNull();
 
@@ -228,6 +229,7 @@ namespace embed {
     virtual IJSValue * APIENTRY NewNumber(double value);
     virtual IJSValue * APIENTRY NewBoolean(bool value);
     virtual IJSValue * APIENTRY NewString(char * value);
+    virtual IJSArray * APIENTRY NewArray(int32_t length);
     virtual IJSDelphiObject * APIENTRY NewObject(void * value, void * cType);
     // it will create correct value wrapper and store it
     IJSValue * MakeValue(v8::Local<v8::Value> value);

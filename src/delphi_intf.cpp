@@ -144,6 +144,18 @@ namespace embed {
     return result;
   }
 
+  IJSArray * IEmbedEngine::NewArray(int32_t length)
+  {
+    IJSArray * result = nullptr;
+    if (IsRunning()) {
+      auto arr = v8::Array::New(Isolate(), length);
+      auto resultValue = std::make_unique<IJSArray>(Isolate(), arr);
+      result = resultValue.get();
+      jsValues.push_back(std::move(resultValue));
+    }
+    return result;
+  }
+
   IJSDelphiObject * IEmbedEngine::NewObject(void * value, void * cType)
   {
     IJSDelphiObject * result = nullptr;
@@ -442,6 +454,10 @@ namespace embed {
   {
     return value.Get(isolate);
   }
+  IEmbedEngine * IJSValue::GetEngine()
+  {
+    return IEmbedEngine::GetEngine(isolate);
+  }
   IJSObject::IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val):
     IJSValue(iso, val)
   {
@@ -551,7 +567,9 @@ namespace embed {
   }
   void IJSArray::SetValue(IJSValue * value, int32_t index)
   {
-    V8Array()->Set(index, value->V8Value());
+    if (value) {
+      V8Array()->Set(index, value->V8Value());
+    }
   }
   v8::Local<v8::Array> IJSArray::V8Array()
   {
