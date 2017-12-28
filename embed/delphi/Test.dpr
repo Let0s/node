@@ -10,7 +10,8 @@ uses
   NodeInterface in 'src\NodeInterface.pas',
   NodeEngine in 'src\NodeEngine.pas',
   TestClasses in 'src\TestClasses.pas',
-  EngineHelper in 'src\EngineHelper.pas';
+  EngineHelper in 'src\EngineHelper.pas',
+  EventWrapper in 'src\EventWrapper.pas';
 
 const
   NewLine = #10#13;
@@ -34,6 +35,8 @@ begin
     try
       Engine.AddGlobal(Global);
       Engine.RunFile('../embed/delphi/test/test.js');
+      if Assigned(Global.Event) then
+        Global.Event(Global);
     finally
       Global.Free;
       Engine.Free;

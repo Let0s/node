@@ -73,6 +73,7 @@ namespace embed {
   public:
     IJSFunction(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Function> V8Function();
+    virtual IJSValue * APIENTRY Call(IJSArray * argv);
   };
 
   //wrapper for Delphi class property
@@ -172,7 +173,9 @@ namespace embed {
 
   class ISetterArgs : public IBaseIntf {
   public:
-    ISetterArgs(const v8::PropertyCallbackInfo<void>& info, v8::Local<v8::Value> prop, v8::Local<v8::Value> newValue);
+    ISetterArgs(const v8::PropertyCallbackInfo<void>& info,
+                v8::Local<v8::Value> prop,
+                v8::Local<v8::Value> newValue);
     ~ISetterArgs();
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
@@ -219,6 +222,8 @@ namespace embed {
     virtual IJSValue * APIENTRY NewBoolean(bool value);
     virtual IJSValue * APIENTRY NewString(char * value);
     virtual IJSDelphiObject * APIENTRY NewObject(void * value, void * cType);
+    // it will create correct value wrapper and store it
+    IJSValue * MakeValue(v8::Local<v8::Value> value);
 
 
     void * DelphiEngine();
