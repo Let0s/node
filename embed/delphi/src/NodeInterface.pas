@@ -11,6 +11,7 @@ type
   IJSDelphiObject = class;
   IJSArray = class;
   IJSFunction = class;
+  INodeEngine = class;
 
   IBaseInterface = class
     // do not call!
@@ -27,6 +28,7 @@ type
   end;
 
   IJSValue = class(IBaseInterface)
+    function GetEngine: INodeEngine; virtual; stdcall; abstract;
     function IsUndefined: boolean; virtual; stdcall; abstract;
     function IsNull: boolean; virtual; stdcall; abstract;
 
@@ -59,7 +61,10 @@ type
   end;
 
   IJSArray = class(IJSValue)
-
+    function GetCount: Int32; virtual; stdcall; abstract;
+    function GetValue(index: Int32): IJSValue; virtual; stdcall; abstract;
+    procedure SetValue(Value: IJSValue; index: Int32);
+      virtual; stdcall; abstract;
   end;
 
   IJSFunction = class(IJSValue)
@@ -82,6 +87,7 @@ type
     function GetEngine: TObject; virtual; stdcall; abstract;
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
     function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
+    function GetArgs: IJSArray; virtual; stdcall; abstract;
 
     function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
 
@@ -136,6 +142,7 @@ type
     function NewNumber(value: double): IJSValue; virtual; stdcall; abstract;
     function NewBool(value: Boolean): IJSValue; virtual; stdcall; abstract;
     function NewString(value: PAnsiChar): IJSValue; virtual; stdcall; abstract;
+    function NewArray(length: Int32): IJSArray; virtual; stdcall; abstract;
     function NewDelphiObject(value: TObject;
       classType: TClass): IJSDelphiObject; virtual; stdcall; abstract;
 

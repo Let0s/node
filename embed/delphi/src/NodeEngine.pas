@@ -45,6 +45,7 @@ var
   Obj: TObject;
   Result: TValue;
   JSResult: IJSValue;
+  MethodArgs: TArray<TValue>;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -58,7 +59,9 @@ begin
         Obj := Engine.FGlobal;
     end;
     Method := Args.GetDelphiMethod as TRttiMethod;
-    Result := Method.Invoke(Obj, []);
+    MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
+      Engine.FGarbageCollector);
+    Result := Method.Invoke(Obj, MethodArgs);
     JSResult := TValueToJSValue(Result, Engine.FEngine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
