@@ -346,6 +346,15 @@ namespace embed {
     args = &newArgs;
     iso = args->GetIsolate();
     engine = IEmbedEngine::GetEngine(iso);
+    //setup arguments
+    {
+      auto length = args->Length();
+      auto arr = v8::Array::New(iso, length);
+      for (uint32_t i = 0; i < length; i++) {
+        arr->Set(i, newArgs[i]);
+      }
+      argv = new IJSArray(iso, arr);
+    }
   }
   void * IMethodArgs::GetEngine()
   {
@@ -372,6 +381,10 @@ namespace embed {
       result = engine->GetDelphiClasstype(holder);
     }
     return result;
+  }
+  IJSArray * IMethodArgs::GetArguments()
+  {
+    return argv;
   }
   char * IMethodArgs::GetMethodName()
   {
@@ -514,6 +527,31 @@ namespace embed {
   IJSArray::IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val) : IJSValue(
     iso, val)
   {
+  }
+  IJSArray::~IJSArray()
+  {
+    values.clear();
+  }
+  int32_t IJSArray::GetCount()
+  {
+    return V8Array()->Length();
+  }
+  IJSValue * IJSArray::GetValue(int32_t index)
+  {
+    IJSValue * result = nullptr;
+    auto findresult = values.find(index);
+    if (findresult == values.end())
+    {
+      result = IJSValue::MakeValue(isolate, V8Array()->Get(index));
+      values.emplace(index, result);
+    }
+    else
+      result = findresult->second;
+    return result;
+  }
+  void IJSArray::SetValue(IJSValue * value, int32_t index)
+  {
+    V8Array()->Set(index, value->V8Value());
   }
   v8::Local<v8::Array> IJSArray::V8Array()
   {

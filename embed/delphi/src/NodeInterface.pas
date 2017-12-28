@@ -59,7 +59,10 @@ type
   end;
 
   IJSArray = class(IJSValue)
-
+    function GetCount: Int32; virtual; stdcall; abstract;
+    function GetValue(index: Int32): IJSValue; virtual; stdcall; abstract;
+    procedure SetValue(Value: IJSValue; index: Int32);
+      virtual; stdcall; abstract;
   end;
 
   IJSFunction = class(IJSValue)
@@ -82,6 +85,7 @@ type
     function GetEngine: TObject; virtual; stdcall; abstract;
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
     function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
+    function GetArgs: IJSArray; virtual; stdcall; abstract;
 
     function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
 

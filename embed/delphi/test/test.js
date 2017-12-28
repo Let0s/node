@@ -1,5 +1,5 @@
 console.log('start test file');
-console.log(Func());
+console.log(Func('hello'));
 console.log(Prop);
 console.log(Prop = 'property Prop was modified');
 Event = function(sender){

@@ -65,7 +65,12 @@ namespace embed {
   class IJSArray : public IJSValue {
   public:
     IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val);
+    ~IJSArray();
+    virtual int32_t APIENTRY GetCount();
+    virtual IJSValue * APIENTRY GetValue(int32_t index);
+    virtual void APIENTRY SetValue(IJSValue * value, int32_t index);
     v8::Local<v8::Array> V8Array();
+    std::unordered_map<int32_t, IJSValue *> values;
   };
 
   //wrapper for JS function
@@ -138,6 +143,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual IJSArray * APIENTRY GetArguments();
 
     virtual char * APIENTRY GetMethodName();
 
@@ -148,6 +154,7 @@ namespace embed {
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
     const v8::FunctionCallbackInfo<v8::Value>* args = nullptr;
+    IJSArray * argv;
     std::string run_string_result;
   };
 

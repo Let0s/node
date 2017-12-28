@@ -19,15 +19,38 @@ type
 
   function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
 
+  function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
+    JSParams: IJSArray; GC: TGarbageCollector): TArray<TValue>;
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     GC: TGarbageCollector): TValue;
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
     GC: TGarbageCollector): TValue;
+  function DefaultTValue(typ: TRttiType): TValue;
 
 var
   Context: TRttiContext;
 
 implementation
+
+function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
+  JSParams: IJSArray; GC: TGarbageCollector): TArray<TValue>;
+var
+  ArrLength: Int32;
+  i: Integer;
+begin
+  ArrLength := JSParams.GetCount;
+  SetLength(Result, Length(Params));
+  for i := 0 to ArrLength - 1 do
+  begin
+    if i >= Length(Params) then
+      break;
+    Result[i] := JSValueToTValue(JSParams.GetValue(i), Params[i].ParamType, GC);
+  end;
+  for i := ArrLength to Length(Params) - 1 do
+  begin
+    Result[i] := DefaultTValue(Params[i].ParamType);
+  end;
+end;
 
 function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
 begin
@@ -101,6 +124,35 @@ begin
     EventWrapper := GetEventWrapper(typ.Handle).Create(value.AsFunction);
     GC.AddCallback(EventWrapper);
     TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+  end;
+end;
+
+function DefaultTValue(typ: TRttiType): TValue;
+begin
+  Result := TValue.Empty;
+  case typ.TypeKind of
+    tkUnknown: ;
+    tkInteger: Result := 0;
+    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+      Result := '';
+    tkEnumeration:
+      if typ.Handle = TypeInfo(Boolean) then
+        Result := false
+      else
+        Result := TValue.FromOrdinal(typ.Handle, 0);
+    tkFloat: Result := 0;
+    tkSet: ;
+    tkClass: Result := nil;
+    tkMethod: Result := nil;
+    tkVariant: ;
+    tkArray: ;
+    tkRecord: ;
+    tkInterface: ;
+    tkInt64: ;
+    tkDynArray: ;
+    tkClassRef: ;
+    tkPointer: ;
+    tkProcedure: ;
   end;
 end;
 

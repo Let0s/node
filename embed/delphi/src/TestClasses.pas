@@ -12,7 +12,7 @@ type
     FEvent: TNotifyEvent;
   public
     constructor Create;
-    function Func(): string;
+    function Func(argument: string): string;
     property Prop: string read FProp write FProp;
     property Event: TNotifyEvent read FEvent write FEvent;
   end;
@@ -27,9 +27,9 @@ begin
   FEvent := nil;
 end;
 
-function TTestGlobal.Func: string;
+function TTestGlobal.Func(argument: string): string;
 begin
-  Result := 'Function TTestGlobal.Func called';
+  Result := 'Function TTestGlobal.Func called. argument = ' + argument;
 end;
 
 end.
