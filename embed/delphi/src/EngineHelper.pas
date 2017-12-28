@@ -14,6 +14,7 @@ type
   public
     constructor Create();
     procedure AddCallback(Event: TEventWrapper);
+    procedure AddObject(Obj: TObject);
   end;
 
   function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
@@ -108,6 +109,11 @@ end;
 procedure TGarbageCollector.AddCallback(Event: TEventWrapper);
 begin
   FCallbackList.Add(Event);
+end;
+
+procedure TGarbageCollector.AddObject(Obj: TObject);
+begin
+  FObjectList.Add(Obj);
 end;
 
 constructor TGarbageCollector.Create;
