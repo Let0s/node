@@ -63,7 +63,7 @@ type
   end;
 
   IJSFunction = class(IJSValue)
-
+    function Call(Args: IJSArray): IJSValue; virtual; stdcall; abstract;
   end;
 
   // delphi class wrapper
