@@ -7,13 +7,15 @@ uses
   Generics.Collections;
 
 type
+  TJSEngine = class;
 
   TClassWrapper = class(TObject)
   private
     FType: TClass;
     FEngine: INodeEngine;
   public
-    constructor Create(cType: TClass; Engine: INodeEngine);
+    constructor Create(cType: TClass; Engine: TJSEngine;
+      IsGlobal: boolean = False);
     destructor Destroy; override;
   end;
 
@@ -21,11 +23,12 @@ type
   private
     FEngine: INodeEngine;
     FGlobal: TObject;
-    FClasses: TObjectList<TClassWrapper>;
+    FClasses: TDictionary<TClass, TClassWrapper>;
     FGarbageCollector: TGarbageCollector;
   public
     constructor Create();
     destructor Destroy; override;
+    function AddClass(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
@@ -128,13 +131,40 @@ end;
 
 { TJSEngine }
 
+function TJSEngine.AddClass(classType: TClass): TClassWrapper;
+var
+  ClassWrapper: TClassWrapper;
+  Parent: TClass;
+begin
+  Result := nil;
+//  if Inactive then
+//    Exit;
+  if (classType = FGlobal.ClassType) or (classType = TObject) then
+    Exit;
+  Parent := classType.ClassParent;
+  while Assigned(Parent) and (Parent <> TObject) do
+  begin
+    AddClass(Parent);
+    Parent := Parent.ClassParent;
+  end;
+  if not FClasses.TryGetValue(classType, ClassWrapper) then
+  begin
+    ClassWrapper := TClassWrapper.Create(classType, Self);
+//    if FJSHelpers.TryGetValue(cType, helper) then
+//      JsClass.AddHelper(helper);
+    FClasses.Add(classType, ClassWrapper);
+//    SetClassIntoContext(ClassWrapper);
+  end;
+  Result := ClassWrapper;
+end;
+
 procedure TJSEngine.AddGlobal(Global: TObject);
 var
   GlobalWrapper: TClassWrapper;
 begin
   FGlobal := Global;
-  GlobalWrapper := TClassWrapper.Create(Global.ClassType, FEngine);
-  FClasses.Add(GlobalWrapper);
+  GlobalWrapper := TClassWrapper.Create(Global.ClassType, Self, True);
+  FClasses.Add(Global.ClassType, GlobalWrapper);
 end;
 
 constructor TJSEngine.Create;
@@ -147,7 +177,7 @@ begin
     FEngine.SetMethodCallBack(MethodCallBack);
     FEngine.SetPropGetterCallBack(PropGetterCallBack);
     FEngine.SetPropSetterCallBack(PropSetterCallBack);
-    FClasses := TObjectList<TClassWrapper>.Create;
+    FClasses := TDictionary<TClass, TClassWrapper>.Create;
     FGarbageCollector := TGarbageCollector.Create;
   except
     on E: EExternalException do
@@ -178,7 +208,8 @@ end;
 
 { TClassWrapper }
 
-constructor TClassWrapper.Create(cType: TClass; Engine: INodeEngine);
+constructor TClassWrapper.Create(cType: TClass; Engine: TJSEngine;
+  IsGlobal: Boolean);
 var
   Template: IClassTemplate;
   ClasslTyp: TRttiType;
@@ -186,14 +217,20 @@ var
   Prop: TRttiProperty;
 begin
   FType := cType;
-  FEngine := Engine;
+  FEngine := Engine.FEngine;
   ClasslTyp := Context.GetType(FType);
-  Template := FEngine.AddGlobal(FType);
+  if IsGlobal then
+    Template := FEngine.AddGlobal(FType)
+  else
+    Template := FEngine.AddObject(StringToPUtf8Char(cType.ClassName), cType);
   for Method in ClasslTyp.GetMethods do
   begin
     if (Method.Visibility = mvPublic) and
       (Method.Parent.Handle = ClasslTyp.Handle) then
     begin
+      if Assigned(Method.ReturnType) and
+        (Method.ReturnType.TypeKind = tkClass) then
+          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
       Template.SetMethod(StringToPUtf8Char(Method.Name), Method);
     end;
   end;
@@ -202,6 +239,8 @@ begin
     if (Prop.Visibility = mvPublic) and
       (Prop.Parent.Handle = ClasslTyp.Handle) then
     begin
+      if Prop.PropertyType.TypeKind = tkClass then
+        Engine.AddClass(Prop.PropertyType.Handle.TypeData.ClassType);
       Template.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
         Prop.IsReadable, Prop.IsWritable);
     end;
