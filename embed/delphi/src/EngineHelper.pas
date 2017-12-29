@@ -46,6 +46,8 @@ type
     JSParams: IJSArray; GC: TGarbageCollector): TArray<TValue>;
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     GC: TGarbageCollector): TValue;
+  function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+    GC: TGarbageCollector): TValue;
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
     GC: TGarbageCollector): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
@@ -117,7 +119,8 @@ begin
   Result := TValue.Empty;
   case typ.TypeKind of
     tkUnknown: ;
-    tkInteger: Result := value.AsInt32;
+    tkInteger:
+      Result := value.AsInt32;
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       Result := PUtf8CharToString(value.AsString);
     tkEnumeration:
@@ -125,19 +128,43 @@ begin
         Result := value.AsBool
       else
         Result := TValue.FromOrdinal(typ.Handle, value.AsInt32);
-    tkFloat: Result := value.AsNumber;
+    tkFloat:
+      Result := value.AsNumber;
     tkSet: ;
-    tkClass: Result := value.AsDelphiObject.GetDelphiObject;
-    tkMethod: Result := JSValueToMethod(value, typ, GC);
+    tkClass:
+      Result := value.AsDelphiObject.GetDelphiObject;
+    tkMethod:
+      Result := JSValueToMethod(value, typ, GC);
     tkVariant: ;
-    tkArray: ;
+    tkArray:
+      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, GC);
     tkRecord: ;
     tkInterface: ;
     tkInt64: ;
-    tkDynArray: ;
+    tkDynArray:
+      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, GC);
     tkClassRef: ;
     tkPointer: ;
     tkProcedure: ;
+  end;
+end;
+
+function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+  GC: TGarbageCollector): TValue;
+var
+  TValueArr: array of TValue;
+  i, count: Int32;
+begin
+  Result := TValue.Empty;
+  if Assigned(value) then
+  begin
+    count := value.GetCount;
+    SetLength(TValueArr, count);
+    for i := 0 to count - 1 do
+    begin
+      TValueArr[i] := JSValueToTValue(value.GetValue(i), typ.ElementType, GC);
+    end;
+    Result := TValue.FromArray(typ.Handle, TValueArr);
   end;
 end;
 
