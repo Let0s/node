@@ -48,6 +48,7 @@ var
   Engine: TJSEngine;
   Method: TRttiMethod;
   Obj: TObject;
+  ObjType: TClass;
   Result: TValue;
   JSResult: IJSValue;
   MethodArgs: TArray<TValue>;
@@ -66,7 +67,16 @@ begin
     Method := Args.GetDelphiMethod as TRttiMethod;
     MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
       Engine.FGarbageCollector);
-    Result := Method.Invoke(Obj, MethodArgs);
+    if Assigned(Obj) and (not Method.IsClassMethod) then
+      Result := Method.Invoke(Obj, MethodArgs)
+    else if Method.IsClassMethod then
+    begin
+      if Assigned(Obj) then
+        ObjType := Obj.ClassType
+      else
+        ObjType := Method.Parent.Handle.TypeData.ClassType;
+      Result := Method.Invoke(ObjType, MethodArgs);
+    end;
     JSResult := TValueToJSValue(Result, Engine.FEngine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);

@@ -13,6 +13,7 @@ type
   public
     constructor Create; virtual;
     property prop: string read Fprop write Setprop;
+    class function show(): string; virtual;
   end;
 
   TTestChild = class(TTestParent)
@@ -22,6 +23,7 @@ type
   public
     constructor Create; override;
     property childProp: string read FchildProp write SetchildProp;
+    class function show(): string; override;
   end;
 
   TTestGlobal = class(TObject)
@@ -78,6 +80,11 @@ begin
   Fprop := Value;
 end;
 
+class function TTestParent.show: string;
+begin
+  Result := 'TTestParent show';
+end;
+
 { TTestChild }
 
 constructor TTestChild.Create;
@@ -89,6 +96,11 @@ end;
 procedure TTestChild.SetchildProp(const Value: string);
 begin
   FchildProp := Value;
+end;
+
+class function TTestChild.show: string;
+begin
+  Result := 'TTestChild show';
 end;
 
 end.
