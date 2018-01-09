@@ -28,7 +28,7 @@ namespace embed {
         v8::Local<v8::FunctionTemplate> classTemplate =
           v8::FunctionTemplate::New(isolate);
         templ->ModifyTemplate(isolate, classTemplate);
-        global->InstanceTemplate()->Set(isolate,
+        global->PrototypeTemplate()->Set(isolate,
                                         templ->classTypeName.c_str(),
                                         classTemplate);
       }
@@ -357,6 +357,9 @@ namespace embed {
                          prop->read? PropGetter : NULL,
                          prop->write? PropSetter : NULL,
                          v8::External::New(isolate, prop->obj));
+    }
+    if (parentTemplate) {
+      templ->Inherit(parentTemplate->FunctionTemplate(isolate));
     }
     v8Template.Reset(isolate, templ);
   }
