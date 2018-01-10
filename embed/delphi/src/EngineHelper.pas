@@ -211,7 +211,7 @@ var
   ArgLength: Int32;
   i: Integer;
   ArgArray: IJSArray;
-  ResultValue: IJSValue;
+//  ResultValue: IJSValue;
 begin
   Result := TValue.Empty;
   Engine := FFunction.GetEngine;

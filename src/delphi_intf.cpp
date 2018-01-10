@@ -24,6 +24,14 @@ namespace embed {
     v8::Local<v8::FunctionTemplate> global = v8::FunctionTemplate::New(isolate);
     if (globalTemplate) {
       globalTemplate->ModifyTemplate(isolate, global);
+      for (auto &templ : classes) {
+        v8::Local<v8::FunctionTemplate> classTemplate =
+          v8::FunctionTemplate::New(isolate);
+        templ->ModifyTemplate(isolate, classTemplate);
+        global->PrototypeTemplate()->Set(isolate,
+                                        templ->classTypeName.c_str(),
+                                        classTemplate);
+      }
     }
     auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
     if (globalTemplate) {
@@ -330,6 +338,10 @@ namespace embed {
   {
     auto proto = templ->PrototypeTemplate();
     proto->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
+    {
+      //dirty way - fix it later;
+      templ->InstanceTemplate()->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
+    }
     for (auto &method : methods) {
       v8::Local<v8::FunctionTemplate> methodCallBack =
         v8::FunctionTemplate::New(isolate,
@@ -345,6 +357,9 @@ namespace embed {
                          prop->read? PropGetter : NULL,
                          prop->write? PropSetter : NULL,
                          v8::External::New(isolate, prop->obj));
+    }
+    if (parentTemplate) {
+      templ->Inherit(parentTemplate->FunctionTemplate(isolate));
     }
     v8Template.Reset(isolate, templ);
   }
