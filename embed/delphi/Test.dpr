@@ -34,13 +34,16 @@ begin
     try
       Engine.AddGlobal(Global);
       Engine.RunFile('../embed/delphi/test/test.js');
+      Engine.CheckEventLoop; //wait for global timer
+      ReadLn;
       if Assigned(Global.Event) then
         Global.Event(Global);
+      Engine.CheckEventLoop; //wait for event timer
+      Readln;
     finally
       Global.Free;
       Engine.Free;
     end;
-    Readln;
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
