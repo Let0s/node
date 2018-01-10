@@ -31,8 +31,8 @@ Event = function (sender) {
     console.log('event timer works');
   }, 1500);
 }
-timers.setTimeout(()=>{
-  console.log('global timer works');
+timers.setInterval(()=>{
+  console.log('global interval works');
 }, 1500);
 console.log('End test file\n' +
             `  summary test count: ${testCount}\n` + 

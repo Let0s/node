@@ -92,7 +92,7 @@ namespace embed {
   void BaseEngine::CheckEventLoop()
   {
     if (running) {
-      uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+      uv_run(uv_default_loop(), UV_RUN_NOWAIT);
       //dont know if it is needed;
       v8_platform->DrainBackgroundTasks();
         
