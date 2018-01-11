@@ -43,6 +43,26 @@
         }
         return success;
 
+    },
+    testEvent: function(){
+        var success = true;
+        try{
+            Event = function (sender) {
+            console.log('event should be called after end of test');
+            console.log(`event sender = ${sender}`);
+            timers.setTimeout(()=>{
+                console.log('event timer works');
+            }, 1500);
+            }
+            if(!Event){
+                throw new Error('Event is undefined');
+            }
+        }
+        catch (e) {
+            success = false;
+            console.error(e);
+        }
+        return success;
     }
 }
 

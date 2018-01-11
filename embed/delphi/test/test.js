@@ -24,13 +24,6 @@ RunTest(classTest);
 
 var timers = require('timers');
 
-Event = function (sender) {
-  console.log('event should be called after end of test');
-  console.log(`event sender = ${sender}`);
-  timers.setTimeout(()=>{
-    console.log('event timer works');
-  }, 1500);
-}
 timers.setInterval(()=>{
   console.log('global interval works');
 }, 1500);
