@@ -172,13 +172,18 @@ function JSValueToMethod(value: IJSValue; typ: TRttiType;
   GC: TGarbageCollector): TValue;
 var
   EventWrapper: TEventWrapper;
+  EventClass: TEventWrapperClass;
 begin
   Result := TValue.Empty;
   if value.IsFunction then
   begin
-    EventWrapper := GetEventWrapper(typ.Handle).Create(value.AsFunction);
-    GC.AddCallback(EventWrapper);
-    TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+    EventClass := GetEventWrapper(typ.Handle);
+    if Assigned(EventClass) then
+    begin
+      EventWrapper := EventClass.Create(value.AsFunction);
+      GC.AddCallback(EventWrapper);
+      TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+    end;
   end;
 end;
 
