@@ -4,13 +4,25 @@
 namespace embed {
   const int DEFAULT_THREAD_POOL_SIZE = 4;
   bool initialized = false;
+
+#if NODE_MAJOR_VERSION <= 8
   node::NodePlatform* v8_platform;
+#else
+  node::MultiIsolatePlatform* v8_platform;
+  v8::TracingController * v8_tracing_controller;
+#endif
 
   void Init() {
     if (!initialized) {
 
       // Initialize v8.
+#if NODE_MAJOR_VERSION <= 8
       v8_platform = new node::NodePlatform(DEFAULT_THREAD_POOL_SIZE, uv_default_loop(), nullptr);
+#else
+      v8_tracing_controller = new v8::TracingController();
+      v8_platform = node::CreatePlatform(DEFAULT_THREAD_POOL_SIZE, v8_tracing_controller);
+      node::tracing::TraceEventHelper::SetTracingController(v8_tracing_controller);
+#endif      
       v8::V8::InitializePlatform(v8_platform);
       v8::V8::Initialize();
 
