@@ -50,7 +50,7 @@
             Event = function (sender) {
             console.log('event should be called after end of test');
             console.log(`event sender = ${sender}`);
-            timers.setTimeout(()=>{
+            require('timers').setTimeout(()=>{
                 console.log('event timer works');
             }, 1500);
             }
