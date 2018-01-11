@@ -89,6 +89,9 @@ namespace embed {
     //runs script and keep it alive
     // to allow application send callbacks
     void Run(int argc, const char * argv[]);
+    // it will check if there is some node actions to execute
+    // e.g. result of async functions
+    virtual void APIENTRY CheckEventLoop();
     //stops script execution
     virtual void APIENTRY Stop();
   };

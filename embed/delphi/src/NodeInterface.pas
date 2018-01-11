@@ -24,6 +24,8 @@ type
   IBaseEngine = class(IBaseInterface)
     //do not call
     function _CreateContext(param: Pointer): Pointer; virtual; abstract;
+    //check for result of async node actions if event loop is alive
+    procedure CheckEventLoop(); virtual; stdcall; abstract;
     procedure Stop(); virtual; stdcall; abstract;
   end;
 

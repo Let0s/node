@@ -34,6 +34,7 @@ type
     procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
+    procedure CheckEventLoop;
   end;
 
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
@@ -176,6 +177,11 @@ begin
   FGlobal := Global;
   GlobalWrapper := TClassWrapper.Create(Global.ClassType, Self, nil, True);
   FClasses.Add(Global.ClassType, GlobalWrapper);
+end;
+
+procedure TJSEngine.CheckEventLoop;
+begin
+  FEngine.CheckEventLoop;
 end;
 
 constructor TJSEngine.Create;
