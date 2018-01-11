@@ -21,12 +21,15 @@ type
     destructor Destroy; override;
   end;
 
-  TJSEngine = class(TObject)
+  TJSEngine = class(TInterfacedObject, IJSEngine)
   private
     FEngine: INodeEngine;
     FGlobal: TObject;
     FClasses: TDictionary<TClass, TClassWrapper>;
     FGarbageCollector: TGarbageCollector;
+  protected
+    function GetEngine: INodeEngine;
+    function GetGarbageCollector: TGarbageCollector;
   public
     constructor Create();
     destructor Destroy; override;
@@ -67,7 +70,7 @@ begin
     end;
     Method := Args.GetDelphiMethod as TRttiMethod;
     MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
-      Engine.FGarbageCollector);
+      Engine);
     if Assigned(Obj) and (not Method.IsClassMethod) then
       Result := Method.Invoke(Obj, MethodArgs)
     else if Method.IsClassMethod then
@@ -78,7 +81,7 @@ begin
         ObjType := Method.Parent.Handle.TypeData.ClassType;
       Result := Method.Invoke(ObjType, MethodArgs);
     end;
-    JSResult := TValueToJSValue(Result, Engine.FEngine);
+    JSResult := TValueToJSValue(Result, Engine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
   end;
@@ -105,7 +108,7 @@ begin
     end;
     Prop := Args.GetProp as TRttiProperty;
     Result := Prop.GetValue(Obj);
-    JSResult := TValueToJSValue(Result, Engine.FEngine);
+    JSResult := TValueToJSValue(Result, Engine);
     if Assigned(JSResult) then
       Args.SetGetterResult(JSResult);
   end;
@@ -134,9 +137,9 @@ begin
     JSValue := Args.GetPropValue;
     if Assigned(JSValue) then
       Prop.SetValue(Obj,
-        JSValueToTValue(JSValue, Prop.PropertyType, Engine.FGarbageCollector));
+        JSValueToTValue(JSValue, Prop.PropertyType, Engine));
     Result := Prop.GetValue(Obj);
-    JSValue := TValueToJSValue(Result, Engine.FEngine);
+    JSValue := TValueToJSValue(Result, Engine);
     if Assigned(JSValue) then
       Args.SetSetterResult(JSValue);
   end;
@@ -211,6 +214,16 @@ begin
   FGarbageCollector.Free;
   FEngine.Delete;
   inherited;
+end;
+
+function TJSEngine.GetEngine: INodeEngine;
+begin
+  Result := FEngine;
+end;
+
+function TJSEngine.GetGarbageCollector: TGarbageCollector;
+begin
+  Result := FGarbageCollector;
 end;
 
 procedure TJSEngine.RunFile(filename: string);
