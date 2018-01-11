@@ -21,10 +21,19 @@ var classTest = require('./testClasses');
 var globalTest = require('./testGlobal');
 RunTest(globalTest);
 RunTest(classTest);
+
+var timers = require('timers');
+
 Event = function (sender) {
   console.log('event should be called after end of test');
   console.log(`event sender = ${sender}`);
+  timers.setTimeout(()=>{
+    console.log('event timer works');
+  }, 1500);
 }
+timers.setInterval(()=>{
+  console.log('global interval works');
+}, 1500);
 console.log('End test file\n' +
             `  summary test count: ${testCount}\n` + 
             `  passed test count:  ${passedCount}\n`);
