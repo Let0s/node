@@ -51,7 +51,7 @@ type
   public
     constructor Create();
     procedure AddCallback(Event: TEventWrapper);
-    function GetCallBack(Method: Pointer): TEventWrapper;
+    function GetCallBack(Method: TValue): TEventWrapper;
     procedure AddObject(Obj: TObject);
   end;
 
@@ -143,9 +143,9 @@ var
 begin
   Result := nil;
   GC := Engine.GC;
-  if Assigned(GC) then
+  if Assigned(GC) and not (value.IsEmpty) then
   begin
-    EventWrapper := GC.GetCallBack(Pointer(value.AsInteger));
+    EventWrapper := GC.GetCallBack(value);
     if Assigned(EventWrapper) then
       Result := EventWrapper.JSFunction;
   end;
@@ -352,17 +352,29 @@ begin
   FCallbackList := TObjectList<TEventWrapper>.Create;
 end;
 
-function TGarbageCollector.GetCallBack(Method: Pointer): TEventWrapper;
+function TGarbageCollector.GetCallBack(Method: TValue): TEventWrapper;
 var
   i: Integer;
+  MethodValue: TValue;
+  MethodPointer: Pointer;
+  CallBack: TEventWrapper;
 begin
   Result := nil;
-  for i := 0 to FCallbackList.Count - 1 do
+  // Convert from <TCustomEvent> (any event type) to Pointer TValue
+  TValue.Make(Method.GetReferenceToRawData, TypeInfo(Pointer), MethodValue);
+  // Convert from TValue to Pointer
+  MethodPointer := MethodValue.AsType<Pointer>;
+  if Assigned(MethodPointer) then
   begin
-    if @(FCallbackList[i].FMethod) = Method then
+    for i := 0 to FCallbackList.Count - 1 do
     begin
-      Result := FCallbackList[i];
-      break;
+      CallBack := FCallbackList[i];
+      // Check if method pointer equals to EventWrapper method code
+      if CallBack.FMethod.Code = MethodPointer then
+      begin
+        Result := CallBack;
+        break;
+      end;
     end;
   end;
 end;
