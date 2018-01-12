@@ -30,6 +30,11 @@ type
   protected
     function GetEngine: INodeEngine;
     function GetGarbageCollector: TGarbageCollector;
+
+    // interface support
+    function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
+    function _AddRef: integer; stdcall;
+    function _Release: integer; stdcall;
   public
     constructor Create();
     destructor Destroy; override;
@@ -226,6 +231,14 @@ begin
   Result := FGarbageCollector;
 end;
 
+function TJSEngine.QueryInterface(const IID: TGUID; out Obj): HResult;
+begin
+  if GetInterface(IID, Obj) then
+    Result := 0
+  else
+    Result := E_NOINTERFACE;
+end;
+
 procedure TJSEngine.RunFile(filename: string);
 begin
   FEngine.RunFile(StringToPUtf8Char(filename));
@@ -234,6 +247,16 @@ end;
 procedure TJSEngine.RunString(code: string);
 begin
   FEngine.RunString(StringToPUtf8Char(code));
+end;
+
+function TJSEngine._AddRef: integer;
+begin
+  Result := 0;
+end;
+
+function TJSEngine._Release: integer;
+begin
+  Result := 0;
 end;
 
 { TClassWrapper }
