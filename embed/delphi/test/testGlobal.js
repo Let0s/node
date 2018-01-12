@@ -63,6 +63,25 @@
             console.error(e);
         }
         return success;
+    },
+    testArray: function(){
+        var success = true;
+        try{
+            var array = arr;
+            if (!array){
+                throw new Error('arr is undefined');
+            }
+            var sum = 0;
+            for (let i = 0; i < array.length; i++){
+                sum += array[i];
+            }
+            console.log(`array elements sum = ${sum}`);
+        }
+        catch (e) {
+            success = false;
+            console.error(e);
+        }
+        return success;
     }
 }
 

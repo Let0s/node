@@ -31,6 +31,7 @@ type
     FProp: string;
     FEvent: TNotifyEvent;
     Fobj: TTestChild;
+    FArray: TArray<Integer>;
     procedure Setobj(const Value: TTestChild);
   public
     constructor Create;
@@ -39,6 +40,7 @@ type
     property Prop: string read FProp write FProp;
     property Event: TNotifyEvent read FEvent write FEvent;
     property obj: TTestChild read Fobj write Setobj;
+    property arr: TArray<Integer> read FArray;
   end;
 
 implementation
@@ -50,6 +52,10 @@ begin
   FProp := 'TTestGlobal.Prop property';
   Fobj := TTestChild.Create;
   FEvent := nil;
+  SetLength(FArray, 3);
+  FArray[0] := 23;
+  FArray[1] := 22;
+  FArray[2] := 21;
 end;
 
 destructor TTestGlobal.Destroy;

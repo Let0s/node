@@ -57,6 +57,7 @@ type
 
   function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
   function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
+  function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
@@ -123,11 +124,11 @@ begin
                                                 value.AsObject.ClassType);
       tkMethod: Result := TValueToJSFunction(value, Engine);
       tkVariant: ;
-      tkArray: ;
+      tkArray: Result := TValueToJSArray(value, Engine);
       tkRecord: ;
       tkInterface: ;
       tkInt64: ;
-      tkDynArray: ;
+      tkDynArray: Result := TValueToJSArray(value, Engine);
       tkClassRef: ;
       tkPointer: ;
       tkProcedure: ;
@@ -151,6 +152,21 @@ begin
   end;
 end;
 
+function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
+var
+  count, i: integer;
+begin
+  Result := nil;
+  if value.IsArray then
+  begin
+    count := value.GetArrayLength;
+    Result := Engine.Engine.NewArray(count);
+    for i := 0 to count - 1 do
+    begin
+      Result.SetValue(TValueToJSValue(value.GetArrayElement(i), Engine), i);
+    end;
+  end
+end;
 
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
   Engine: IJSEngine): TValue;
