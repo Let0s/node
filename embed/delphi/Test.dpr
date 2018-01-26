@@ -34,10 +34,6 @@ begin
     try
       Engine.AddGlobal(Global);
       Engine.RunFile('../embed/delphi/test/test.js');
-      Engine.CheckEventLoop; //check if global timer call callback
-      ReadLn;
-      if Assigned(Global.Event) then
-        Global.Event(Global);
       Engine.CheckEventLoop; //check if event timer call callback
       Readln;
     finally
