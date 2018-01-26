@@ -3,11 +3,23 @@ unit EngineHelper;
 interface
 
 uses
-  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes;
+  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes, SysUtils;
 
 type
+  EScriptEngineException = class(Exception);
+
+  TGarbageCollector = class;
+
+  IJSEngine = interface
+    function GetEngine: INodeEngine;
+    function GetGarbageCollector: TGarbagecollector;
+    property Engine: INodeEngine read GetEngine;
+    property GC: TGarbageCollector read GetGarbageCollector;
+  end;
+
   TEventWrapper = class(TObject)
   private
+    FEngine: IJSEngine;
     FFunction: IJSFunction;
     FMethod: TMethod;
   protected
@@ -16,6 +28,8 @@ type
   public
     constructor Create(Func: IJSFunction); virtual;
     property Method: TMethod read FMethod;
+    property JSFunction: IJSFunction read FFunction;
+    procedure SetEngine(Engine: IJSEngine);
   end;
 
   TEventWrapperClass = class of TEventWrapper;
@@ -37,17 +51,22 @@ type
   public
     constructor Create();
     procedure AddCallback(Event: TEventWrapper);
+    function GetCallBack(Method: TValue): TEventWrapper;
     procedure AddObject(Obj: TObject);
   end;
 
-  function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
+  function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
+  function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
+  function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
-    JSParams: IJSArray; GC: TGarbageCollector): TArray<TValue>;
+    JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
-    GC: TGarbageCollector): TValue;
+    Engine: IJSEngine): TValue;
+  function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+    Engine: IJSEngine): TValue;
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
-    GC: TGarbageCollector): TValue;
+    Engine: IJSEngine): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
 
   function RegisterEventWrapper(Event: PTypeInfo;
@@ -61,7 +80,7 @@ var
 implementation
 
 function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
-  JSParams: IJSArray; GC: TGarbageCollector): TArray<TValue>;
+  JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
 var
   ArrLength: Int32;
   i: Integer;
@@ -72,7 +91,8 @@ begin
   begin
     if i >= Length(Params) then
       break;
-    Result[i] := JSValueToTValue(JSParams.GetValue(i), Params[i].ParamType, GC);
+    Result[i] := JSValueToTValue(JSParams.GetValue(i),
+      Params[i].ParamType, Engine);
   end;
   for i := ArrLength to Length(Params) - 1 do
   begin
@@ -80,44 +100,82 @@ begin
   end;
 end;
 
-function TValueToJSValue(value: TValue; Engine: INodeEngine): IJSValue;
+function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
+var
+  NodeEngine: INodeEngine;
 begin
   Result := nil;
-  case value.Kind of
-    tkUnknown: ;
-    tkInteger: Result := Engine.NewInt32(value.AsInteger);
-    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-      Result := Engine.NewString(StringToPUtf8Char(value.ToString));
-    tkEnumeration:
-      if value.IsType<Boolean> then
-        Result := Engine.NewBool(value.AsBoolean)
-      else
-        Result := Engine.NewInt32(value.AsOrdinal);
-    tkFloat: Result := Engine.NewNumber(value.AsExtended);
-    tkSet: ;
-    tkClass: Result := Engine.NewDelphiObject(value.AsObject,
-                                              value.AsObject.ClassType);
-    tkMethod: ;
-    tkVariant: ;
-    tkArray: ;
-    tkRecord: ;
-    tkInterface: ;
-    tkInt64: ;
-    tkDynArray: ;
-    tkClassRef: ;
-    tkPointer: ;
-    tkProcedure: ;
+  NodeEngine := Engine.Engine;
+  if Assigned(NodeEngine) then
+  begin
+    case value.Kind of
+      tkUnknown: ;
+      tkInteger: Result := NodeEngine.NewInt32(value.AsInteger);
+      tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+        Result := NodeEngine.NewString(StringToPUtf8Char(value.ToString));
+      tkEnumeration:
+        if value.IsType<Boolean> then
+          Result := NodeEngine.NewBool(value.AsBoolean)
+        else
+          Result := NodeEngine.NewInt32(value.AsOrdinal);
+      tkFloat: Result := NodeEngine.NewNumber(value.AsExtended);
+      tkSet: ;
+      tkClass: Result := NodeEngine.NewDelphiObject(value.AsObject,
+                                                value.AsObject.ClassType);
+      tkMethod: Result := TValueToJSFunction(value, Engine);
+      tkVariant: ;
+      tkArray: Result := TValueToJSArray(value, Engine);
+      tkRecord: ;
+      tkInterface: ;
+      tkInt64: Result := NodeEngine.NewNumber(value.AsInt64);
+      tkDynArray: Result := TValueToJSArray(value, Engine);
+      tkClassRef: ;
+      tkPointer: ;
+      tkProcedure: ;
+    end;
   end;
 end;
 
+function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
+var
+  EventWrapper: TEventWrapper;
+  Event: TMethod;
+  GC: TGarbageCollector;
+begin
+  Result := nil;
+  GC := Engine.GC;
+  if Assigned(GC) and not (value.IsEmpty) then
+  begin
+    EventWrapper := GC.GetCallBack(value);
+    if Assigned(EventWrapper) then
+      Result := EventWrapper.JSFunction;
+  end;
+end;
+
+function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
+var
+  count, i: integer;
+begin
+  Result := nil;
+  if value.IsArray then
+  begin
+    count := value.GetArrayLength;
+    Result := Engine.Engine.NewArray(count);
+    for i := 0 to count - 1 do
+    begin
+      Result.SetValue(TValueToJSValue(value.GetArrayElement(i), Engine), i);
+    end;
+  end
+end;
 
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
-  GC: TGarbageCollector): TValue;
+  Engine: IJSEngine): TValue;
 begin
   Result := TValue.Empty;
   case typ.TypeKind of
     tkUnknown: ;
-    tkInteger: Result := value.AsInt32;
+    tkInteger:
+      Result := value.AsInt32;
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       Result := PUtf8CharToString(value.AsString);
     tkEnumeration:
@@ -125,33 +183,67 @@ begin
         Result := value.AsBool
       else
         Result := TValue.FromOrdinal(typ.Handle, value.AsInt32);
-    tkFloat: Result := value.AsNumber;
+    tkFloat:
+      Result := value.AsNumber;
     tkSet: ;
-    tkClass: Result := value.AsDelphiObject.GetDelphiObject;
-    tkMethod: Result := JSValueToMethod(value, typ, GC);
+    tkClass:
+      Result := value.AsDelphiObject.GetDelphiObject;
+    tkMethod:
+      Result := JSValueToMethod(value, typ, Engine);
     tkVariant: ;
-    tkArray: ;
+    tkArray:
+      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
     tkRecord: ;
     tkInterface: ;
-    tkInt64: ;
-    tkDynArray: ;
+    tkInt64:
+      Result := Round(value.AsNumber);
+    tkDynArray:
+      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
     tkClassRef: ;
     tkPointer: ;
     tkProcedure: ;
   end;
 end;
 
-function JSValueToMethod(value: IJSValue; typ: TRttiType;
-  GC: TGarbageCollector): TValue;
+function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+  Engine: IJSEngine): TValue;
 var
-  EventWrapper: TEventWrapper;
+  TValueArr: array of TValue;
+  i, count: Int32;
 begin
   Result := TValue.Empty;
+  if Assigned(value) then
+  begin
+    count := value.GetCount;
+    SetLength(TValueArr, count);
+    for i := 0 to count - 1 do
+    begin
+      TValueArr[i] := JSValueToTValue(value.GetValue(i), typ.ElementType, Engine);
+    end;
+    Result := TValue.FromArray(typ.Handle, TValueArr);
+  end;
+end;
+
+function JSValueToMethod(value: IJSValue; typ: TRttiType;
+  Engine: IJSEngine): TValue;
+var
+  EventWrapper: TEventWrapper;
+  EventClass: TEventWrapperClass;
+  GC: TGarbageCollector;
+begin
+  Result := TValue.Empty;
+  GC := Engine.GC;
   if value.IsFunction then
   begin
-    EventWrapper := GetEventWrapper(typ.Handle).Create(value.AsFunction);
-    GC.AddCallback(EventWrapper);
-    TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+    EventClass := GetEventWrapper(typ.Handle);
+    if Assigned(EventClass) then
+    begin
+      EventWrapper := EventClass.Create(value.AsFunction);
+      EventWrapper.SetEngine(Engine);
+      if Assigned(GC) then
+        GC.AddCallback(EventWrapper);
+      TValue.Make(@EventWrapper.Method, typ.Handle, Result);
+    end;
   end;
 end;
 
@@ -221,7 +313,7 @@ begin
     ArgArray := Engine.NewArray(ArgLength);
     for i := 0 to ArgLength - 1 do
     begin
-      ArgArray.SetValue(TValueToJSValue(Args[i], Engine), 0);
+      ArgArray.SetValue(TValueToJSValue(Args[i], FEngine), 0);
     end;
     FFunction.Call(ArgArray);
   end;
@@ -230,6 +322,11 @@ end;
 constructor TEventWrapper.Create(Func: IJSFunction);
 begin
   FFunction := Func;
+end;
+
+procedure TEventWrapper.SetEngine(Engine: IJSEngine);
+begin
+  FEngine := Engine;
 end;
 
 procedure TEventWrapper.SetMethod(NewMethod: TMethod);
@@ -270,6 +367,33 @@ constructor TGarbageCollector.Create;
 begin
   FObjectList := TObjectList<TObject>.Create;
   FCallbackList := TObjectList<TEventWrapper>.Create;
+end;
+
+function TGarbageCollector.GetCallBack(Method: TValue): TEventWrapper;
+var
+  i: Integer;
+  MethodValue: TValue;
+  MethodPointer: Pointer;
+  CallBack: TEventWrapper;
+begin
+  Result := nil;
+  // Convert from <TCustomEvent> (any event type) to Pointer TValue
+  TValue.Make(Method.GetReferenceToRawData, TypeInfo(Pointer), MethodValue);
+  // Convert from TValue to Pointer
+  MethodPointer := MethodValue.AsType<Pointer>;
+  if Assigned(MethodPointer) then
+  begin
+    for i := 0 to FCallbackList.Count - 1 do
+    begin
+      CallBack := FCallbackList[i];
+      // Check if method pointer equals to EventWrapper method code
+      if CallBack.FMethod.Code = MethodPointer then
+      begin
+        Result := CallBack;
+        break;
+      end;
+    end;
+  end;
 end;
 
 initialization

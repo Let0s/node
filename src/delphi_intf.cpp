@@ -443,26 +443,27 @@ namespace embed {
     v8::Local<v8::Value> val)
   {
     IJSValue * result = nullptr;
-    if (val->IsFunction()) {
-      result = new IJSFunction(isolate, val);
-    }
-    else if (val->IsArray()) {
-      result = new IJSArray(isolate, val);
-    }
-    else if (val->IsInt32() || val->IsString() || val->IsNumber() ||
-      val->IsBoolean() || val->IsUndefined() || val->IsNull()) {
-      result = new IJSValue(isolate, val);
-    }
-    else if (val->IsObject()) {
-      auto obj = val->ToObject();
-      if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
-        result = new IJSDelphiObject(isolate, val);
+    if (!val.IsEmpty()) {
+      if (val->IsFunction()) {
+        result = new IJSFunction(isolate, val);
       }
-      else {
-        result = new IJSObject(isolate, val);
+      else if (val->IsArray()) {
+        result = new IJSArray(isolate, val);
+      }
+      else if (val->IsInt32() || val->IsString() || val->IsNumber() ||
+        val->IsBoolean() || val->IsUndefined() || val->IsNull()) {
+        result = new IJSValue(isolate, val);
+      }
+      else if (val->IsObject()) {
+        auto obj = val->ToObject();
+        if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
+          result = new IJSDelphiObject(isolate, val);
+        }
+        else {
+          result = new IJSObject(isolate, val);
+        }
       }
     }
-
     return result;
   }
   v8::Local<v8::Value> IJSValue::V8Value()
