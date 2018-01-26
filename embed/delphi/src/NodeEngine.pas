@@ -3,7 +3,7 @@ unit NodeEngine;
 interface
 
 uses
-  NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper,
+  NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper, IOUtils,
   Generics.Collections;
 
 type
@@ -241,7 +241,7 @@ end;
 
 procedure TJSEngine.RunFile(filename: string);
 begin
-  FEngine.RunFile(StringToPUtf8Char(filename));
+  FEngine.RunFile(StringToPUtf8Char(TPath.GetFullPath(filename)));
 end;
 
 procedure TJSEngine.RunString(code: string);
