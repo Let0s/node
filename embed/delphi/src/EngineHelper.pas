@@ -127,7 +127,7 @@ begin
       tkArray: Result := TValueToJSArray(value, Engine);
       tkRecord: ;
       tkInterface: ;
-      tkInt64: ;
+      tkInt64: Result := NodeEngine.NewNumber(value.AsInt64);
       tkDynArray: Result := TValueToJSArray(value, Engine);
       tkClassRef: ;
       tkPointer: ;
@@ -195,7 +195,8 @@ begin
       Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
     tkRecord: ;
     tkInterface: ;
-    tkInt64: ;
+    tkInt64:
+      Result := Round(value.AsNumber);
     tkDynArray:
       Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
     tkClassRef: ;
