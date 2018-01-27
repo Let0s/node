@@ -139,7 +139,6 @@ end;
 function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
 var
   EventWrapper: TEventWrapper;
-  Event: TMethod;
   GC: TGarbageCollector;
 begin
   Result := nil;
