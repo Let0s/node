@@ -10,7 +10,6 @@ type
   public
     x: double;
     y: double;
-  private
     constructor Create(ax, ay: double);
     function Length: double;
   end;
