@@ -10,7 +10,9 @@ uses
   NodeInterface in 'src\NodeInterface.pas',
   NodeEngine in 'src\NodeEngine.pas',
   TestClasses in 'src\TestClasses.pas',
-  EngineHelper in 'src\EngineHelper.pas';
+  EngineHelper in 'src\EngineHelper.pas',
+  TestRecords in 'src\TestRecords.pas',
+  TestInterfaces in 'src\TestInterfaces.pas';
 
 const
   NewLine = #10#13;
