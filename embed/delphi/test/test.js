@@ -17,7 +17,7 @@ function RunTest(testObj) {
       catch (e) {
         console.log(e)
       }
-      console.log('---------------------\n');
+      console.log('---------------------\n\n');
     }
   }
 }
@@ -28,7 +28,7 @@ var files = fs.readdirSync('./');
 
 for (var i = 0; i < files.length; i++) {
   try {
-    if (path.extname(files[i].toLowerCase() === '.js')) {
+    if (path.extname(files[i]).toLowerCase() === '.js') {
       var test = require(`./${files[i]}`);
       RunTest(test);
     }
