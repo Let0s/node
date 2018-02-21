@@ -1,87 +1,27 @@
 ﻿var testGlobal = {
-    testFunction : function () {
-        var success = true;
-        try {
-            Func('hello')
+    testProperty: ()=>{
+        if (!Five){
+            throw new Error('property Five is undefined');
         }
-        catch (e) {
-            success = false;
-            console.error(e);
+        if (Five !== 5){
+            throw new Error('property Five doesnt equal 5');
         }
-        return success;
     },
-    testProp : function () {
-        var success = true;
-        try {
-            var prevProp = Prop;
-            if (!prevProp)
-                throw new Error('Prop is not assigned');
-            var newProp = Prop += 'modified';
-            if (newProp !== Prop) {
-                throw new Error('Setter result is not equal to Prop property');
-            }
-            if (newProp == prevProp) {
-                throw new Error('Prop property wasn\'t changed');
-            }
+    testField: ()=>{
+        if (!Four){
+            throw new Error('field Four is undefined')
         }
-        catch (e) {
-            success = false;
-            console.error(e);
+        if (Four !== 4){
+            throw new Error('field Four doesnt equal 4');
         }
-        return success;
-    },
-    testPropertyObject: function() {
-        var success = true;
-        try {
-            if (!obj) {
-                throw new Error('property obj is not assigned');
-            }
+        var setterResult = 0;
+        setterResult = Four = 5;
+        if (Four !== 5){
+            throw new Error('setter for Four field doesnt work');
         }
-        catch (e) {
-            success = false;
-            console.error(e);
+        if (setterResult !== 5){
+            throw new Error('setter for Four field doesnt return result value');
         }
-        return success;
-
-    },
-    testEvent: function(){
-        var success = true;
-        try{
-            Event = function (sender) {
-            console.log('event should be called after end of test');
-            console.log(`event sender = ${sender}`);
-            require('timers').setTimeout(()=>{
-                console.log('event timer works');
-            }, 1500);
-            }
-            if(!Event){
-                throw new Error('Event is undefined');
-            }
-        }
-        catch (e) {
-            success = false;
-            console.error(e);
-        }
-        return success;
-    },
-    testArray: function(){
-        var success = true;
-        try{
-            var array = arr;
-            if (!array){
-                throw new Error('arr is undefined');
-            }
-            var sum = 0;
-            for (let i = 0; i < array.length; i++){
-                sum += array[i];
-            }
-            console.log(`array elements sum = ${sum}`);
-        }
-        catch (e) {
-            success = false;
-            console.error(e);
-        }
-        return success;
     }
 }
 

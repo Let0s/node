@@ -82,6 +82,12 @@ namespace embed {
 
   void IEmbedEngine::RunFile(char * filename)
   {
+    //set current directory for nodejs
+    std::string filePath = filename;
+    size_t pos = filePath.find_last_of("\\/");
+    filePath = (std::string::npos == pos) ? "" : filePath.substr(0, pos);
+    uv_chdir(filePath.c_str());
+
     std::vector<const char *> args;
     args.push_back(exeName.c_str());
     args.push_back(filename);
