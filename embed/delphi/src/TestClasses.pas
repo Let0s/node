@@ -3,44 +3,45 @@ unit TestClasses;
 interface
 
 uses
-  Classes;
+  Math, TestRecords, TestInterfaces, Classes;
 
 type
-  TTestParent = class(TObject)
+
+  TTestCircle = class(TInterfacedObject, ITestFigure)
   private
-    Fprop: string;
-    procedure Setprop(const Value: string);
+    FRadius: double;
+    FCenter: TTestPoint;
   public
-    constructor Create; virtual;
-    property prop: string read Fprop write Setprop;
-    class function show(): string; virtual;
+    constructor Create(CenterPoint: TTestPoint; Radius: double);
+    property Center: TTestPoint read FCenter;
+    property Radius: double read FRadius;
+    function GetSquare: double;
   end;
 
-  TTestChild = class(TTestParent)
+  TTestRectangle = class(TInterfacedObject, ITestFigure)
   private
-    FChildProp: string;
-    procedure SetchildProp(const Value: string);
+    FMin: TTestPoint;
+    FMax: TTestPoint;
   public
-    constructor Create; override;
-    property childProp: string read FchildProp write SetchildProp;
-    class function show(): string; override;
+    constructor Create(MinPoint, MaxPoint: TTestPoint);
+    property Min: TTestPoint read FMin;
+    property Max: TTestPoint read FMax;
+    function GetSquare: double;
   end;
 
   TTestGlobal = class(TObject)
   private
-    FProp: string;
-    FEvent: TNotifyEvent;
-    Fobj: TTestChild;
-    FArray: TArray<Integer>;
-    procedure Setobj(const Value: TTestChild);
+    function GetFive: integer;
   public
+    Four: Integer;
     constructor Create;
     destructor Destroy; override;
-    function Func(argument: string): string;
-    property Prop: string read FProp write FProp;
-    property Event: TNotifyEvent read FEvent write FEvent;
-    property obj: TTestChild read Fobj write Setobj;
-    property arr: TArray<Integer> read FArray;
+    property Five: integer read GetFive;
+    function CreateRandomFigure: ITestFigure;
+    function CreateRectangle(StartPoint, EndPoint: TTestPoint): TTestRectangle;
+    function CreateCircle(Radius: double): TTestCircle; overload;
+    function CreateCircle(CenterPoint: TTestPoint;
+      Radius: double): TTestCircle; overload;
   end;
 
 implementation
@@ -49,64 +50,66 @@ implementation
 
 constructor TTestGlobal.Create;
 begin
-  FProp := 'TTestGlobal.Prop property';
-  Fobj := TTestChild.Create;
-  FEvent := nil;
-  SetLength(FArray, 3);
-  FArray[0] := 23;
-  FArray[1] := 22;
-  FArray[2] := 21;
+  Four := 4;
+end;
+
+function TTestGlobal.CreateCircle(Radius: double): TTestCircle;
+begin
+  Result := TTestCircle.Create(TTestPoint.Create(0, 0), Radius);
+end;
+
+function TTestGlobal.CreateCircle(CenterPoint: TTestPoint;
+  Radius: double): TTestCircle;
+begin
+  Result := TTestCircle.Create(CenterPoint, Radius);
+end;
+
+function TTestGlobal.CreateRandomFigure: ITestFigure;
+begin
+  //not random, but returns interface
+  Result := TTestCircle.Create(TTestPoint.Create(0, 0), 5);
+end;
+
+function TTestGlobal.CreateRectangle(StartPoint,
+  EndPoint: TTestPoint): TTestRectangle;
+begin
+  Result := TTestRectangle.Create(StartPoint, EndPoint);
 end;
 
 destructor TTestGlobal.Destroy;
 begin
-  Fobj.Free;
   inherited;
 end;
 
-function TTestGlobal.Func(argument: string): string;
+function TTestGlobal.GetFive: integer;
 begin
-  Result := 'Function TTestGlobal.Func called. argument = ' + argument;
+  Result := 5;
 end;
 
-procedure TTestGlobal.Setobj(const Value: TTestChild);
+{ TTestCircle }
+
+constructor TTestCircle.Create(CenterPoint: TTestPoint; Radius: double);
 begin
-  Fobj := Value;
+  FRadius := Radius;
+  FCenter := CenterPoint;
 end;
 
-{ TTestParent }
-
-constructor TTestParent.Create;
+function TTestCircle.GetSquare: double;
 begin
-  Fprop := 'TTestParent.prop property';
+  Result := 2 * FRadius * Pi;
 end;
 
-procedure TTestParent.Setprop(const Value: string);
+{ TTestRectangle }
+
+constructor TTestRectangle.Create(MinPoint, MaxPoint: TTestPoint);
 begin
-  Fprop := Value;
+  FMin := MinPoint;
+  FMax := MaxPoint;
 end;
 
-class function TTestParent.show: string;
+function TTestRectangle.GetSquare: double;
 begin
-  Result := 'TTestParent show';
-end;
-
-{ TTestChild }
-
-constructor TTestChild.Create;
-begin
-  inherited;
-  FChildProp := 'TTestChild.childProp property';
-end;
-
-procedure TTestChild.SetchildProp(const Value: string);
-begin
-  FchildProp := Value;
-end;
-
-class function TTestChild.show: string;
-begin
-  Result := 'TTestChild show';
+  Result := (Abs(FMin.x - FMax.x) + Abs(FMax.y - FMin.y)) * 2;
 end;
 
 end.
