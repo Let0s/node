@@ -115,7 +115,7 @@ begin
     Result := Prop.GetValue(Obj);
     JSResult := TValueToJSValue(Result, Engine);
     if Assigned(JSResult) then
-      Args.SetGetterResult(JSResult);
+      Args.SetReturnValue(JSResult);
   end;
 end;
 
@@ -146,7 +146,7 @@ begin
     Result := Prop.GetValue(Obj);
     JSValue := TValueToJSValue(Result, Engine);
     if Assigned(JSValue) then
-      Args.SetSetterResult(JSValue);
+      Args.SetReturnValue(JSValue);
   end;
 end;
 

@@ -694,7 +694,7 @@ namespace embed {
     }
     return nullptr;
   }
-  void IGetterArgs::SetGetterResult(IJSValue * val)
+  void IGetterArgs::SetReturnValue(IJSValue * val)
   {
     if (val)
       propinfo->GetReturnValue().Set(val->V8Value());
@@ -754,7 +754,7 @@ namespace embed {
   {
     return propValue;
   }
-  void ISetterArgs::SetSetterResult(IJSValue * val)
+  void ISetterArgs::SetReturnValue(IJSValue * val)
   {
     propinfo->GetReturnValue().Set(val->V8Value());
   }
