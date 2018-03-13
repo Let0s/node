@@ -85,39 +85,31 @@ type
     procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;
 
-  IMethodArgs = class (IBaseInterface)
+  IBaseArgs = class (IBaseInterface)
     function GetEngine: TObject; virtual; stdcall; abstract;
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
     function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
+    procedure SetReturnValue(val: IJSValue); virtual; stdcall; abstract;
+  end;
+
+  IMethodArgs = class (IBaseArgs)
     function GetArgs: IJSArray; virtual; stdcall; abstract;
 
     function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
 
-    procedure SetReturnValue(val: IJSValue); virtual; stdcall; abstract;
-
     function GetDelphiMethod: TObject; virtual; stdcall; abstract;
   end;
 
-  IGetterArgs = class (IBaseInterface)
-    function GetEngine: TObject; virtual; stdcall; abstract;
-    function GetDelphiObject: Pointer; virtual; stdcall; abstract;
-    function GetDelphiClasstype: Pointer; virtual; stdcall; abstract;
+  IGetterArgs = class (IBaseArgs)
     function GetPropName: IJSValue; virtual; stdcall; abstract;
     function GetProp: TObject; virtual; stdcall; abstract;
-
-    procedure SetGetterResult(val: IJSValue); virtual; stdcall; abstract;
   end;
 
-  ISetterArgs = class (IBaseInterface)
-    function GetEngine: TObject; virtual; stdcall; abstract;
-    function GetDelphiObject: Pointer; virtual; stdcall; abstract;
-    function GetDelphiClasstype: Pointer; virtual; stdcall; abstract;
+  ISetterArgs = class (IBaseArgs)
     function GetPropName: IJSValue; virtual; stdcall; abstract;
     function GetProp: TObject; virtual; stdcall; abstract;
 
     function GetPropValue: IJSValue; virtual; stdcall; abstract;
-
-    procedure SetSetterResult(val: IJSValue); virtual; stdcall; abstract;
   end;
 
   TMethodCallBack = procedure(args: IMethodArgs); stdcall;
