@@ -109,6 +109,16 @@ namespace embed {
     propSetterCallBack = callBack;
   }
 
+  void IEmbedEngine::SetFieldGetterCallBack(TGetterCallBack callback)
+  {
+    fieldGetterCallBack = callback;
+  }
+
+  void IEmbedEngine::SetFieldSetterCallBack(TSetterCallBack callBack)
+  {
+    fieldSetterCallBack = callBack;
+  }
+
   IJSValue * IEmbedEngine::NewInt32(int32_t value)
   {
     IJSValue * result = nullptr;
@@ -288,6 +298,22 @@ namespace embed {
       engine->propSetterCallBack(&propArgs);
   }
 
+  void FieldGetter(v8::Local<v8::String> field, const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IGetterArgs propArgs(info, field);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->fieldGetterCallBack)
+      engine->fieldGetterCallBack(&propArgs);
+  }
+
+  void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+  {
+    ISetterArgs propArgs(info, field, value);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->fieldSetterCallBack)
+      engine->fieldSetterCallBack(&propArgs);
+  }
+
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
   {
     return new IEmbedEngine(dEngine);
@@ -331,9 +357,10 @@ namespace embed {
     auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     indexed_props.push_back(std::move(prop));
   }
-  void IClassTemplate::SetField(char * fieldName)
+  void IClassTemplate::SetField(char * fieldName, void * fieldObj)
   {
-    fields.push_back(fieldName);
+    auto field = std::make_unique<IClassField>(fieldName, fieldObj);
+    fields.push_back(std::move(field));
   }
   void IClassTemplate::SetParent(IClassTemplate * parent)
   {
@@ -363,6 +390,16 @@ namespace embed {
                          prop->read? PropGetter : NULL,
                          prop->write? PropSetter : NULL,
                          v8::External::New(isolate, prop->obj));
+    }
+    for (auto &field : fields) {
+      auto fieldName = v8::String::NewFromUtf8(isolate,
+                                               field->name.c_str(),
+                                               v8::NewStringType::kNormal);
+      if (!fieldName.IsEmpty())
+        proto->SetAccessor(fieldName.ToLocalChecked(),
+                           FieldGetter,
+                           FieldSetter,
+                           v8::External::New(isolate, field->obj));
     }
     if (parentTemplate) {
       templ->Inherit(parentTemplate->FunctionTemplate(isolate));
@@ -757,5 +794,10 @@ namespace embed {
   void ISetterArgs::SetReturnValue(IJSValue * val)
   {
     propinfo->GetReturnValue().Set(val->V8Value());
+  }
+  IClassField::IClassField(const char * fName, void * fObj)
+  {
+    name = fName;
+    obj = fObj;
   }
 }

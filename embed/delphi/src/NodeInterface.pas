@@ -81,7 +81,7 @@ type
       read, write: Boolean); virtual; stdcall; abstract;
     procedure SetIndexedProperty(name: PAnsiChar; prop: Pointer;
       read, write: Boolean); virtual; stdcall; abstract;
-    procedure SetField(name: PAnsiChar); virtual; stdcall; abstract;
+    procedure SetField(name: PAnsiChar; field: Pointer); virtual; stdcall; abstract;
     procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;
 
@@ -129,6 +129,10 @@ type
     procedure SetPropGetterCallBack(callBack: TGetterCallBack);
       virtual; stdcall; abstract;
     procedure SetPropSetterCallBack(callBack: TSetterCallBack);
+      virtual; stdcall; abstract;
+    procedure SetFieldGetterCallBack(callBack: TGetterCallBack);
+      virtual; stdcall; abstract;
+    procedure SetFieldSetterCallBack(callBack: TSetterCallBack);
       virtual; stdcall; abstract;
 
     // if no script running it will return nil;

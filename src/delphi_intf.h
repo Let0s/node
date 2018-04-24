@@ -93,6 +93,13 @@ namespace embed {
     void * obj;
   };
 
+  //wrapper for Delphi class field
+  struct IClassField {
+    IClassField(const char * fName, void * fObj);
+    std::string name;
+    void * obj;
+  };
+
   //wrapper for Delphi class method
   struct IClassMethod{
   public:
@@ -112,7 +119,7 @@ namespace embed {
       bool read, bool write);
     virtual void APIENTRY SetIndexedProperty(char* propName,
       void * propObj, bool read, bool write);
-    virtual void APIENTRY SetField(char* fieldName);
+    virtual void APIENTRY SetField(char* fieldName, void * fieldObj);
     virtual void APIENTRY SetParent(IClassTemplate * parent);
 
     void ModifyTemplate(v8::Isolate * isolate,
@@ -134,7 +141,7 @@ namespace embed {
     v8::Persistent<v8::FunctionTemplate> v8Template;
     std::vector<std::unique_ptr<IClassProp>> props;
     std::vector<std::unique_ptr<IClassProp>> indexed_props;
-    std::vector<std::string> fields;
+    std::vector<std::unique_ptr<IClassField>> fields;
     std::vector<std::unique_ptr<IClassMethod>> methods;
   };
 
@@ -230,6 +237,8 @@ namespace embed {
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
     virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);
     virtual void APIENTRY SetPropSetterCallBack(TSetterCallBack callBack);
+    virtual void APIENTRY SetFieldGetterCallBack(TGetterCallBack callback);
+    virtual void APIENTRY SetFieldSetterCallBack(TSetterCallBack callBack);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -248,9 +257,11 @@ namespace embed {
     IClassTemplate * GetDelphiClassTemplate(void * classType);
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
 
-    TMethodCallBack functionCallBack;
-    TGetterCallBack propGetterCallBack;
-    TSetterCallBack propSetterCallBack;
+    TMethodCallBack functionCallBack = nullptr;
+    TGetterCallBack propGetterCallBack = nullptr;
+    TSetterCallBack propSetterCallBack = nullptr;
+    TGetterCallBack fieldGetterCallBack = nullptr;
+    TSetterCallBack fieldSetterCallBack = nullptr;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
@@ -267,6 +278,11 @@ namespace embed {
   void PropSetter(v8::Local<v8::String> prop,
                   v8::Local<v8::Value> value,
                   const v8::PropertyCallbackInfo<void>& info);
+  void FieldGetter(v8::Local<v8::String> field,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+  void FieldSetter(v8::Local<v8::String> field,
+    v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<void>& info);
 
 
   extern "C" {
