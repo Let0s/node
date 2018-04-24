@@ -48,6 +48,8 @@ type
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
   procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
   procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
+  procedure FieldGetterCallBack(Args: IGetterArgs); stdcall;
+  procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
 
 implementation
 
@@ -150,6 +152,65 @@ begin
   end;
 end;
 
+
+procedure FieldGetterCallBack(Args: IGetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Field: TRttiField;
+  Obj: TObject;
+  Result: TValue;
+  JSResult: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Field := Args.GetProp as TRttiField;
+    Result := Field.GetValue(Obj);
+    JSResult := TValueToJSValue(Result, Engine);
+    if Assigned(JSResult) then
+      Args.SetReturnValue(JSResult);
+  end;
+end;
+
+procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Field: TRttiField;
+  Obj: TObject;
+  Result: TValue;
+  JSValue: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Field := Args.GetProp as TRttiField;
+    JSValue := Args.GetPropValue;
+    if Assigned(JSValue) then
+      Field.SetValue(Obj,
+        JSValueToTValue(JSValue, Field.FieldType, Engine));
+    Result := Field.GetValue(Obj);
+    JSValue := TValueToJSValue(Result, Engine);
+    if Assigned(JSValue) then
+      Args.SetReturnValue(JSValue);
+  end;
+end;
+
 { TJSEngine }
 
 function TJSEngine.AddClass(classType: TClass): TClassWrapper;
@@ -202,6 +263,8 @@ begin
     FEngine.SetMethodCallBack(MethodCallBack);
     FEngine.SetPropGetterCallBack(PropGetterCallBack);
     FEngine.SetPropSetterCallBack(PropSetterCallBack);
+    FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
+    FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
     FClasses := TDictionary<TClass, TClassWrapper>.Create;
     FGarbageCollector := TGarbageCollector.Create;
   except
@@ -267,6 +330,7 @@ var
   ClasslTyp: TRttiType;
   Method: TRttiMethod;
   Prop: TRttiProperty;
+  Field: TRttiField;
 begin
   FType := cType;
   FParent := Parent;
@@ -297,6 +361,16 @@ begin
         Engine.AddClass(Prop.PropertyType.Handle.TypeData.ClassType);
       FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
         Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
+  for Field in ClasslTyp.GetFields do
+  begin
+    if (Field.Visibility = mvPublic) and
+      (Field.Parent.Handle = ClasslTyp.Handle) then
+    begin
+      if Field.FieldType.TypeKind = tkClass then
+        Engine.AddClass(Field.FieldType.Handle.TypeData.ClassType);
+      FTemplate.SetField(StringToPUtf8Char(Field.Name), Field);
     end;
   end;
   if Assigned(FParent) then
