@@ -9,12 +9,19 @@ uses
 type
   TJSEngine = class;
 
+  TRttiMethodList = class(TList<TRttiMethod>)
+  public
+    function GetMethod(args: IJSArray): TRttiMethod;
+  end;
+
   TClassWrapper = class(TObject)
   private
     FType: TClass;
     FTemplate: IClassTemplate;
     FParent: TClassWrapper;
+    FMethods: TObjectDictionary<string, TRttiMethodList>;
     FEngine: INodeEngine;
+    procedure AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
   public
     constructor Create(cType: TClass; Engine: TJSEngine; Parent: TClassWrapper;
       IsGlobal: boolean = False);
@@ -57,6 +64,7 @@ implementation
 procedure MethodCallBack(Args: IMethodArgs);
 var
   Engine: TJSEngine;
+  Overloads: TRttiMethodList;
   Method: TRttiMethod;
   Obj: TObject;
   ObjType: TClass;
@@ -75,22 +83,26 @@ begin
       if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
         Obj := Engine.FGlobal;
     end;
-    Method := Args.GetDelphiMethod as TRttiMethod;
-    MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
-      Engine);
-    if Assigned(Obj) and (not Method.IsClassMethod) then
-      Result := Method.Invoke(Obj, MethodArgs)
-    else if Method.IsClassMethod then
+    Overloads := Args.GetDelphiMethod as TRttiMethodList;
+    Method := Overloads.GetMethod(Args.GetArgs);
+    if Assigned(Method) then
     begin
-      if Assigned(Obj) then
-        ObjType := Obj.ClassType
-      else
-        ObjType := Method.Parent.Handle.TypeData.ClassType;
-      Result := Method.Invoke(ObjType, MethodArgs);
+      MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
+        Engine);
+      if Assigned(Obj) and (not Method.IsClassMethod) then
+        Result := Method.Invoke(Obj, MethodArgs)
+      else if Method.IsClassMethod then
+      begin
+        if Assigned(Obj) then
+          ObjType := Obj.ClassType
+        else
+          ObjType := Method.Parent.Handle.TypeData.ClassType;
+        Result := Method.Invoke(ObjType, MethodArgs);
+      end;
+      JSResult := TValueToJSValue(Result, Engine);
+      if Assigned(JSResult) then
+        Args.SetReturnValue(JSResult);
     end;
-    JSResult := TValueToJSValue(Result, Engine);
-    if Assigned(JSResult) then
-      Args.SetReturnValue(JSResult);
   end;
 end;
 
@@ -324,34 +336,48 @@ end;
 
 { TClassWrapper }
 
+procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
+var
+  Method: TRttiMethod;
+  Overloads: TRttiMethodList;
+begin
+  for Method in ClassTyp.GetMethods do
+  begin
+    if (Method.Visibility = mvPublic) and
+      (not (Method.IsConstructor or Method.IsDestructor)) and
+      (Method.Parent.Handle = ClassTyp.Handle) then
+    begin
+      if Assigned(Method.ReturnType) and
+        (Method.ReturnType.TypeKind = tkClass) then
+          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
+      if not FMethods.TryGetValue(Method.Name, Overloads) then
+      begin
+        Overloads := TRttiMethodList.Create;
+        FMethods.Add(Method.Name, Overloads);
+        FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
+      end;
+      Overloads.Add(Method);
+    end;
+  end;
+end;
+
 constructor TClassWrapper.Create(cType: TClass; Engine: TJSEngine;
   Parent: TClassWrapper; IsGlobal: Boolean);
 var
   ClasslTyp: TRttiType;
-  Method: TRttiMethod;
   Prop: TRttiProperty;
   Field: TRttiField;
 begin
   FType := cType;
   FParent := Parent;
   FEngine := Engine.FEngine;
+  FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
   ClasslTyp := Context.GetType(FType);
   if IsGlobal then
     FTemplate := FEngine.AddGlobal(FType)
   else
     FTemplate := FEngine.AddObject(StringToPUtf8Char(cType.ClassName), cType);
-  for Method in ClasslTyp.GetMethods do
-  begin
-    if (Method.Visibility = mvPublic) and
-      (not (Method.IsConstructor or Method.IsDestructor)) and
-      (Method.Parent.Handle = ClasslTyp.Handle) then
-    begin
-      if Assigned(Method.ReturnType) and
-        (Method.ReturnType.TypeKind = tkClass) then
-          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
-      FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Method);
-    end;
-  end;
+  AddMethods(ClasslTyp, Engine);
   for Prop in ClasslTyp.GetProperties do
   begin
     if (Prop.Visibility = mvPublic) and
@@ -379,7 +405,35 @@ end;
 
 destructor TClassWrapper.Destroy;
 begin
+  FreeAndNil(FMethods);
   inherited;
+end;
+
+{ TRttiMethodList }
+
+function TRttiMethodList.GetMethod(args: IJSArray): TRttiMethod;
+var
+  i, j: Integer;
+  Params: TArray<TRttiParameter>;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+  begin
+    Result := Items[i];
+    Params := Result.GetParameters;
+    for j := 0 to Length(Params) - 1 do
+    begin
+      if j >= args.GetCount then
+        break;
+      if not CompareType(Params[j].ParamType, args.GetValue(j)) then
+      begin
+        Result := nil;
+        break;
+      end;
+    end;
+    if Assigned(Result) then
+      break;
+  end;
 end;
 
 end.

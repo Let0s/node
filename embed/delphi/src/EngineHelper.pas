@@ -69,6 +69,8 @@ type
     Engine: IJSEngine): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
 
+  function CompareType(typ: TRttiType; value: IJSValue): Boolean;
+
   function RegisterEventWrapper(Event: PTypeInfo;
     Wrapper: TEventWrapperClass): boolean;
   function GetEventWrapper(Event: PTypeInfo): TEventWrapperClass;
@@ -274,6 +276,30 @@ begin
     tkClassRef: ;
     tkPointer: Result := nil;
     tkProcedure: Result := nil;
+  end;
+end;
+
+function CompareType(typ: TRttiType; value: IJSValue): Boolean;
+begin
+  Result := False;
+  case typ.TypeKind of
+    tkUnknown: ;
+    tkInteger: Result := value.IsNumber;
+    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+      Result := value.IsString;
+    tkEnumeration: Result := value.IsInt32;
+    tkFloat: Result := value.IsNumber;
+    tkSet: ;
+    tkClass: Result := value.IsDelphiObject;
+    tkMethod: ;
+    tkVariant: ;
+    tkArray, tkDynArray: Result := value.IsArray;
+    tkRecord: Result := value.IsObject;
+    tkInterface: ;
+    tkInt64: Result := value.IsNumber;
+    tkClassRef: ;
+    tkPointer: Result := value.IsNumber;
+    tkProcedure: ;
   end;
 end;
 
