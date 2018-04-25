@@ -56,6 +56,7 @@ type
   end;
 
   function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
+  function RecordToJSValue(rec: TValue; Engine: IJSEngine): IJSObject;
   function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
   function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
 
@@ -127,7 +128,7 @@ begin
       tkMethod: Result := TValueToJSFunction(value, Engine);
       tkVariant: ;
       tkArray: Result := TValueToJSArray(value, Engine);
-      tkRecord: ;
+      tkRecord: Result := RecordToJSValue(value, Engine);
       tkInterface: ;
       tkInt64: Result := NodeEngine.NewNumber(value.AsInt64);
       tkDynArray: Result := TValueToJSArray(value, Engine);
@@ -135,6 +136,33 @@ begin
       tkPointer: ;
       tkProcedure: ;
     end;
+  end;
+end;
+
+function RecordToJSValue(rec: TValue; Engine: IJSEngine): IJSObject;
+var
+  FieldArr: TArray<TRttiField>;
+  Field: TRttiField;
+  PropArr: TArray<TRttiProperty>;
+  Prop: TRttiProperty;
+  RecDescr: TRttiType;
+begin
+  Result := Engine.Engine.NewObject;
+  RecDescr := TRttiContext.Create.GetType(rec.TypeInfo);
+  FieldArr := RecDescr.GetFields;
+  for Field in FieldArr do
+  begin
+    if (Field.Visibility = mvPublic) and (Assigned(Field.FieldType)) then
+      Result.SetField(PAnsiChar(UTF8String(Field.Name)),
+        TValueToJSValue(Field.GetValue(rec.GetReferenceToRawData), Engine));
+  end;
+
+  PropArr := RecDescr.GetProperties;
+  for Prop in PropArr do
+  begin
+    if (Prop.Visibility = mvPublic) and (Assigned(Prop.PropertyType)) then
+      Result.SetField(PAnsiChar(UTF8String(Prop.Name)),
+        TValueToJSValue(Prop.GetValue(rec.GetReferenceToRawData), Engine));
   end;
 end;
 

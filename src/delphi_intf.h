@@ -52,6 +52,10 @@ namespace embed {
   public:
     IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Object> V8Object();
+
+    virtual void APIENTRY SetFieldValue(char * name, IJSValue * val);
+    virtual IJSValue * APIENTRY GetFieldValue(char * name);
+
   };
 
   //wrapper for JS delphi object
@@ -246,7 +250,8 @@ namespace embed {
     virtual IJSValue * APIENTRY NewBoolean(bool value);
     virtual IJSValue * APIENTRY NewString(char * value);
     virtual IJSArray * APIENTRY NewArray(int32_t length);
-    virtual IJSDelphiObject * APIENTRY NewObject(void * value, void * cType);
+    virtual IJSObject * APIENTRY NewObject();
+    virtual IJSDelphiObject * APIENTRY NewDelphiObject(void * value, void * cType);
     // it will create correct value wrapper and store it
     IJSValue * MakeValue(v8::Local<v8::Value> value);
 
