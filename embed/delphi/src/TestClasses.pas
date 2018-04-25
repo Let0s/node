@@ -13,7 +13,7 @@ type
     FCenter: TTestPoint;
   public
     constructor Create(CenterPoint: TTestPoint; Radius: double);
-    property Center: TTestPoint read FCenter;
+    property Center: TTestPoint read FCenter write FCenter;
     property Radius: double read FRadius;
     function GetSquare: double;
   end;
