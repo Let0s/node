@@ -64,6 +64,8 @@ type
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
+  function JSValueToRecord(value: IJSValue; typ: TRttiType;
+    Engine: IJSEngine): TValue;
   function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
     Engine: IJSEngine): TValue;
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
@@ -201,36 +203,74 @@ function JSValueToTValue(value: IJSValue; typ: TRttiType;
   Engine: IJSEngine): TValue;
 begin
   Result := TValue.Empty;
-  case typ.TypeKind of
-    tkUnknown: ;
-    tkInteger:
-      Result := value.AsInt32;
-    tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-      Result := PUtf8CharToString(value.AsString);
-    tkEnumeration:
-      if typ.Handle = TypeInfo(Boolean) then
-        Result := value.AsBool
-      else
-        Result := TValue.FromOrdinal(typ.Handle, value.AsInt32);
-    tkFloat:
-      Result := value.AsNumber;
-    tkSet: ;
-    tkClass:
-      Result := value.AsDelphiObject.GetDelphiObject;
-    tkMethod:
-      Result := JSValueToMethod(value, typ, Engine);
-    tkVariant: ;
-    tkArray:
-      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
-    tkRecord: ;
-    tkInterface: ;
-    tkInt64:
-      Result := Round(value.AsNumber);
-    tkDynArray:
-      Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
-    tkClassRef: ;
-    tkPointer: ;
-    tkProcedure: ;
+  if Assigned(value) then
+    case typ.TypeKind of
+      tkUnknown: ;
+      tkInteger:
+        Result := value.AsInt32;
+      tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+        Result := PUtf8CharToString(value.AsString);
+      tkEnumeration:
+        if typ.Handle = TypeInfo(Boolean) then
+          Result := value.AsBool
+        else
+          Result := TValue.FromOrdinal(typ.Handle, value.AsInt32);
+      tkFloat:
+        Result := value.AsNumber;
+      tkSet: ;
+      tkClass:
+        Result := value.AsDelphiObject.GetDelphiObject;
+      tkMethod:
+        Result := JSValueToMethod(value, typ, Engine);
+      tkVariant: ;
+      tkArray:
+        Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
+      tkRecord: Result := JsValueToRecord(value, typ, Engine);
+      tkInterface: ;
+      tkInt64:
+        Result := Round(value.AsNumber);
+      tkDynArray:
+        Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
+      tkClassRef: ;
+      tkPointer: ;
+      tkProcedure: ;
+    end;
+end;
+
+function JSValueToRecord(value: IJSValue; typ: TRttiType;
+  Engine: IJSEngine): TValue;
+var
+  FieldsArr: TArray<TRttiField>;
+  Field: TRttiField;
+  PropsArr: TArray<TRttiProperty>;
+  Prop: TRttiProperty;
+  Rec: IJSObject;
+  ref: Pointer;
+begin
+  if typ.TypeKind <> tkRecord then
+    Exit;
+  Rec := value.AsObject;
+  TValue.Make(nil, typ.Handle, Result);
+  ref := Result.GetReferenceToRawData;
+  FieldsArr := typ.GetFields;
+  for Field in FieldsArr do
+  begin
+    if not Assigned(Field.FieldType) or (Field.Visibility <> mvPublic) then
+      Continue;
+    Field.SetValue(ref,
+      JSValueToTValue(Rec.GetField(StringToPUtf8Char(Field.Name)),
+                      Field.FieldType,
+                      Engine));
+  end;
+  PropsArr := typ.GetProperties;
+  for Prop in PropsArr do
+  begin
+    if not Assigned(Prop.PropertyType) or (Prop.Visibility <> mvPublic) then
+      Continue;
+    Prop.SetValue(ref,
+      JSValueToTValue(Rec.GetField(StringToPUtf8Char(Prop.Name)),
+                      Prop.PropertyType,
+                      Engine));
   end;
 end;
 
