@@ -180,7 +180,19 @@ namespace embed {
     return result;
   }
 
-  IJSDelphiObject * IEmbedEngine::NewObject(void * value, void * cType)
+  IJSObject * IEmbedEngine::NewObject()
+  {
+    IJSObject * result = nullptr;
+    if (IsRunning()) {
+      auto obj = v8::Object::New(Isolate());
+      auto resultValue = std::make_unique<IJSObject>(Isolate(), obj);
+      result = resultValue.get();
+      jsValues.push_back(std::move(resultValue));
+    }
+    return result;
+  }
+
+  IJSDelphiObject * IEmbedEngine::NewDelphiObject(void * value, void * cType)
   {
     IJSDelphiObject * result = nullptr;
     uint64_t hash = (uint64_t(value) << 32) + uint32_t(cType);
@@ -524,6 +536,29 @@ namespace embed {
   v8::Local<v8::Object> IJSObject::V8Object()
   {
     return V8Value()->ToObject(isolate);
+  }
+  void IJSObject::SetFieldValue(char * name, IJSValue * val)
+  {
+    if (val) {
+      auto object = V8Object();
+      object->CreateDataProperty(isolate->GetCurrentContext(),
+        v8::String::NewFromUtf8(isolate, name, v8::NewStringType::kNormal).ToLocalChecked(),
+        val->V8Value());
+    }
+  }
+  IJSValue * IJSObject::GetFieldValue(char * name)
+  {
+    IJSValue * result = nullptr;
+    auto fieldValue = v8::Local<v8::Value>();
+    auto object = V8Object();
+    auto maybeVal = object->GetRealNamedProperty(isolate->GetCurrentContext(),
+      v8::String::NewFromUtf8(isolate, name, v8::NewStringType::kNormal).ToLocalChecked());
+    if (!maybeVal.IsEmpty())
+      fieldValue = maybeVal.ToLocalChecked();
+    if (!fieldValue.IsEmpty()) {
+      result = IEmbedEngine::GetEngine(isolate)->MakeValue(fieldValue);
+    }
+    return result;
   }
   bool IJSValue::IsObject()
   {

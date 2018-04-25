@@ -54,7 +54,8 @@ type
   end;
 
   IJSObject = class(IJSValue)
-
+    procedure SetField(name: PAnsiChar; value: IJSValue); virtual; stdcall; abstract;
+    function GetField(name: PAnsiChar): IJSValue; virtual; stdcall; abstract;
   end;
 
   IJSDelphiObject = class(IJSObject)
@@ -141,6 +142,7 @@ type
     function NewBool(value: Boolean): IJSValue; virtual; stdcall; abstract;
     function NewString(value: PAnsiChar): IJSValue; virtual; stdcall; abstract;
     function NewArray(length: Int32): IJSArray; virtual; stdcall; abstract;
+    function NewObject(): IJSObject; virtual; stdcall; abstract;
     function NewDelphiObject(value: TObject;
       classType: TClass): IJSDelphiObject; virtual; stdcall; abstract;
 
