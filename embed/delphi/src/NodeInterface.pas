@@ -148,9 +148,9 @@ type
 
   end;
 
-  function NewDelphiEngine(DEngine: TObject): INodeEngine stdcall;
+  function NewDelphiEngine(DEngine: TObject): INodeEngine cdecl;
     external LIB_NAME delayed;
-  procedure InitNode(executableName: PAnsiChar); stdcall;
+  procedure InitNode(executableName: PAnsiChar); cdecl;
     external LIB_NAME delayed;
 
 

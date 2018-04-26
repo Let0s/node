@@ -291,7 +291,7 @@ namespace embed {
 
 
   extern "C" {
-    EMBED_EXTERN IEmbedEngine * APIENTRY NewDelphiEngine(void * dEngine);
-    EMBED_EXTERN void APIENTRY InitNode(char * executableName);
+    EMBED_EXTERN IEmbedEngine * WINAPIV NewDelphiEngine(void * dEngine);
+    EMBED_EXTERN void WINAPIV InitNode(char * executableName);
   }
 }
