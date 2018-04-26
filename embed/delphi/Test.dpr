@@ -30,7 +30,6 @@ begin
   Math.SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow,
     exUnderflow, exPrecision]);
   try
-    InitNode(StringToPUtf8Char(ParamStr(0)));
     Engine := TJSEngine.Create;
     Global := TTestGlobal.Create;
     try

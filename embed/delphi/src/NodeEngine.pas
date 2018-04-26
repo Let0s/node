@@ -62,7 +62,17 @@ type
   procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
 
 implementation
+var
+  Initialized: Boolean = False;
 
+procedure InitJS;
+begin
+  if not Initialized then
+  begin
+    InitNode(StringToPUtf8Char(ParamStr(0)));
+    Initialized := True;
+  end;
+end;
 
 procedure MethodCallBack(Args: IMethodArgs);
 var
@@ -276,6 +286,7 @@ begin
     //TODO: CheckNodeversion and raise exception if major_ver mismatch
 //      Format('Failed to intialize node.dll. ' +
 //        'Incorrect version. Required %d version', [NODE_AVAILABLE_VER]);
+    InitJS;
     FEngine := NewDelphiEngine(Self);
     FEngine.SetMethodCallBack(MethodCallBack);
     FEngine.SetPropGetterCallBack(PropGetterCallBack);
