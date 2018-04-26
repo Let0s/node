@@ -22,9 +22,12 @@ type
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FEngine: INodeEngine;
     procedure AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
+    procedure AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
+    procedure AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
   public
-    constructor Create(cType: TClass; Engine: TJSEngine; Parent: TClassWrapper;
-      IsGlobal: boolean = False);
+    constructor Create(cType: TClass);
+    procedure InitJSTemplate(Parent: TClassWrapper; Engine: TJSEngine;
+      IsGlobal: boolean);
     destructor Destroy; override;
   end;
 
@@ -236,17 +239,18 @@ begin
 //    Exit;
   if (classType = FGlobal.ClassType) or (classType = TObject) then
     Exit;
-  Parent := classType.ClassParent;
-  while Assigned(Parent) and (Parent <> TObject) do
-  begin
-    AddClass(Parent);
-    Parent := Parent.ClassParent;
-  end;
   if not FClasses.TryGetValue(classType, ClassWrapper) then
   begin
-    FClasses.TryGetValue(classType.ClassParent, ParentWrapper);
-    ClassWrapper := TClassWrapper.Create(classType, Self, ParentWrapper);
+    ClassWrapper := TClassWrapper.Create(classType);
     FClasses.Add(classType, ClassWrapper);
+    Parent := classType.ClassParent;
+    while Assigned(Parent) and (Parent <> TObject) do
+    begin
+      AddClass(Parent);
+      Parent := Parent.ClassParent;
+    end;
+    FClasses.TryGetValue(classType.ClassParent, ParentWrapper);
+    ClassWrapper.InitJSTemplate(ParentWrapper, Self, False);
   end;
   Result := ClassWrapper;
 end;
@@ -256,8 +260,9 @@ var
   GlobalWrapper: TClassWrapper;
 begin
   FGlobal := Global;
-  GlobalWrapper := TClassWrapper.Create(Global.ClassType, Self, nil, True);
+  GlobalWrapper := TClassWrapper.Create(Global.ClassType);
   FClasses.Add(Global.ClassType, GlobalWrapper);
+  GlobalWrapper.InitJSTemplate(nil, Self, True);
 end;
 
 procedure TJSEngine.CheckEventLoop;
@@ -336,6 +341,22 @@ end;
 
 { TClassWrapper }
 
+procedure TClassWrapper.AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
+var
+  Field: TRttiField;
+begin
+  for Field in Classtyp.GetFields do
+  begin
+    if (Field.Visibility = mvPublic) and
+      (Field.Parent.Handle = Classtyp.Handle) then
+    begin
+      if Field.FieldType.TypeKind = tkClass then
+        Engine.AddClass(Field.FieldType.Handle.TypeData.ClassType);
+      FTemplate.SetField(StringToPUtf8Char(Field.Name), Field);
+    end;
+  end;
+end;
+
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Method: TRttiMethod;
@@ -361,27 +382,14 @@ begin
   end;
 end;
 
-constructor TClassWrapper.Create(cType: TClass; Engine: TJSEngine;
-  Parent: TClassWrapper; IsGlobal: Boolean);
+procedure TClassWrapper.AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
 var
-  ClasslTyp: TRttiType;
   Prop: TRttiProperty;
-  Field: TRttiField;
 begin
-  FType := cType;
-  FParent := Parent;
-  FEngine := Engine.FEngine;
-  FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
-  ClasslTyp := Context.GetType(FType);
-  if IsGlobal then
-    FTemplate := FEngine.AddGlobal(FType)
-  else
-    FTemplate := FEngine.AddObject(StringToPUtf8Char(cType.ClassName), cType);
-  AddMethods(ClasslTyp, Engine);
-  for Prop in ClasslTyp.GetProperties do
+  for Prop in ClassTyp.GetProperties do
   begin
     if (Prop.Visibility = mvPublic) and
-      (Prop.Parent.Handle = ClasslTyp.Handle) then
+      (Prop.Parent.Handle = ClassTyp.Handle) then
     begin
       if Prop.PropertyType.TypeKind = tkClass then
         Engine.AddClass(Prop.PropertyType.Handle.TypeData.ClassType);
@@ -389,24 +397,36 @@ begin
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
-  for Field in ClasslTyp.GetFields do
-  begin
-    if (Field.Visibility = mvPublic) and
-      (Field.Parent.Handle = ClasslTyp.Handle) then
-    begin
-      if Field.FieldType.TypeKind = tkClass then
-        Engine.AddClass(Field.FieldType.Handle.TypeData.ClassType);
-      FTemplate.SetField(StringToPUtf8Char(Field.Name), Field);
-    end;
-  end;
-  if Assigned(FParent) then
-    FTemplate.SetParent(FParent.FTemplate);
+end;
+
+constructor TClassWrapper.Create(cType: TClass);
+begin
+  FType := cType;
+  FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
 end;
 
 destructor TClassWrapper.Destroy;
 begin
   FreeAndNil(FMethods);
   inherited;
+end;
+
+procedure TClassWrapper.InitJSTemplate(Parent: TClassWrapper;
+  Engine: TJSEngine; IsGlobal: boolean);
+var
+  ClassTyp: TRttiType;
+begin
+  FEngine := Engine.FEngine;
+  ClassTyp := Context.GetType(FType);
+  if IsGlobal then
+    FTemplate := FEngine.AddGlobal(FType)
+  else
+    FTemplate := FEngine.AddObject(StringToPUtf8Char(FType.ClassName), FType);
+  AddMethods(ClassTyp, Engine);
+  AddProps(ClassTyp, Engine);
+  AddFields(ClassTyp, Engine);
+  if Assigned(FParent) then
+    FTemplate.SetParent(FParent.FTemplate);
 end;
 
 { TRttiMethodList }
