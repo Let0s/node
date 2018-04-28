@@ -52,6 +52,8 @@ type
     procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
+    function CallFunction(funcName: string): TValue; overload;
+    function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
   end;
 
@@ -273,6 +275,24 @@ begin
   GlobalWrapper := TClassWrapper.Create(Global.ClassType);
   FClasses.Add(Global.ClassType, GlobalWrapper);
   GlobalWrapper.InitJSTemplate(nil, Self, True);
+end;
+
+function TJSEngine.CallFunction(funcName: string; args: TValueArray): TValue;
+var
+  JsArgs: IJSArray;
+  ResultValue: IJSValue;
+begin
+  JsArgs := TValueArrayToJSArray(args, Self);
+  ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), JsArgs);
+  Result := JSValueToUnknownTValue(ResultValue)
+end;
+
+function TJSEngine.CallFunction(funcName: string): TValue;
+var
+  ResultValue: IJSValue;
+begin
+  ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), nil);
+  Result := JSValueToUnknownTValue(ResultValue)
 end;
 
 procedure TJSEngine.CheckEventLoop;

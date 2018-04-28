@@ -76,6 +76,7 @@ namespace embed {
     virtual void APIENTRY SetValue(IJSValue * value, int32_t index);
     v8::Local<v8::Array> V8Array();
     std::unordered_map<int32_t, IJSValue *> values;
+    std::vector<v8::Local<v8::Value>> ToVector();
   };
 
   //wrapper for JS function
@@ -238,6 +239,7 @@ namespace embed {
       void * classType);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
+    virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
     virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);
     virtual void APIENTRY SetPropSetterCallBack(TSetterCallBack callBack);
