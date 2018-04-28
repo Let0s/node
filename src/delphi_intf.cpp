@@ -94,6 +94,30 @@ namespace embed {
     Run(args.size(), args.data());
   }
 
+  IJSValue * IEmbedEngine::CallFunction(char * fName, IJSArray * args)
+  {
+    auto context = Isolate()->GetCurrentContext();
+    auto glo = context->Global();
+    auto maybe_val = glo->Get(context,
+        v8::String::NewFromUtf8(Isolate(), fName, v8::NewStringType::kNormal).ToLocalChecked());
+    if (!maybe_val.IsEmpty()) {
+      auto val = maybe_val.ToLocalChecked();
+      if (val->IsFunction()) {
+          auto func = val.As<v8::Function>();
+          std::vector<v8::Local<v8::Value>> argv;
+          argv.clear(); 
+          if (args)
+            argv = args->ToVector();
+          auto func_result = func->Call(context, glo, argv.size(), argv.data());
+          if (!func_result.IsEmpty()) {
+            auto result = MakeValue(func_result.ToLocalChecked()); 
+            return result;
+          }        
+      }
+    }
+    return nullptr;
+  }
+
   void IEmbedEngine::SetFunctionCallBack(TMethodCallBack functionCB)
   {
     functionCallBack = functionCB;
@@ -432,7 +456,7 @@ namespace embed {
     {
       auto length = args->Length();
       auto arr = v8::Array::New(iso, length);
-      for (uint32_t i = 0; i < length; i++) {
+      for (int i = 0; i < length; i++) {
         arr->Set(i, newArgs[i]);
       }
       argv = new IJSArray(iso, arr);
@@ -668,6 +692,17 @@ namespace embed {
   v8::Local<v8::Array> IJSArray::V8Array()
   {
     return V8Value().As<v8::Array>();
+  }
+  std::vector<v8::Local<v8::Value>> IJSArray::ToVector()
+  {
+    auto LocalArr = V8Array();
+    auto ctx = isolate->GetCurrentContext();
+    int vector_length = LocalArr->Length();
+    std::vector<v8::Local<v8::Value>> vector_result(vector_length);
+    for (int i = 0; i < vector_length; i++) {
+      vector_result[i] = LocalArr->Get(ctx, i).ToLocalChecked();
+    }
+    return vector_result;
   }
   IJSFunction::IJSFunction(v8::Isolate * iso, v8::Local<v8::Value> val) :
     IJSValue(iso, val)

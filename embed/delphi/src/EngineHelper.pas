@@ -10,6 +10,8 @@ type
 
   TGarbageCollector = class;
 
+  TValueArray = TArray<TValue>;
+
   IJSEngine = interface
     function GetEngine: INodeEngine;
     function GetGarbageCollector: TGarbagecollector;
@@ -58,6 +60,7 @@ type
   function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
   function RecordToJSValue(rec: TValue; Engine: IJSEngine): IJSObject;
   function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
+  function TValueArrayToJSArray(value: TValueArray; Engine: IJSEngine): IJSArray;
   function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
@@ -71,6 +74,8 @@ type
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
+
+  function JSValueToUnknownTValue(value: IJSValue): TValue;
 
   function CompareType(typ: TRttiType; value: IJSValue): Boolean;
 
@@ -180,6 +185,19 @@ begin
     EventWrapper := GC.GetCallBack(value);
     if Assigned(EventWrapper) then
       Result := EventWrapper.JSFunction;
+  end;
+end;
+
+
+function TValueArrayToJSArray(value: TValueArray; Engine: IJSEngine): IJSArray;
+var
+  count, i: integer;
+begin
+  count := Length(value);
+  Result := Engine.Engine.NewArray(count);
+  for i := 0 to count - 1 do
+  begin
+    Result.SetValue(TValueToJSValue(value[i], Engine), i);
   end;
 end;
 
@@ -345,6 +363,24 @@ begin
     tkPointer: Result := nil;
     tkProcedure: Result := nil;
   end;
+end;
+
+function JSValueToUnknownTValue(value: IJSValue): TValue;
+begin
+  Result := TValue.Empty;
+  if not assigned(value) then
+    Exit;
+  //checking for type
+  if value.IsBool then
+    Result := value.AsBool
+  else if value.IsInt32 then
+    Result := value.AsInt32
+  else if value.IsNumber then
+    Result := value.AsNumber
+  else if (value.IsDelphiObject) then
+    Result := TValue.From<TObject>(value.AsDelphiObject)
+  else if value.IsString then
+    Result := PUtf8CharToString(value.AsString);
 end;
 
 function CompareType(typ: TRttiType; value: IJSValue): Boolean;
