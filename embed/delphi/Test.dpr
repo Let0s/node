@@ -35,6 +35,7 @@ begin
     try
       Engine.AddGlobal(Global);
       Engine.RunFile('../embed/delphi/test/test.js');
+      Engine.CallFunction('StartTest');
       Engine.CheckEventLoop; //check if event timer call callback
       Readln;
     finally
