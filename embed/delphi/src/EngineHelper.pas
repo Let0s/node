@@ -388,14 +388,14 @@ begin
   Result := False;
   case typ.TypeKind of
     tkUnknown: ;
-    tkInteger: Result := value.IsNumber;
+    tkInteger: Result := value.IsInt32;
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-      Result := value.IsString;
+      Result := value.IsString or value.IsNumber or value.IsBool;
     tkEnumeration: Result := value.IsInt32;
     tkFloat: Result := value.IsNumber;
     tkSet: ;
     tkClass: Result := value.IsDelphiObject;
-    tkMethod: ;
+    tkMethod: Result := value.IsFunction;
     tkVariant: ;
     tkArray, tkDynArray: Result := value.IsArray;
     tkRecord: Result := value.IsObject;
