@@ -4,7 +4,7 @@ interface
 
 uses
   NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper, IOUtils,
-  Generics.Collections;
+  Generics.Collections, Windows;
 
 type
   TJSEngine = class;
@@ -66,11 +66,23 @@ type
 implementation
 var
   Initialized: Boolean = False;
+  STDIOExist: Boolean;
+  ReadPipe, WritePipe: THandle;
 
 procedure InitJS;
 begin
   if not Initialized then
   begin
+    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
+    if not STDIOExist then
+    begin
+      CreatePipe(ReadPipe, WritePipe, nil, 0);
+      SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
+      SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
+      SetStdHandle(STD_ERROR_HANDLE, WritePipe);
+    end;
     InitNode(StringToPUtf8Char(ParamStr(0)));
     Initialized := True;
   end;
@@ -448,7 +460,7 @@ var
   ClassTyp: TRttiType;
 begin
   FEngine := Engine.FEngine;
-  ClassTyp := Context.GetType(FType);
+  ClassTyp := EngineHelper.Context.GetType(FType);
   if IsGlobal then
     FTemplate := FEngine.AddGlobal(FType)
   else
@@ -486,5 +498,18 @@ begin
       break;
   end;
 end;
+
+initialization
+
+finalization
+  if (Initialized) then
+  begin
+    if not STDIOExist then
+    begin
+      CloseHandle(ReadPipe);
+      CloseHandle(WritePipe);
+    end;
+    Initialized := False;
+  end;
 
 end.
