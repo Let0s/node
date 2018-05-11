@@ -67,6 +67,9 @@ implementation
 var
   Initialized: Boolean = False;
   STDIOExist: Boolean;
+  // these pipes are dummy for application without default std(input/output/error)
+  //   so functions log/warn/error of console in Node.js will not work
+  // TODO: add callbacks for read/write from stdio
   ReadPipe, WritePipe: THandle;
 
 procedure InitJS;
