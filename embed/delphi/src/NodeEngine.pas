@@ -63,6 +63,11 @@ type
   procedure FieldGetterCallBack(Args: IGetterArgs); stdcall;
   procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
 
+  // returns content of WritePipe, if it was created;
+  // if application had default stdio before node initialization
+  //   this function will return empty string
+  function GetNodeLog: string;
+
 implementation
 var
   Initialized: Boolean = False;
@@ -88,6 +93,31 @@ begin
     end;
     InitNode(StringToPUtf8Char(ParamStr(0)));
     Initialized := True;
+  end;
+end;
+
+function GetNodeLog: string;
+var
+  TextBuffer: array[1..32767] of AnsiChar;
+  SlicedBuffer: AnsiString;
+  TextString: String;
+  BytesRead: Cardinal;
+  PipeSize: Integer;
+begin
+  Result := '';
+  if STDIOExist then
+    Exit;
+  PipeSize := Sizeof(TextBuffer);
+  // check if there is something to read in pipe
+  PeekNamedPipe(ReadPipe, @TextBuffer, PipeSize, @BytesRead, @PipeSize, nil);
+  if bytesread > 0 then
+  begin
+    ReadFile(ReadPipe, TextBuffer, pipesize, bytesread, nil);
+    // write all useful bytes to Ansi string
+    SlicedBuffer := Copy(TextBuffer, 0, BytesRead);
+    // convert Ansi string to utf8 string
+    TextString := UTF8ToUnicodeString(RawByteString(SlicedBuffer));
+    Result := TextString;
   end;
 end;
 
