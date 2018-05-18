@@ -734,7 +734,7 @@ namespace embed {
     void * result = nullptr;
     auto engine = IEmbedEngine::GetEngine(isolate);
     if (engine) {
-      engine->GetDelphiObject(V8Object());
+      result = engine->GetDelphiObject(V8Object());
     }
     return result;
   }
@@ -743,7 +743,7 @@ namespace embed {
     void * result = nullptr;
     auto engine = IEmbedEngine::GetEngine(isolate);
     if (engine) {
-      engine->GetDelphiClasstype(V8Object());
+      result = engine->GetDelphiClasstype(V8Object());
     }
     return result;
   }
