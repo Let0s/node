@@ -269,26 +269,29 @@ begin
     Exit;
   Rec := value.AsObject;
   TValue.Make(nil, typ.Handle, Result);
-  ref := Result.GetReferenceToRawData;
-  FieldsArr := typ.GetFields;
-  for Field in FieldsArr do
+  if Assigned(Rec) then
   begin
-    if not Assigned(Field.FieldType) or (Field.Visibility <> mvPublic) then
-      Continue;
-    Field.SetValue(ref,
-      JSValueToTValue(Rec.GetField(StringToPUtf8Char(Field.Name)),
-                      Field.FieldType,
-                      Engine));
-  end;
-  PropsArr := typ.GetProperties;
-  for Prop in PropsArr do
-  begin
-    if not Assigned(Prop.PropertyType) or (Prop.Visibility <> mvPublic) then
-      Continue;
-    Prop.SetValue(ref,
-      JSValueToTValue(Rec.GetField(StringToPUtf8Char(Prop.Name)),
-                      Prop.PropertyType,
-                      Engine));
+    ref := Result.GetReferenceToRawData;
+    FieldsArr := typ.GetFields;
+    for Field in FieldsArr do
+    begin
+      if not Assigned(Field.FieldType) or (Field.Visibility <> mvPublic) then
+        Continue;
+      Field.SetValue(ref,
+        JSValueToTValue(Rec.GetField(StringToPUtf8Char(Field.Name)),
+                        Field.FieldType,
+                        Engine));
+    end;
+    PropsArr := typ.GetProperties;
+    for Prop in PropsArr do
+    begin
+      if not Assigned(Prop.PropertyType) or (Prop.Visibility <> mvPublic) then
+        Continue;
+      Prop.SetValue(ref,
+        JSValueToTValue(Rec.GetField(StringToPUtf8Char(Prop.Name)),
+                        Prop.PropertyType,
+                        Engine));
+    end;
   end;
 end;
 
