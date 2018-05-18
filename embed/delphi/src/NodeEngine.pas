@@ -511,24 +511,32 @@ function TRttiMethodList.GetMethod(args: IJSArray): TRttiMethod;
 var
   i, j: Integer;
   Params: TArray<TRttiParameter>;
+  Method: TRttiMethod;
 begin
   Result := nil;
-  for i := 0 to Count - 1 do
+  if Count > 0 then
   begin
-    Result := Items[i];
-    Params := Result.GetParameters;
-    for j := 0 to Length(Params) - 1 do
+    Result := Items[0];
+    for i := 0 to Count - 1 do
     begin
-      if j >= args.GetCount then
-        break;
-      if not CompareType(Params[j].ParamType, args.GetValue(j)) then
+      Method := Items[i];
+      Params := Method.GetParameters;
+      for j := 0 to Length(Params) - 1 do
       begin
-        Result := nil;
+        if j >= args.GetCount then
+          break;
+        if not CompareType(Params[j].ParamType, args.GetValue(j)) then
+        begin
+          Method := nil;
+          break;
+        end;
+      end;
+      if Assigned(Method) then
+      begin
+        Result := Method;
         break;
       end;
     end;
-    if Assigned(Result) then
-      break;
   end;
 end;
 
