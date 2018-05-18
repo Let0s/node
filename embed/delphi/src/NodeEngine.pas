@@ -501,6 +501,7 @@ begin
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
+  FParent := Parent;
   if Assigned(FParent) then
     FTemplate.SetParent(FParent.FTemplate);
 end;
