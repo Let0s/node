@@ -21,6 +21,12 @@ type
     FParent: TClassWrapper;
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FEngine: INodeEngine;
+    // Add all methods to JS tepmlate. Add only methods, that belong to current
+    // classtype (parent methods will be inherited from parent JS template)
+    //
+    // If one method name has many overloaded methods then overload list
+    // will contain all the methods - even parent's methods, because current JS
+    // method callback will overwrite parent's method callback.
     procedure AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
@@ -440,6 +446,7 @@ var
 begin
   for Method in ClassTyp.GetMethods do
   begin
+    //check if method belongs to given class type (not to the parent)
     if (Method.Visibility = mvPublic) and
       (not (Method.IsConstructor or Method.IsDestructor)) and
       (Method.Parent.Handle = ClassTyp.Handle) then
@@ -453,6 +460,24 @@ begin
         FMethods.Add(Method.Name, Overloads);
         FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
       end;
+      Overloads.Add(Method);
+    end;
+  end;
+
+  for Method in ClassTyp.GetMethods do
+  begin
+    //check if method belongs to parent class type
+    //  and current class type have an overloaded method
+    if (Method.Parent.Handle <> ClassTyp.Handle) and
+      (Method.Visibility = mvPublic) and
+      (not (Method.IsConstructor or Method.IsDestructor)) and
+      FMethods.TryGetValue(Method.Name, Overloads) then
+    begin
+      // TODO: think about overrided methods, that can be added as overloads
+      // Check by parameter count and types?
+      if Assigned(Method.ReturnType) and
+        (Method.ReturnType.TypeKind = tkClass) then
+          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
       Overloads.Add(Method);
     end;
   end;
