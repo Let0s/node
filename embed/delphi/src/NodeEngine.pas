@@ -42,6 +42,7 @@ type
     FEngine: INodeEngine;
     FGlobal: TObject;
     FClasses: TDictionary<TClass, TClassWrapper>;
+    FEnumList: TList<PTypeInfo>;
     FGarbageCollector: TGarbageCollector;
   protected
     function GetEngine: INodeEngine;
@@ -54,6 +55,8 @@ type
   public
     constructor Create();
     destructor Destroy; override;
+    procedure CheckType(typ: TRttiType);
+    procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure RunString(code: string);
@@ -318,6 +321,33 @@ begin
   Result := ClassWrapper;
 end;
 
+procedure TJSEngine.AddEnum(Enum: TRttiType);
+var
+  i, enumNum: integer;
+  typInfo: PTypeInfo;
+  EnumName: string;
+  EnumTemplate: IEnumTemplate;
+begin
+  typInfo := Enum.Handle;
+  if FEnumList.IndexOf(typInfo) < 0 then
+  begin
+    i := 0;
+    EnumName := '';
+    EnumTemplate := FEngine.AddEnum(StringToPUtf8Char(Enum.Handle.Name));
+    // TODO: find better way
+    while true do
+    begin
+      EnumName := GetEnumName(typInfo, i);
+      enumNum := GetEnumValue(typInfo, EnumName);
+      if enumNum <> i then
+        break;
+      EnumTemplate.AddValue(StringToPUtf8Char(EnumName), i);
+      inc(i);
+    end;
+    FEnumList.Add(typInfo);
+  end;
+end;
+
 procedure TJSEngine.AddGlobal(Global: TObject);
 var
   GlobalWrapper: TClassWrapper;
@@ -351,6 +381,21 @@ begin
   FEngine.CheckEventLoop;
 end;
 
+procedure TJSEngine.CheckType(typ: TRttiType);
+begin
+  if Assigned(typ) then
+  begin
+    case typ.TypeKind of
+      tkUnknown: ;
+      tkEnumeration: AddEnum(typ);
+      tkSet: ;
+      tkClass: AddClass(typ.Handle.TypeData.ClassType);
+      tkInterface: ;
+      tkClassRef: ;
+    end;
+  end;
+end;
+
 constructor TJSEngine.Create;
 begin
   try
@@ -366,6 +411,7 @@ begin
     FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
     FClasses := TDictionary<TClass, TClassWrapper>.Create;
     FGarbageCollector := TGarbageCollector.Create;
+    FEnumList := TList<PTypeInfo>.Create;
   except
     on E: EExternalException do
     begin
@@ -377,6 +423,7 @@ end;
 
 destructor TJSEngine.Destroy;
 begin
+  FEnumList.Free;
   FClasses.Free;
   FGarbageCollector.Free;
   FEngine.Delete;
@@ -432,8 +479,7 @@ begin
     if (Field.Visibility = mvPublic) and
       (Field.Parent.Handle = Classtyp.Handle) then
     begin
-      if Field.FieldType.TypeKind = tkClass then
-        Engine.AddClass(Field.FieldType.Handle.TypeData.ClassType);
+      Engine.CheckType(Field.FieldType);
       FTemplate.SetField(StringToPUtf8Char(Field.Name), Field);
     end;
   end;
@@ -451,9 +497,7 @@ begin
       (not (Method.IsConstructor or Method.IsDestructor)) and
       (Method.Parent.Handle = ClassTyp.Handle) then
     begin
-      if Assigned(Method.ReturnType) and
-        (Method.ReturnType.TypeKind = tkClass) then
-          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
+      Engine.CheckType(Method.ReturnType);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
       begin
         Overloads := TRttiMethodList.Create;
@@ -473,11 +517,9 @@ begin
       (not (Method.IsConstructor or Method.IsDestructor)) and
       FMethods.TryGetValue(Method.Name, Overloads) then
     begin
+      Engine.CheckType(Method.ReturnType);
       // TODO: think about overrided methods, that can be added as overloads
       // Check by parameter count and types?
-      if Assigned(Method.ReturnType) and
-        (Method.ReturnType.TypeKind = tkClass) then
-          Engine.AddClass(Method.ReturnType.Handle.TypeData.ClassType);
       Overloads.Add(Method);
     end;
   end;
@@ -492,8 +534,7 @@ begin
     if (Prop.Visibility = mvPublic) and
       (Prop.Parent.Handle = ClassTyp.Handle) then
     begin
-      if Prop.PropertyType.TypeKind = tkClass then
-        Engine.AddClass(Prop.PropertyType.Handle.TypeData.ClassType);
+      Engine.CheckType(Prop.PropertyType);
       FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
         Prop.IsReadable, Prop.IsWritable);
     end;
