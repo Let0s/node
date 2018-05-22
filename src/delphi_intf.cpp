@@ -35,6 +35,8 @@ namespace embed {
     }
     auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
     if (globalTemplate) {
+      // Entering context is needed to create v8::Object for enumerators
+      v8::Context::Scope scope(context);
       auto globalObject = context->Global();
       CHECK(globalObject->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT);
       globalObject->SetInternalField(
@@ -43,6 +45,20 @@ namespace embed {
       globalObject->SetInternalField(
         OBJECT_INTERNAL_FIELD_NUMBER,
         v8::Undefined(isolate));
+      for (auto &enumerator : enums) {
+        if (enumerator->values.size() > 0) {
+          auto enumObj = v8::Object::New(isolate);
+          for (auto value : enumerator->values)
+            enumObj->Set(
+              v8::String::NewFromUtf8(isolate, value.second.c_str(),
+                v8::NewStringType::kNormal).ToLocalChecked(),
+              v8::Integer::New(isolate, value.first));
+          globalObject->Set(
+            v8::String::NewFromUtf8(isolate, enumerator->name.c_str(),
+              v8::NewStringType::kNormal).ToLocalChecked(),
+            enumObj);
+        }
+      }
     }
     return context;
   }
@@ -68,6 +84,14 @@ namespace embed {
     auto object = std::make_unique<IClassTemplate>(className, classType);
     auto result = object.get();
     classes.push_back(std::move(object));
+    return result;
+  }
+
+  IEnumTemplate * IEmbedEngine::AddEnum(char * enumName)
+  {
+    auto enumerator = std::make_unique<IEnumTemplate>(enumName);
+    auto result = enumerator.get();
+    enums.push_back(std::move(enumerator));
     return result;
   }
 
@@ -869,5 +893,13 @@ namespace embed {
   {
     name = fName;
     obj = fObj;
+  }
+  IEnumTemplate::IEnumTemplate(char * enumName)
+  {
+    name = enumName;
+  }
+  void IEnumTemplate::AddValue(char * valueName, int index)
+  {
+    values.emplace(std::make_pair(index, valueName));
   }
 }

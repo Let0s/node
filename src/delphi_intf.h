@@ -150,6 +150,16 @@ namespace embed {
     std::vector<std::unique_ptr<IClassMethod>> methods;
   };
 
+  // Class for enumerator. It stores enum name and its values
+  class IEnumTemplate : public IBaseIntf {
+  public:
+    IEnumTemplate(char * enumName);
+    virtual void APIENTRY AddValue(char * valueName, int index);
+    std::string name;
+    // it stores mathes between enum name and its order number
+    std::unordered_map<int, std::string> values;
+  };
+
   class IBaseArgs : public IBaseIntf {
     virtual void * APIENTRY GetEngine() abstract;
     virtual void * APIENTRY GetDelphiObject() abstract;
@@ -237,6 +247,7 @@ namespace embed {
     virtual IClassTemplate * APIENTRY AddGlobal(void * dClass);
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
+    virtual IEnumTemplate * APIENTRY AddEnum(char * enumName);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
@@ -275,6 +286,7 @@ namespace embed {
     //global template, which is used for creating context
     IClassTemplate * globalTemplate = nullptr;
     std::vector<std::unique_ptr<IClassTemplate>> classes;
+    std::vector<std::unique_ptr<IEnumTemplate>> enums;
     std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
     std::vector<std::unique_ptr<IJSValue>> jsValues;
   };

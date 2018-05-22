@@ -86,6 +86,11 @@ type
     procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;
 
+  IEnumTemplate = class(IBaseInterface)
+    procedure AddValue(name: PAnsiChar; index: Integer);
+      virtual; stdcall; abstract;
+  end;
+
   IBaseArgs = class (IBaseInterface)
     function GetEngine: TObject; virtual; stdcall; abstract;
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
@@ -123,9 +128,12 @@ type
       virtual; stdcall; abstract;
     function AddObject(className: PAnsiChar; classType: Pointer): IClassTemplate;
       virtual; stdcall; abstract;
+    function AddEnum(enumName: PAnsiChar): IEnumTemplate;
+      virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
     procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
-    function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue; virtual; stdcall; abstract;
+    function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
+      virtual; stdcall; abstract;
     procedure SetMethodCallBack(callBack: TMethodCallBack);
       virtual; stdcall; abstract;
     procedure SetPropGetterCallBack(callBack: TGetterCallBack);
