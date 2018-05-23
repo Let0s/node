@@ -97,22 +97,20 @@ var
 begin
   if not Initialized then
   begin
+    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
+    if not STDIOExist then
+    begin
+      CreatePipe(ReadPipe, WritePipe, nil, 0);
+      SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
+      SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
+      SetStdHandle(STD_ERROR_HANDLE, WritePipe);
+    end;
     VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
       (EmbedMinorVersion >= EMBED_MINOR_VERSION);
     if VersionEqual then
-    begin
-      STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
-                         (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
-                         (GetStdHandle(STD_ERROR_HANDLE) = 0));
-      if not STDIOExist then
-      begin
-        CreatePipe(ReadPipe, WritePipe, nil, 0);
-        SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
-        SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
-        SetStdHandle(STD_ERROR_HANDLE, WritePipe);
-      end;
       InitNode(StringToPUtf8Char(ParamStr(0)));
-    end;
     Initialized := True;
   end;
   Result := VersionEqual;
