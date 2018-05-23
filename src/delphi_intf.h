@@ -307,7 +307,7 @@ namespace embed {
   extern "C" {
     EMBED_EXTERN IEmbedEngine * WINAPIV NewDelphiEngine(void * dEngine);
     EMBED_EXTERN void WINAPIV InitNode(char * executableName);
-    EMBED_EXTERN int EmbedMajorVersion();
-    EMBED_EXTERN int EmbedMinorVersion();
+    EMBED_EXTERN int WINAPIV EmbedMajorVersion();
+    EMBED_EXTERN int WINAPIV EmbedMinorVersion();
   }
 }
