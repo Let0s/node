@@ -251,8 +251,8 @@ namespace embed {
     ~IEmbedEngine();
     //parent functions
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
-    // Overrided parent function. Creates additional global variables
-    // TODO: execute "pre-code"
+    // Overrided parent function. Creates additional global variables and
+    // executes "pre-code"
     virtual void PrepareForRun();
     virtual void APIENTRY Stop();
 
@@ -266,6 +266,9 @@ namespace embed {
     // by any JS value)
     virtual void APIENTRY AddGlobalVariableObject(char * name,
       void * objPointer, void * classType);
+    // Add "pre-code": JS code, that will be executed before runnning
+    // main script. It can contain any helpful functions and variables.
+    virtual void APIENTRY AddPreCode(char * code);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
@@ -308,6 +311,8 @@ namespace embed {
     std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
     std::vector<std::unique_ptr<ObjectVariableLink>> objectLinks;
     std::vector<std::unique_ptr<IJSValue>> jsValues;
+    // code, that will be executed before script execution (without NodeJS features)
+    std::string preCode;
   };
 
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args);

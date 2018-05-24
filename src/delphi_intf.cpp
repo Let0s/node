@@ -65,6 +65,7 @@ namespace embed {
 
   void IEmbedEngine::PrepareForRun()
   {
+    // add global variables
     for (auto &link : objectLinks) {
       auto obj = NewDelphiObject(link->obj, link->classType);
       auto global = Isolate()->GetCurrentContext()->Global();
@@ -72,6 +73,17 @@ namespace embed {
         v8::String::NewFromUtf8(Isolate(), link->name.c_str(),
           v8::NewStringType::kNormal).ToLocalChecked(),
         obj->V8Object());
+    }
+
+    // execute "pre-code"
+    v8::Local<v8::String> source = v8::String::NewFromUtf8(Isolate(),
+      preCode.c_str(), v8::NewStringType::kNormal).ToLocalChecked();
+    v8::ScriptOrigin origin(v8::String::NewFromUtf8(Isolate(),
+      "pre-code", v8::NewStringType::kNormal).ToLocalChecked());
+    auto context = Isolate()->GetCurrentContext();
+    v8::Local<v8::Script> script;
+    if (v8::Script::Compile(context, source, &origin).ToLocal(&script)) {
+      script->Run(context);
     }
   }
 
@@ -114,6 +126,12 @@ namespace embed {
     link->obj = objPointer;
     link->classType = classType;
     objectLinks.push_back(std::move(link));
+  }
+
+  void IEmbedEngine::AddPreCode(char * code)
+  {
+    preCode += code;
+    preCode += '\n';
   }
 
   void IEmbedEngine::RunString(char * code)
