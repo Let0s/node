@@ -236,18 +236,36 @@ namespace embed {
   typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
   typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
 
+  // Store link to Delphi object and classtype. Need for creation additional
+  // global properties, that do not described in global template
+  class ObjectVariableLink{
+  public:
+    std::string name;
+    void * obj;
+    void * classType;
+  };
+
   class IEmbedEngine : public BaseEngine {
   public:
     IEmbedEngine(void * dEng);
     ~IEmbedEngine();
     //parent functions
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+    // Overrided parent function. Creates additional global variables
+    // TODO: execute "pre-code"
+    virtual void PrepareForRun();
     virtual void APIENTRY Stop();
 
     virtual IClassTemplate * APIENTRY AddGlobal(void * dClass);
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
     virtual IEnumTemplate * APIENTRY AddEnum(char * enumName);
+    // Add Delphi object as global variable. In JS it has no difference with
+    // global template's protperty, but here it will return wrapped Delphi
+    // object without any callbacks (but global variable can be rewrited
+    // by any JS value)
+    virtual void APIENTRY AddGlobalVariableObject(char * name,
+      void * objPointer, void * classType);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
@@ -288,6 +306,7 @@ namespace embed {
     std::vector<std::unique_ptr<IClassTemplate>> classes;
     std::vector<std::unique_ptr<IEnumTemplate>> enums;
     std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
+    std::vector<std::unique_ptr<ObjectVariableLink>> objectLinks;
     std::vector<std::unique_ptr<IJSValue>> jsValues;
   };
 

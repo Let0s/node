@@ -52,6 +52,10 @@ namespace embed {
     return context;
   }
 
+  void BaseEngine::PrepareForRun()
+  {
+  }
+
   bool BaseEngine::IsRunning()
   {
     return running;
@@ -87,6 +91,7 @@ namespace embed {
       exec_argc,
       exec_argv);
     running = true;
+    PrepareForRun();
     node::LoadEnvironment(env);
   }
   void BaseEngine::CheckEventLoop()

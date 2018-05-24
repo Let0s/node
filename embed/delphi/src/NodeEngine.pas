@@ -60,6 +60,7 @@ type
     procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
+    procedure AddGlobalVariable(Name: string; Variable: TObject);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
     function CallFunction(funcName: string): TValue; overload;
@@ -367,6 +368,15 @@ begin
   GlobalWrapper := TClassWrapper.Create(Global.ClassType);
   FClasses.Add(Global.ClassType, GlobalWrapper);
   GlobalWrapper.InitJSTemplate(nil, Self, True);
+end;
+
+procedure TJSEngine.AddGlobalVariable(Name: string; Variable: TObject);
+var
+  CType: TClass;
+begin
+  CType := Variable.ClassType;
+  AddClass(CType);
+  FEngine.AddGlobalVariableObject(StringToPUtf8Char(Name), Variable, CType);
 end;
 
 function TJSEngine.CallFunction(funcName: string; args: TValueArray): TValue;
