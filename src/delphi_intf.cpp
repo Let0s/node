@@ -63,6 +63,18 @@ namespace embed {
     return context;
   }
 
+  void IEmbedEngine::PrepareForRun()
+  {
+    for (auto &link : objectLinks) {
+      auto obj = NewDelphiObject(link->obj, link->classType);
+      auto global = Isolate()->GetCurrentContext()->Global();
+      global->Set(
+        v8::String::NewFromUtf8(Isolate(), link->name.c_str(),
+          v8::NewStringType::kNormal).ToLocalChecked(),
+        obj->V8Object());
+    }
+  }
+
   void IEmbedEngine::Stop()
   {
     JSDelphiObjects.clear();
@@ -93,6 +105,15 @@ namespace embed {
     auto result = enumerator.get();
     enums.push_back(std::move(enumerator));
     return result;
+  }
+
+  void IEmbedEngine::AddGlobalVariableObject(char * name, void * objPointer, void * classType)
+  {
+    auto link = std::make_unique<ObjectVariableLink>();
+    link->name = name;
+    link->obj = objPointer;
+    link->classType = classType;
+    objectLinks.push_back(std::move(link));
   }
 
   void IEmbedEngine::RunString(char * code)

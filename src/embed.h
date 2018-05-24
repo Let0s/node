@@ -83,7 +83,17 @@ namespace embed {
   public:
     BaseEngine();
     ~BaseEngine();
+
+    // Create default context. child classes can override this method
+    // and create their own context with custom global object,
+    // additional properties and class templates
     virtual v8::Local<v8::Context> CreateContext(v8::Isolate * isolate);
+
+    //do nothing, but child classes can do almost everything:
+    // 1. Create custom JS values
+    // 2. Execute some code (native V8 wtihout additional node variables)
+    virtual void PrepareForRun();
+
     bool IsRunning();
     v8::Isolate * Isolate();
     //runs script and keep it alive
