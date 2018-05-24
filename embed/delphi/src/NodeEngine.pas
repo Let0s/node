@@ -61,6 +61,7 @@ type
     function AddClass(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure AddGlobalVariable(Name: string; Variable: TObject);
+    procedure AddPreCode(code: string);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
     function CallFunction(funcName: string): TValue; overload;
@@ -377,6 +378,12 @@ begin
   CType := Variable.ClassType;
   AddClass(CType);
   FEngine.AddGlobalVariableObject(StringToPUtf8Char(Name), Variable, CType);
+end;
+
+procedure TJSEngine.AddPreCode(code: string);
+begin
+  if Active then
+    FEngine.AddPreCode(StringToPUtf8Char(code));
 end;
 
 function TJSEngine.CallFunction(funcName: string; args: TValueArray): TValue;

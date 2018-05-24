@@ -134,6 +134,7 @@ type
       virtual; stdcall; abstract;
     procedure AddGlobalVariableObject(name: PAnsiChar; obj: TObject;
       classType: TClass); virtual; stdcall; abstract;
+    procedure AddPreCode(code: PAnsiChar); virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
     procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
     function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
