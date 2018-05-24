@@ -24,6 +24,8 @@ type
   IBaseEngine = class(IBaseInterface)
     //do not call
     function _CreateContext(param: Pointer): Pointer; virtual; abstract;
+    procedure _PrepareForRun; virtual; abstract;
+
     //check for result of async node actions if event loop is alive
     procedure CheckEventLoop(); virtual; stdcall; abstract;
     procedure Stop(); virtual; stdcall; abstract;
@@ -130,6 +132,8 @@ type
       virtual; stdcall; abstract;
     function AddEnum(enumName: PAnsiChar): IEnumTemplate;
       virtual; stdcall; abstract;
+    procedure AddGlobalVariableObject(name: PAnsiChar; obj: TObject;
+      classType: TClass); virtual; stdcall; abstract;
     procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
     procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
     function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
