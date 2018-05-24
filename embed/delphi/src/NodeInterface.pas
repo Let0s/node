@@ -161,6 +161,8 @@ type
     external LIB_NAME delayed;
   procedure InitNode(executableName: PAnsiChar); cdecl;
     external LIB_NAME delayed;
+  function EmbedMajorVersion: integer; cdecl; external LIB_NAME delayed;
+  function EmbedMinorVersion: integer; cdecl; external LIB_NAME delayed;
 
 
   function PUtf8CharToString(s: PAnsiChar): string;

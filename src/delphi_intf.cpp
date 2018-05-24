@@ -382,6 +382,14 @@ namespace embed {
   {
     Init();
   }
+  EMBED_EXTERN int EmbedMajorVersion()
+  {
+    return EMBED_MAJOR_VERSION;
+  }
+  EMBED_EXTERN int EmbedMinorVersion()
+  {
+    return EMBED_MINOR_VERSION;
+  }
   IClassProp::IClassProp(const char * pName, void * pObj,
     bool pRead, bool Pwrite)
   {

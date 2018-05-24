@@ -44,6 +44,7 @@ type
     FClasses: TDictionary<TClass, TClassWrapper>;
     FEnumList: TList<PTypeInfo>;
     FGarbageCollector: TGarbageCollector;
+    FActive: boolean;
   protected
     function GetEngine: INodeEngine;
     function GetGarbageCollector: TGarbageCollector;
@@ -64,6 +65,7 @@ type
     function CallFunction(funcName: string): TValue; overload;
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
+    property Active: boolean read FActive;
   end;
 
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
@@ -86,7 +88,12 @@ var
   // TODO: add callbacks for read/write from stdio
   ReadPipe, WritePipe: THandle;
 
-procedure InitJS;
+function InitJS: boolean;
+var
+  // This variable shows if dll is supported:
+  // 1. Its Major version equals to this source version
+  // 2. Its Minor version is equals or higher than source version
+  VersionEqual: Boolean;
 begin
   if not Initialized then
   begin
@@ -100,9 +107,13 @@ begin
       SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
       SetStdHandle(STD_ERROR_HANDLE, WritePipe);
     end;
-    InitNode(StringToPUtf8Char(ParamStr(0)));
+    VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
+      (EmbedMinorVersion >= EMBED_MINOR_VERSION);
+    if VersionEqual then
+      InitNode(StringToPUtf8Char(ParamStr(0)));
     Initialized := True;
   end;
+  Result := VersionEqual;
 end;
 
 function GetNodeLog: string;
@@ -402,16 +413,19 @@ begin
     //TODO: CheckNodeversion and raise exception if major_ver mismatch
 //      Format('Failed to intialize node.dll. ' +
 //        'Incorrect version. Required %d version', [NODE_AVAILABLE_VER]);
-    InitJS;
-    FEngine := NewDelphiEngine(Self);
-    FEngine.SetMethodCallBack(MethodCallBack);
-    FEngine.SetPropGetterCallBack(PropGetterCallBack);
-    FEngine.SetPropSetterCallBack(PropSetterCallBack);
-    FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
-    FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
-    FClasses := TDictionary<TClass, TClassWrapper>.Create;
-    FGarbageCollector := TGarbageCollector.Create;
-    FEnumList := TList<PTypeInfo>.Create;
+    if InitJS then
+    begin
+      FEngine := NewDelphiEngine(Self);
+      FEngine.SetMethodCallBack(MethodCallBack);
+      FEngine.SetPropGetterCallBack(PropGetterCallBack);
+      FEngine.SetPropSetterCallBack(PropSetterCallBack);
+      FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
+      FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
+      FClasses := TDictionary<TClass, TClassWrapper>.Create;
+      FGarbageCollector := TGarbageCollector.Create;
+      FEnumList := TList<PTypeInfo>.Create;
+      FActive := True;
+    end;
   except
     on E: EExternalException do
     begin
