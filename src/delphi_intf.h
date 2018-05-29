@@ -52,6 +52,9 @@ namespace embed {
   public:
     IJSObject(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Object> V8Object();
+    // parent's methods
+    virtual bool APIENTRY IsObject();
+    virtual IJSObject * APIENTRY AsObject();
 
     virtual void APIENTRY SetFieldValue(char * name, IJSValue * val);
     virtual IJSValue * APIENTRY GetFieldValue(char * name);
@@ -62,6 +65,10 @@ namespace embed {
   class IJSDelphiObject : public IJSObject {
   public:
     IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val);
+    // parent's methods
+    virtual bool APIENTRY IsDelphiObject();
+    virtual IJSDelphiObject * APIENTRY AsDelphiObject();
+
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
   };
@@ -71,6 +78,10 @@ namespace embed {
   public:
     IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val);
     ~IJSArray();
+    // parent's methods
+    virtual bool APIENTRY IsArray();
+    virtual IJSArray * APIENTRY AsArray();
+
     virtual int32_t APIENTRY GetCount();
     virtual IJSValue * APIENTRY GetValue(int32_t index);
     virtual void APIENTRY SetValue(IJSValue * value, int32_t index);
@@ -84,6 +95,10 @@ namespace embed {
   public:
     IJSFunction(v8::Isolate * iso, v8::Local<v8::Value> val);
     v8::Local<v8::Function> V8Function();
+    // parent's methods
+    virtual bool APIENTRY IsFunction();
+    virtual IJSFunction * APIENTRY AsFunction();
+
     virtual IJSValue * APIENTRY Call(IJSArray * argv);
   };
 
