@@ -3,7 +3,7 @@ unit EngineHelper;
 interface
 
 uses
-  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes, SysUtils;
+  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes, SysUtils, Variants;
 
 type
   EScriptEngineException = class(Exception);
@@ -67,6 +67,7 @@ type
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
+  function JSValueToVariant(value: IJSValue): Variant;
   function JSValueToRecord(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
@@ -240,7 +241,8 @@ begin
         Result := value.AsDelphiObject.GetDelphiObject;
       tkMethod:
         Result := JSValueToMethod(value, typ, Engine);
-      tkVariant: ;
+      tkVariant:
+        Result := TValue.From<Variant>(JsValueToVariant(value));
       tkArray:
         Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
       tkRecord: Result := JsValueToRecord(value, typ, Engine);
@@ -253,6 +255,22 @@ begin
       tkPointer: ;
       tkProcedure: ;
     end;
+end;
+
+function JSValueToVariant(value: IJSValue): Variant;
+begin
+  Result := Unassigned;
+  if not assigned(value) or (value.IsUndefined) then
+    Exit;
+  //checking for type
+  if value.IsBool then
+    Result := value.AsBool
+  else if value.IsInt32 then
+    Result := value.AsInt32
+  else if value.IsNumber then
+    Result := value.AsNumber
+  else if value.IsString then
+    Result := PUtf8CharToString(value.AsString);
 end;
 
 function JSValueToRecord(value: IJSValue; typ: TRttiType;
