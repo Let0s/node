@@ -632,6 +632,14 @@ namespace embed {
   {
     return V8Value()->ToObject(isolate);
   }
+  bool IJSObject::IsObject()
+  {
+    return true;
+  }
+  IJSObject * IJSObject::AsObject()
+  {
+    return this;
+  }
   void IJSObject::SetFieldValue(char * name, IJSValue * val)
   {
     if (val) {
@@ -657,19 +665,19 @@ namespace embed {
   }
   bool IJSValue::IsObject()
   {
-    return !(dynamic_cast<IJSObject *>(this) == nullptr);
+    return false;
   }
   bool IJSValue::IsDelphiObject()
   {
-    return !(dynamic_cast<IJSDelphiObject *>(this) == nullptr);
+    return false;
   }
   bool IJSValue::IsArray()
   {
-    return !(dynamic_cast<IJSArray *>(this) == nullptr);
+    return false;
   }
   bool IJSValue::IsFunction()
   {
-    return !(dynamic_cast<IJSFunction *>(this) == nullptr);
+    return false;
   }
   bool IJSValue::AsBool()
   {
@@ -691,19 +699,19 @@ namespace embed {
   }
   IJSObject * IJSValue::AsObject()
   {
-    return dynamic_cast<IJSObject *>(this);
+    return nullptr;
   }
   IJSDelphiObject * IJSValue::AsDelphiObject()
   {
-    return dynamic_cast<IJSDelphiObject *>(this);
+    return nullptr;
   }
   IJSArray * IJSValue::AsArray()
   {
-    return dynamic_cast<IJSArray *>(this);
+    return nullptr;
   }
   IJSFunction * IJSValue::AsFunction()
   {
-    return dynamic_cast<IJSFunction *>(this);
+    return nullptr;
   }
   bool IJSValue::IsUndefined()
   {
@@ -736,6 +744,14 @@ namespace embed {
   IJSArray::~IJSArray()
   {
     values.clear();
+  }
+  bool IJSArray::IsArray()
+  {
+    return true;
+  }
+  IJSArray * IJSArray::AsArray()
+  {
+    return this;
   }
   int32_t IJSArray::GetCount()
   {
@@ -783,6 +799,14 @@ namespace embed {
   {
     return V8Value().As<v8::Function>();
   }
+  bool IJSFunction::IsFunction()
+  {
+    return true;
+  }
+  IJSFunction * IJSFunction::AsFunction()
+  {
+    return this;
+  }
   IJSValue * IJSFunction::Call(IJSArray * argv)
   {
     std::vector<v8::Local<v8::Value>> args;
@@ -799,6 +823,14 @@ namespace embed {
   IJSDelphiObject::IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val):
     IJSObject(iso, val)
   {
+  }
+  bool IJSDelphiObject::IsDelphiObject()
+  {
+    return true;
+  }
+  IJSDelphiObject * IJSDelphiObject::AsDelphiObject()
+  {
+    return this;
   }
   void * IJSDelphiObject::GetDelphiObject()
   {
