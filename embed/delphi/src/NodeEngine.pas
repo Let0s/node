@@ -99,16 +99,7 @@ var
 begin
   if not Initialized then
   begin
-    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
-                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
-                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
-    if not STDIOExist then
-    begin
-      CreatePipe(ReadPipe, WritePipe, nil, 0);
-      SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
-      SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
-      SetStdHandle(STD_ERROR_HANDLE, WritePipe);
-    end;
+    // first callling node.dll function. STDIO should exist at this moment
     VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
       (EmbedMinorVersion >= EMBED_MINOR_VERSION);
     if VersionEqual then
@@ -639,16 +630,24 @@ begin
 end;
 
 initialization
+  // Create STDIO if it is not exist. Nodejs will not work without STDIO
+  // (It should be fixed soon: https://github.com/nodejs/node/pull/20640)
+  STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
+                     (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
+                     (GetStdHandle(STD_ERROR_HANDLE) = 0));
+  if not STDIOExist then
+  begin
+    CreatePipe(ReadPipe, WritePipe, nil, 0);
+    SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
+    SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
+    SetStdHandle(STD_ERROR_HANDLE, WritePipe);
+  end;
 
 finalization
-  if (Initialized) then
+  if not STDIOExist then
   begin
-    if not STDIOExist then
-    begin
-      CloseHandle(ReadPipe);
-      CloseHandle(WritePipe);
-    end;
-    Initialized := False;
+    CloseHandle(ReadPipe);
+    CloseHandle(WritePipe);
   end;
 
 end.
