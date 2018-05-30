@@ -19,15 +19,20 @@ type
     property GC: TGarbageCollector read GetGarbageCollector;
   end;
 
+  // Base helper class. Helpers are used to extend any class - add new methods
+  // and props. All public props and methods will be added into JS as props
+  // and methods of extended class.
   TJSClassHelper = class(TObject)
   private
     FSource: TObject;
   public
+    // Property Source returns object of extended class, which method is called
     property Source: TObject Read FSource Write FSource;
   end;
 
   TJSHelperType = class of TJSClassHelper;
 
+  // It is used to store mathces between classtype and its helper object
   TJSHelperMap = TDictionary<TClass, TJSClassHelper>;
 
   TEventWrapper = class(TObject)

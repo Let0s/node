@@ -9,20 +9,42 @@ uses
 type
   TJSEngine = class;
 
+  // Class method info
   TClassMethod = record
+    // Link to method, that can be called from JS
     Method: TRttiMethod;
+    // If method doesn't belong to classtype, then it is method of helper,
+    // that is stored here.
     Helper: TJSClassHelper;
   end;
 
+  //Class property info
   TClassProp = class
   public
+    // Link to prop, that can be called from JS
     Prop: TRttiProperty;
+    // If prop doesn't belong to classtype, then it is prop of helper,
+    // that is stored here.
     Helper: TJSClassHelper;
     constructor Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
   end;
 
+  //list of overloaded methods
   TRttiMethodList = class(TList<TClassMethod>)
   public
+    // This function tries to guess right method by given arguments.
+    // There are a lot of cases, when it can return wrong result, so
+    // TODO: make it return correct result (if possible)
+
+    // Expample of undefined behavior. We have two overloaded functions with
+    // different implementation and different result:
+    // 1. SomeFunc(a: integer)
+    // 2. SomeFunc(a: integer; b: string)
+    // If JS runs something like "obj.SomeFunc(123)", we dont know, what should
+    // we call:
+    // 1. SomeFunc(123)
+    // or
+    // 2. SomeFunc(123, '') //empty string as optional parameter
     function GetMethod(args: IJSArray): TClassMethod;
   end;
 
@@ -58,7 +80,9 @@ type
     FEngine: INodeEngine;
     FGlobal: TObject;
     FClasses: TDictionary<TClass, TClassWrapper>;
+    // Store matches "classtype <-> helper object"
     FJSHelperMap: TJSHelperMap;
+    // Store helper objects. Any Helper class have only one helper object.
     FJSHelperList: TObjectList;
     FEnumList: TList<PTypeInfo>;
     FGarbageCollector: TGarbageCollector;
@@ -75,6 +99,8 @@ type
     constructor Create();
     destructor Destroy; override;
     procedure CheckType(typ: TRttiType);
+    // Use it to match classtype with helper class. Helper will be created
+    // automatically (if it wasn't created).
     procedure RegisterHelper(CType: TClass; HelperType: TJSHelperType);
     procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
@@ -184,6 +210,7 @@ begin
     begin
       MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
         Engine);
+      //if method has helper, then we call method of helper with given object
       if Assigned(MethodInfo.Helper) then
       begin
         Helper := MethodInfo.Helper;
@@ -231,6 +258,7 @@ begin
         Obj := Engine.FGlobal;
     end;
     PropInfo := Args.GetProp as TClassProp;
+    //if prop has helper, then we call prop of helper with given object
     if Assigned(PropInfo.Helper) then
     begin
       PropInfo.Helper.Source := Obj;
@@ -267,6 +295,7 @@ begin
     end;
     PropInfo := Args.GetProp as TClassProp;
     Prop := PropInfo.Prop;
+    //if prop has helper, then we call prop of helper with given object
     if Assigned(PropInfo.Helper) then
     begin
       PropInfo.Helper.Source := Obj;
@@ -733,6 +762,8 @@ begin
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
+  // If assigned helper object, add its props and methods as props and methods
+  // of this classtype
   if Assigned(Helper) then
   begin
     AddHelperMethods(Helper, Engine);
