@@ -14,6 +14,13 @@ type
     Helper: TJSClassHelper;
   end;
 
+  TClassProp = class
+  public
+    Prop: TRttiProperty;
+    Helper: TJSClassHelper;
+    constructor Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
+  end;
+
   TRttiMethodList = class(TList<TClassMethod>)
   public
     function GetMethod(args: IJSArray): TClassMethod;
@@ -25,6 +32,7 @@ type
     FTemplate: IClassTemplate;
     FParent: TClassWrapper;
     FMethods: TObjectDictionary<string, TRttiMethodList>;
+    FProps: TObjectDictionary<string, TClassProp>;
     FEngine: INodeEngine;
     // Add all methods to JS tepmlate. Add only methods, that belong to current
     // classtype (parent methods will be inherited from parent JS template)
@@ -37,6 +45,7 @@ type
     procedure AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
 
     procedure AddHelperMethods(Helper: TJSClassHelper; Engine: TJSEngine);
+    procedure AddHelperProps(Helper: TJSClassHelper; Engine: TJSEngine);
   public
     constructor Create(cType: TClass);
     procedure InitJSTemplate(Parent: TClassWrapper; Engine: TJSEngine;
@@ -205,7 +214,7 @@ end;
 procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
 var
   Engine: TJSEngine;
-  Prop: TRttiProperty;
+  PropInfo: TClassProp;
   Obj: TObject;
   Result: TValue;
   JSResult: IJSValue;
@@ -221,8 +230,15 @@ begin
       if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
         Obj := Engine.FGlobal;
     end;
-    Prop := Args.GetProp as TRttiProperty;
-    Result := Prop.GetValue(Obj);
+    PropInfo := Args.GetProp as TClassProp;
+    if Assigned(PropInfo.Helper) then
+    begin
+      PropInfo.Helper.Source := Obj;
+      Obj := PropInfo.Helper;
+    end;
+    Result := PropInfo.Prop.GetValue(Obj);
+    if Assigned(PropInfo.Helper) then
+      PropInfo.Helper.Source := nil;
     JSResult := TValueToJSValue(Result, Engine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
@@ -232,6 +248,7 @@ end;
 procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
 var
   Engine: TJSEngine;
+  PropInfo: TClassProp;
   Prop: TRttiProperty;
   Obj: TObject;
   Result: TValue;
@@ -248,12 +265,20 @@ begin
       if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
         Obj := Engine.FGlobal;
     end;
-    Prop := Args.GetProp as TRttiProperty;
+    PropInfo := Args.GetProp as TClassProp;
+    Prop := PropInfo.Prop;
+    if Assigned(PropInfo.Helper) then
+    begin
+      PropInfo.Helper.Source := Obj;
+      Obj := PropInfo.Helper;
+    end;
     JSValue := Args.GetPropValue;
     if Assigned(JSValue) then
       Prop.SetValue(Obj,
         JSValueToTValue(JSValue, Prop.PropertyType, Engine));
     Result := Prop.GetValue(Obj);
+    if Assigned(PropInfo.Helper) then
+      PropInfo.Helper.Source := nil;
     JSValue := TValueToJSValue(Result, Engine);
     if Assigned(JSValue) then
       Args.SetReturnValue(JSValue);
@@ -589,6 +614,28 @@ begin
   end;
 end;
 
+procedure TClassWrapper.AddHelperProps(Helper: TJSClassHelper;
+  Engine: TJSEngine);
+var
+  Prop: TRttiProperty;
+  PropInfo: TClassProp;
+  ClassTyp: TRttiType;
+begin
+  ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
+  for Prop in ClassTyp.GetProperties do
+  begin
+    if (Prop.Visibility = mvPublic) and
+      not FProps.ContainsKey(Prop.Name) then
+    begin
+      Engine.CheckType(Prop.PropertyType);
+      PropInfo := TClassProp.Create(Prop, Helper);
+      FProps.Add(Prop.Name, PropInfo);
+      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
+        Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
+end;
+
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Method: TRttiMethod;
@@ -637,6 +684,7 @@ end;
 procedure TClassWrapper.AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Prop: TRttiProperty;
+  PropInfo: TClassProp;
 begin
   for Prop in ClassTyp.GetProperties do
   begin
@@ -644,7 +692,9 @@ begin
       (Prop.Parent.Handle = ClassTyp.Handle) then
     begin
       Engine.CheckType(Prop.PropertyType);
-      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
+      PropInfo := TClassProp.Create(Prop, nil);
+      FProps.Add(Prop.Name, PropInfo);
+      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
@@ -654,11 +704,13 @@ constructor TClassWrapper.Create(cType: TClass);
 begin
   FType := cType;
   FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
+  FProps := TObjectDictionary<string, TClassProp>.Create;
 end;
 
 destructor TClassWrapper.Destroy;
 begin
   FreeAndNil(FMethods);
+  FreeAndNil(FProps);
   inherited;
 end;
 
@@ -679,6 +731,7 @@ begin
   if Assigned(Helper) then
   begin
     AddHelperMethods(Helper, Engine);
+    AddHelperProps(Helper, Engine);
   end;
   FParent := Parent;
   if Assigned(FParent) then
@@ -718,6 +771,14 @@ begin
       end;
     end;
   end;
+end;
+
+{ TClassProp }
+
+constructor TClassProp.Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
+begin
+  Prop := AProp;
+  Helper := AHelper;
 end;
 
 initialization
