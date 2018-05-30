@@ -19,6 +19,17 @@ type
     property GC: TGarbageCollector read GetGarbageCollector;
   end;
 
+  TJSClassHelper = class(TObject)
+  private
+    FSource: TObject;
+  public
+    property Source: TObject Read FSource Write FSource;
+  end;
+
+  TJSHelperType = class of TJSClassHelper;
+
+  TJSHelperMap = TDictionary<TClass, TJSClassHelper>;
+
   TEventWrapper = class(TObject)
   private
     FEngine: IJSEngine;
