@@ -596,9 +596,11 @@ begin
   ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
   for Method in ClassTyp.GetMethods do
   begin
-    //check if method belongs to given class type (not to the parent)
+    // Add only public methods from full class hierarchy
+    // (exclude TObject's methods)
     if (Method.Visibility = mvPublic) and
-      (not (Method.IsConstructor or Method.IsDestructor)) then
+      (method.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
+      (Method.MethodKind in [mkProcedure, mkFunction]) then
     begin
       Engine.CheckType(Method.ReturnType);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
@@ -624,7 +626,10 @@ begin
   ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
   for Prop in ClassTyp.GetProperties do
   begin
+    // Add only public props from full class hierarchy
+    // (exclude TObject's props)
     if (Prop.Visibility = mvPublic) and
+      (Prop.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
       not FProps.ContainsKey(Prop.Name) then
     begin
       Engine.CheckType(Prop.PropertyType);
