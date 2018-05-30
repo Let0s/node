@@ -4,14 +4,48 @@ interface
 
 uses
   NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper, IOUtils,
-  Generics.Collections, Windows;
+  Generics.Collections, Windows, Classes, Contnrs;
 
 type
   TJSEngine = class;
 
-  TRttiMethodList = class(TList<TRttiMethod>)
+  // Class method info
+  TClassMethod = record
+    // Link to method, that can be called from JS
+    Method: TRttiMethod;
+    // If method doesn't belong to classtype, then it is method of helper,
+    // that is stored here.
+    Helper: TJSClassHelper;
+  end;
+
+  //Class property info
+  TClassProp = class
   public
-    function GetMethod(args: IJSArray): TRttiMethod;
+    // Link to prop, that can be called from JS
+    Prop: TRttiProperty;
+    // If prop doesn't belong to classtype, then it is prop of helper,
+    // that is stored here.
+    Helper: TJSClassHelper;
+    constructor Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
+  end;
+
+  //list of overloaded methods
+  TRttiMethodList = class(TList<TClassMethod>)
+  public
+    // This function tries to guess right method by given arguments.
+    // There are a lot of cases, when it can return wrong result, so
+    // TODO: make it return correct result (if possible)
+
+    // Expample of undefined behavior. We have two overloaded functions with
+    // different implementation and different result:
+    // 1. SomeFunc(a: integer)
+    // 2. SomeFunc(a: integer; b: string)
+    // If JS runs something like "obj.SomeFunc(123)", we dont know, what should
+    // we call:
+    // 1. SomeFunc(123)
+    // or
+    // 2. SomeFunc(123, '') //empty string as optional parameter
+    function GetMethod(args: IJSArray): TClassMethod;
   end;
 
   TClassWrapper = class(TObject)
@@ -20,6 +54,7 @@ type
     FTemplate: IClassTemplate;
     FParent: TClassWrapper;
     FMethods: TObjectDictionary<string, TRttiMethodList>;
+    FProps: TObjectDictionary<string, TClassProp>;
     FEngine: INodeEngine;
     // Add all methods to JS tepmlate. Add only methods, that belong to current
     // classtype (parent methods will be inherited from parent JS template)
@@ -30,10 +65,13 @@ type
     procedure AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
+
+    procedure AddHelperMethods(Helper: TJSClassHelper; Engine: TJSEngine);
+    procedure AddHelperProps(Helper: TJSClassHelper; Engine: TJSEngine);
   public
     constructor Create(cType: TClass);
     procedure InitJSTemplate(Parent: TClassWrapper; Engine: TJSEngine;
-      IsGlobal: boolean);
+      IsGlobal: boolean; Helper: TJSClassHelper);
     destructor Destroy; override;
   end;
 
@@ -42,6 +80,10 @@ type
     FEngine: INodeEngine;
     FGlobal: TObject;
     FClasses: TDictionary<TClass, TClassWrapper>;
+    // Store matches "classtype <-> helper object"
+    FJSHelperMap: TJSHelperMap;
+    // Store helper objects. Any Helper class have only one helper object.
+    FJSHelperList: TObjectList;
     FEnumList: TList<PTypeInfo>;
     FGarbageCollector: TGarbageCollector;
     FActive: boolean;
@@ -57,6 +99,9 @@ type
     constructor Create();
     destructor Destroy; override;
     procedure CheckType(typ: TRttiType);
+    // Use it to match classtype with helper class. Helper will be created
+    // automatically (if it wasn't created).
+    procedure RegisterHelper(CType: TClass; HelperType: TJSHelperType);
     procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
@@ -139,11 +184,13 @@ var
   Engine: TJSEngine;
   Overloads: TRttiMethodList;
   Method: TRttiMethod;
+  MethodInfo: TClassMethod;
   Obj: TObject;
   ObjType: TClass;
   Result: TValue;
   JSResult: IJSValue;
   MethodArgs: TArray<TValue>;
+  Helper: TJSClassHelper;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -157,20 +204,32 @@ begin
         Obj := Engine.FGlobal;
     end;
     Overloads := Args.GetDelphiMethod as TRttiMethodList;
-    Method := Overloads.GetMethod(Args.GetArgs);
+    MethodInfo := Overloads.GetMethod(Args.GetArgs);
+    Method := MethodInfo.Method;
     if Assigned(Method) then
     begin
       MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
         Engine);
-      if Assigned(Obj) and (not Method.IsClassMethod) then
-        Result := Method.Invoke(Obj, MethodArgs)
-      else if Method.IsClassMethod then
+      //if method has helper, then we call method of helper with given object
+      if Assigned(MethodInfo.Helper) then
       begin
-        if Assigned(Obj) then
-          ObjType := Obj.ClassType
-        else
-          ObjType := Method.Parent.Handle.TypeData.ClassType;
-        Result := Method.Invoke(ObjType, MethodArgs);
+        Helper := MethodInfo.Helper;
+        Helper.Source := Obj;
+        Result := Method.Invoke(Helper, MethodArgs);
+        Helper.Source := nil;
+      end
+      else
+      begin
+        if Assigned(Obj) and (not Method.IsClassMethod) then
+          Result := Method.Invoke(Obj, MethodArgs)
+        else if Method.IsClassMethod then
+        begin
+          if Assigned(Obj) then
+            ObjType := Obj.ClassType
+          else
+            ObjType := Method.Parent.Handle.TypeData.ClassType;
+          Result := Method.Invoke(ObjType, MethodArgs);
+        end;
       end;
       JSResult := TValueToJSValue(Result, Engine);
       if Assigned(JSResult) then
@@ -182,7 +241,7 @@ end;
 procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
 var
   Engine: TJSEngine;
-  Prop: TRttiProperty;
+  PropInfo: TClassProp;
   Obj: TObject;
   Result: TValue;
   JSResult: IJSValue;
@@ -198,8 +257,16 @@ begin
       if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
         Obj := Engine.FGlobal;
     end;
-    Prop := Args.GetProp as TRttiProperty;
-    Result := Prop.GetValue(Obj);
+    PropInfo := Args.GetProp as TClassProp;
+    //if prop has helper, then we call prop of helper with given object
+    if Assigned(PropInfo.Helper) then
+    begin
+      PropInfo.Helper.Source := Obj;
+      Obj := PropInfo.Helper;
+    end;
+    Result := PropInfo.Prop.GetValue(Obj);
+    if Assigned(PropInfo.Helper) then
+      PropInfo.Helper.Source := nil;
     JSResult := TValueToJSValue(Result, Engine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
@@ -209,6 +276,7 @@ end;
 procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
 var
   Engine: TJSEngine;
+  PropInfo: TClassProp;
   Prop: TRttiProperty;
   Obj: TObject;
   Result: TValue;
@@ -225,12 +293,21 @@ begin
       if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
         Obj := Engine.FGlobal;
     end;
-    Prop := Args.GetProp as TRttiProperty;
+    PropInfo := Args.GetProp as TClassProp;
+    Prop := PropInfo.Prop;
+    //if prop has helper, then we call prop of helper with given object
+    if Assigned(PropInfo.Helper) then
+    begin
+      PropInfo.Helper.Source := Obj;
+      Obj := PropInfo.Helper;
+    end;
     JSValue := Args.GetPropValue;
     if Assigned(JSValue) then
       Prop.SetValue(Obj,
         JSValueToTValue(JSValue, Prop.PropertyType, Engine));
     Result := Prop.GetValue(Obj);
+    if Assigned(PropInfo.Helper) then
+      PropInfo.Helper.Source := nil;
     JSValue := TValueToJSValue(Result, Engine);
     if Assigned(JSValue) then
       Args.SetReturnValue(JSValue);
@@ -303,6 +380,7 @@ var
   ClassWrapper: TClassWrapper;
   ParentWrapper: TClassWrapper;
   Parent: TClass;
+  Helper: TJSClassHelper;
 begin
   Result := nil;
 //  if Inactive then
@@ -320,7 +398,9 @@ begin
       Parent := Parent.ClassParent;
     end;
     FClasses.TryGetValue(classType.ClassParent, ParentWrapper);
-    ClassWrapper.InitJSTemplate(ParentWrapper, Self, False);
+    if not FJSHelperMap.TryGetValue(classType, Helper) then
+      Helper := nil;
+    ClassWrapper.InitJSTemplate(ParentWrapper, Self, False, Helper);
   end;
   Result := ClassWrapper;
 end;
@@ -359,7 +439,7 @@ begin
   FGlobal := Global;
   GlobalWrapper := TClassWrapper.Create(Global.ClassType);
   FClasses.Add(Global.ClassType, GlobalWrapper);
-  GlobalWrapper.InitJSTemplate(nil, Self, True);
+  GlobalWrapper.InitJSTemplate(nil, Self, True, nil);
 end;
 
 procedure TJSEngine.AddGlobalVariable(Name: string; Variable: TObject);
@@ -430,6 +510,8 @@ begin
       FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
       FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
       FClasses := TDictionary<TClass, TClassWrapper>.Create;
+      FJSHelperMap := TJSHelperMap.Create;
+      FJSHelperList := TObjectList.Create;
       FGarbageCollector := TGarbageCollector.Create;
       FEnumList := TList<PTypeInfo>.Create;
       FActive := True;
@@ -448,6 +530,8 @@ begin
   FEnumList.Free;
   FClasses.Free;
   FGarbageCollector.Free;
+  FJSHelperMap.Free;
+  FJSHelperList.Free;
   FEngine.Delete;
   inherited;
 end;
@@ -468,6 +552,29 @@ begin
     Result := 0
   else
     Result := E_NOINTERFACE;
+end;
+
+procedure TJSEngine.RegisterHelper(CType: TClass;
+  HelperType: TJSHelperType);
+var
+  HelperObj: TJSClassHelper;
+  objind: integer;
+begin
+  if Active then
+  begin
+    if not FJSHelperMap.ContainsKey(CType) then
+    begin
+      objind := FJSHelperList.FindInstanceOf(HelperType);
+      if objind < 0 then
+      begin
+        HelperObj := HelperType.Create;
+        FJSHelperList.Add(HelperObj);
+      end
+      else
+        HelperObj := TJSClassHelper(FJSHelperList[objind]);
+      FJSHelperMap.Add(CType, HelperObj);
+    end;
+  end;
 end;
 
 procedure TJSEngine.RunFile(filename: string);
@@ -507,9 +614,66 @@ begin
   end;
 end;
 
+procedure TClassWrapper.AddHelperMethods(Helper: TJSClassHelper;
+  Engine: TJSEngine);
+var
+  Method: TRttiMethod;
+  MethodInfo: TClassMethod;
+  Overloads: TRttiMethodList;
+  ClassTyp: TRttiType;
+begin
+  ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
+  for Method in ClassTyp.GetMethods do
+  begin
+    // Add only public methods from full class hierarchy
+    // (exclude TObject's methods)
+    if (Method.Visibility = mvPublic) and
+      (method.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
+      (Method.MethodKind in [mkProcedure, mkFunction]) then
+    begin
+      Engine.CheckType(Method.ReturnType);
+      if not FMethods.TryGetValue(Method.Name, Overloads) then
+      begin
+        Overloads := TRttiMethodList.Create;
+        FMethods.Add(Method.Name, Overloads);
+        FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
+      end;
+      MethodInfo.Method := Method;
+      MethodInfo.Helper := Helper;
+      Overloads.Add(MethodInfo);
+    end;
+  end;
+end;
+
+procedure TClassWrapper.AddHelperProps(Helper: TJSClassHelper;
+  Engine: TJSEngine);
+var
+  Prop: TRttiProperty;
+  PropInfo: TClassProp;
+  ClassTyp: TRttiType;
+begin
+  ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
+  for Prop in ClassTyp.GetProperties do
+  begin
+    // Add only public props from full class hierarchy
+    // (exclude TObject's props)
+    if (Prop.Visibility = mvPublic) and
+      (Prop.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
+      not FProps.ContainsKey(Prop.Name) then
+    begin
+      Engine.CheckType(Prop.PropertyType);
+      PropInfo := TClassProp.Create(Prop, Helper);
+      FProps.Add(Prop.Name, PropInfo);
+      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
+        Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
+end;
+
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Method: TRttiMethod;
+  MethodInfo: TClassMethod;
   Overloads: TRttiMethodList;
 begin
   for Method in ClassTyp.GetMethods do
@@ -526,7 +690,9 @@ begin
         FMethods.Add(Method.Name, Overloads);
         FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
       end;
-      Overloads.Add(Method);
+      MethodInfo.Method := Method;
+      MethodInfo.Helper := nil;
+      Overloads.Add(MethodInfo);
     end;
   end;
 
@@ -542,7 +708,9 @@ begin
       Engine.CheckType(Method.ReturnType);
       // TODO: think about overrided methods, that can be added as overloads
       // Check by parameter count and types?
-      Overloads.Add(Method);
+      MethodInfo.Method := Method;
+      MethodInfo.Helper := nil;
+      Overloads.Add(MethodInfo);
     end;
   end;
 end;
@@ -550,6 +718,7 @@ end;
 procedure TClassWrapper.AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Prop: TRttiProperty;
+  PropInfo: TClassProp;
 begin
   for Prop in ClassTyp.GetProperties do
   begin
@@ -557,7 +726,9 @@ begin
       (Prop.Parent.Handle = ClassTyp.Handle) then
     begin
       Engine.CheckType(Prop.PropertyType);
-      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), Prop,
+      PropInfo := TClassProp.Create(Prop, nil);
+      FProps.Add(Prop.Name, PropInfo);
+      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
@@ -567,16 +738,18 @@ constructor TClassWrapper.Create(cType: TClass);
 begin
   FType := cType;
   FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
+  FProps := TObjectDictionary<string, TClassProp>.Create;
 end;
 
 destructor TClassWrapper.Destroy;
 begin
   FreeAndNil(FMethods);
+  FreeAndNil(FProps);
   inherited;
 end;
 
 procedure TClassWrapper.InitJSTemplate(Parent: TClassWrapper;
-  Engine: TJSEngine; IsGlobal: boolean);
+  Engine: TJSEngine; IsGlobal: boolean; Helper: TJSClassHelper);
 var
   ClassTyp: TRttiType;
 begin
@@ -589,6 +762,13 @@ begin
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
+  // If assigned helper object, add its props and methods as props and methods
+  // of this classtype
+  if Assigned(Helper) then
+  begin
+    AddHelperMethods(Helper, Engine);
+    AddHelperProps(Helper, Engine);
+  end;
   FParent := Parent;
   if Assigned(FParent) then
     FTemplate.SetParent(FParent.FTemplate);
@@ -596,37 +776,45 @@ end;
 
 { TRttiMethodList }
 
-function TRttiMethodList.GetMethod(args: IJSArray): TRttiMethod;
+function TRttiMethodList.GetMethod(args: IJSArray): TClassMethod;
 var
   i, j: Integer;
   Params: TArray<TRttiParameter>;
-  Method: TRttiMethod;
+  MethodInfo: TClassMethod;
 begin
-  Result := nil;
+  Result.Method := nil;
   if Count > 0 then
   begin
     Result := Items[0];
     for i := 0 to Count - 1 do
     begin
-      Method := Items[i];
-      Params := Method.GetParameters;
+      MethodInfo := Items[i];
+      Params := MethodInfo.Method.GetParameters;
       for j := 0 to Length(Params) - 1 do
       begin
         if j >= args.GetCount then
           break;
         if not CompareType(Params[j].ParamType, args.GetValue(j)) then
         begin
-          Method := nil;
+          MethodInfo.Method := nil;
           break;
         end;
       end;
-      if Assigned(Method) then
+      if Assigned(MethodInfo.Method) then
       begin
-        Result := Method;
+        Result := MethodInfo;
         break;
       end;
     end;
   end;
+end;
+
+{ TClassProp }
+
+constructor TClassProp.Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
+begin
+  Prop := AProp;
+  Helper := AHelper;
 end;
 
 initialization
