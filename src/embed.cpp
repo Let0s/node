@@ -93,6 +93,8 @@ namespace embed {
     running = true;
     PrepareForRun();
     node::LoadEnvironment(env);
+    //write v8 log messages (e.g. JS error) into stdout
+    fflush(stdout);
   }
   void BaseEngine::CheckEventLoop()
   {
