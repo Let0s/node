@@ -130,10 +130,8 @@ implementation
 var
   Initialized: Boolean = False;
   STDIOExist: Boolean;
-  // these pipes are dummy for application without default std(input/output/error)
-  //   so functions log/warn/error of console in Node.js will not work
-  // TODO: add callbacks for read/write from stdio
-  ReadPipe, WritePipe: THandle;
+  // If there are not stdio streams, automatically create pipes on app init
+  StdInRead, StdInWrite, StdOutRead, StdOutWrite: THandle;
 
 function InitJS: boolean;
 var
@@ -167,10 +165,10 @@ begin
     Exit;
   PipeSize := Sizeof(TextBuffer);
   // check if there is something to read in pipe
-  PeekNamedPipe(ReadPipe, @TextBuffer, PipeSize, @BytesRead, @PipeSize, nil);
+  PeekNamedPipe(StdOutRead, @TextBuffer, PipeSize, @BytesRead, @PipeSize, nil);
   if bytesread > 0 then
   begin
-    ReadFile(ReadPipe, TextBuffer, pipesize, bytesread, nil);
+    ReadFile(StdOutRead, TextBuffer, pipesize, bytesread, nil);
     // write all useful bytes to Ansi string
     SlicedBuffer := Copy(TextBuffer, 0, BytesRead);
     // convert Ansi string to utf8 string
@@ -825,17 +823,20 @@ initialization
                      (GetStdHandle(STD_ERROR_HANDLE) = 0));
   if not STDIOExist then
   begin
-    CreatePipe(ReadPipe, WritePipe, nil, 0);
-    SetStdHandle(STD_INPUT_HANDLE, ReadPipe);
-    SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
-    SetStdHandle(STD_ERROR_HANDLE, WritePipe);
+    CreatePipe(StdInRead, StdInWrite, nil, 0);
+    CreatePipe(StdOutRead, StdOutWrite, nil, 0);
+    SetStdHandle(STD_INPUT_HANDLE, StdInRead);
+    SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
+    SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
   end;
 
 finalization
   if not STDIOExist then
   begin
-    CloseHandle(ReadPipe);
-    CloseHandle(WritePipe);
+    CloseHandle(StdInRead);
+    CloseHandle(StdInWrite);
+    CloseHandle(StdOutRead);
+    CloseHandle(StdOutWrite);
   end;
 
 end.
