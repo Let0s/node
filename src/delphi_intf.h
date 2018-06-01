@@ -274,6 +274,9 @@ namespace embed {
     virtual IClassTemplate * APIENTRY AddGlobal(void * dClass);
     virtual IClassTemplate * APIENTRY AddObject(char * className,
       void * classType);
+    // Get class template by delphi's classtype. Returns nullptr if tepmlate
+    // wasn't created
+    virtual IClassTemplate * APIENTRY GetObjectTemplate(void * classType);
     virtual IEnumTemplate * APIENTRY AddEnum(char * enumName);
     // Add Delphi object as global variable. In JS it has no difference with
     // global template's protperty, but here it will return wrapped Delphi
