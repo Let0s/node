@@ -78,6 +78,7 @@ type
   function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
   function TValueArrayToJSArray(value: TValueArray; Engine: IJSEngine): IJSArray;
   function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
+  function InterfaceTValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
@@ -153,7 +154,7 @@ begin
       tkVariant: ;
       tkArray: Result := TValueToJSArray(value, Engine);
       tkRecord: Result := RecordToJSValue(value, Engine);
-      tkInterface: ;
+      tkInterface: Result := InterfaceTValueToJSValue(value, Engine);
       tkInt64: Result := NodeEngine.NewNumber(value.AsInt64);
       tkDynArray: Result := TValueToJSArray(value, Engine);
       tkClassRef: ;
@@ -232,6 +233,18 @@ begin
       Result.SetValue(TValueToJSValue(value.GetArrayElement(i), Engine), i);
     end;
   end
+end;
+
+function InterfaceTValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
+var
+  Obj: TObject;
+begin
+  Result := nil;
+  Obj := TObject(value.AsInterface);
+  if Assigned(Obj) then
+  begin
+    Engine.Engine.NewDelphiObject(Obj, Obj.ClassType);
+  end;
 end;
 
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
