@@ -130,6 +130,8 @@ type
       virtual; stdcall; abstract;
     function AddObject(className: PAnsiChar; classType: Pointer): IClassTemplate;
       virtual; stdcall; abstract;
+    function GetObjectTemplate(classType: TClass): IClassTemplate;
+      virtual; stdcall; abstract;
     function AddEnum(enumName: PAnsiChar): IEnumTemplate;
       virtual; stdcall; abstract;
     procedure AddGlobalVariableObject(name: PAnsiChar; obj: TObject;

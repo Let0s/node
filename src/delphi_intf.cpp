@@ -111,6 +111,23 @@ namespace embed {
     return result;
   }
 
+  IClassTemplate * IEmbedEngine::GetObjectTemplate(void * classType)
+  {
+    IClassTemplate * result = nullptr;
+    if (globalTemplate && globalTemplate->dClass == classType) {
+      result = globalTemplate;
+    }
+    if (!result) {
+      for (auto &templ : classes) {
+        if (templ->dClass == classType) {
+          result = templ.get();
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
   IEnumTemplate * IEmbedEngine::AddEnum(char * enumName)
   {
     auto enumerator = std::make_unique<IEnumTemplate>(enumName);
@@ -301,8 +318,9 @@ namespace embed {
               v8::External::New(Isolate(), cType));
             obj->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
               v8::External::New(Isolate(), value));
-            result = new IJSDelphiObject(Isolate(), obj);
-            JSDelphiObjects.emplace(std::make_pair(hash, result));
+            result = IJSValue::MakeValue(Isolate(), obj)->AsDelphiObject();
+            if (result)
+              JSDelphiObjects.emplace(std::make_pair(hash, result));
           }
         }
       }
