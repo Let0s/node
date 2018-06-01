@@ -79,6 +79,7 @@ type
   function TValueArrayToJSArray(value: TValueArray; Engine: IJSEngine): IJSArray;
   function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
   function InterfaceTValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
+  function ObjectToJSWrappedObject(value: TObject; Engine: IJSEngine): IJSValue;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
@@ -148,8 +149,7 @@ begin
           Result := NodeEngine.NewInt32(value.AsOrdinal);
       tkFloat: Result := NodeEngine.NewNumber(value.AsExtended);
       tkSet: ;
-      tkClass: Result := NodeEngine.NewDelphiObject(value.AsObject,
-                                                value.AsObject.ClassType);
+      tkClass: Result := ObjectToJSWrappedObject(value.AsObject, Engine);
       tkMethod: Result := TValueToJSFunction(value, Engine);
       tkVariant: ;
       tkArray: Result := TValueToJSArray(value, Engine);
@@ -243,7 +243,31 @@ begin
   Obj := TObject(value.AsInterface);
   if Assigned(Obj) then
   begin
-    Engine.Engine.NewDelphiObject(Obj, Obj.ClassType);
+    Result := ObjectToJSWrappedObject(Obj, Engine);
+  end;
+end;
+
+function ObjectToJSWrappedObject(value: TObject; Engine: IJSEngine): IJSValue;
+var
+  cType: TClass;
+  NodeEngine: INodeEngine;
+begin
+  // Check for first registered class from original to parent
+  // and wrap object with registered class (can contain less properties)
+
+  // To think: maybe make ability to register class dynamically?
+  Result := nil;
+  if Assigned(value) then
+  begin
+    cType := value.ClassType;
+    NodeEngine := Engine.Engine;
+    while Assigned(cType) and
+      not Assigned(NodeEngine.GetObjectTemplate(cType)) do
+    begin
+      cType := cType.ClassParent;
+    end;
+    if Assigned(cType) then
+      Result := NodeEngine.NewDelphiObject(value, cType);
   end;
 end;
 
