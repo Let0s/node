@@ -129,16 +129,15 @@ type
 implementation
 var
   Initialized: Boolean = False;
+  // This variable shows if dll is supported:
+  // 1. Its Major version equals to this source version
+  // 2. Its Minor version is equals or higher than source version
+  VersionEqual: Boolean = False;
   STDIOExist: Boolean;
   // If there are not stdio streams, automatically create pipes on app init
   StdInRead, StdInWrite, StdOutRead, StdOutWrite: THandle;
 
 function InitJS: boolean;
-var
-  // This variable shows if dll is supported:
-  // 1. Its Major version equals to this source version
-  // 2. Its Minor version is equals or higher than source version
-  VersionEqual: Boolean;
 begin
   if not Initialized then
   begin
@@ -381,26 +380,27 @@ var
   Helper: TJSClassHelper;
 begin
   Result := nil;
-//  if Inactive then
-//    Exit;
-  if (classType = FGlobal.ClassType) or (classType = TObject) then
-    Exit;
-  if not FClasses.TryGetValue(classType, ClassWrapper) then
+  if Active then
   begin
-    ClassWrapper := TClassWrapper.Create(classType);
-    FClasses.Add(classType, ClassWrapper);
-    Parent := classType.ClassParent;
-    while Assigned(Parent) and (Parent <> TObject) do
+    if (classType = FGlobal.ClassType) or (classType = TObject) then
+      Exit;
+    if not FClasses.TryGetValue(classType, ClassWrapper) then
     begin
-      AddClass(Parent);
-      Parent := Parent.ClassParent;
+      ClassWrapper := TClassWrapper.Create(classType);
+      FClasses.Add(classType, ClassWrapper);
+      Parent := classType.ClassParent;
+      while Assigned(Parent) and (Parent <> TObject) do
+      begin
+        AddClass(Parent);
+        Parent := Parent.ClassParent;
+      end;
+      FClasses.TryGetValue(classType.ClassParent, ParentWrapper);
+      if not FJSHelperMap.TryGetValue(classType, Helper) then
+        Helper := nil;
+      ClassWrapper.InitJSTemplate(ParentWrapper, Self, False, Helper);
     end;
-    FClasses.TryGetValue(classType.ClassParent, ParentWrapper);
-    if not FJSHelperMap.TryGetValue(classType, Helper) then
-      Helper := nil;
-    ClassWrapper.InitJSTemplate(ParentWrapper, Self, False, Helper);
+    Result := ClassWrapper;
   end;
-  Result := ClassWrapper;
 end;
 
 procedure TJSEngine.AddEnum(Enum: TRttiType);
@@ -410,23 +410,26 @@ var
   EnumName: string;
   EnumTemplate: IEnumTemplate;
 begin
-  typInfo := Enum.Handle;
-  if FEnumList.IndexOf(typInfo) < 0 then
+  if Active then
   begin
-    i := 0;
-    EnumName := '';
-    EnumTemplate := FEngine.AddEnum(StringToPUtf8Char(Enum.Handle.Name));
-    // TODO: find better way
-    while true do
+    typInfo := Enum.Handle;
+    if FEnumList.IndexOf(typInfo) < 0 then
     begin
-      EnumName := GetEnumName(typInfo, i);
-      enumNum := GetEnumValue(typInfo, EnumName);
-      if enumNum <> i then
-        break;
-      EnumTemplate.AddValue(StringToPUtf8Char(EnumName), i);
-      inc(i);
+      i := 0;
+      EnumName := '';
+      EnumTemplate := FEngine.AddEnum(StringToPUtf8Char(Enum.Handle.Name));
+      // TODO: find better way
+      while true do
+      begin
+        EnumName := GetEnumName(typInfo, i);
+        enumNum := GetEnumValue(typInfo, EnumName);
+        if enumNum <> i then
+          break;
+        EnumTemplate.AddValue(StringToPUtf8Char(EnumName), i);
+        inc(i);
+      end;
+      FEnumList.Add(typInfo);
     end;
-    FEnumList.Add(typInfo);
   end;
 end;
 
@@ -434,10 +437,13 @@ procedure TJSEngine.AddGlobal(Global: TObject);
 var
   GlobalWrapper: TClassWrapper;
 begin
-  FGlobal := Global;
-  GlobalWrapper := TClassWrapper.Create(Global.ClassType);
-  FClasses.Add(Global.ClassType, GlobalWrapper);
-  GlobalWrapper.InitJSTemplate(nil, Self, True, nil);
+  if Active then
+  begin
+    FGlobal := Global;
+    GlobalWrapper := TClassWrapper.Create(Global.ClassType);
+    FClasses.Add(Global.ClassType, GlobalWrapper);
+    GlobalWrapper.InitJSTemplate(nil, Self, True, nil);
+  end;
 end;
 
 procedure TJSEngine.AddGlobalVariable(Name: string; Variable: TObject);
@@ -460,22 +466,29 @@ var
   JsArgs: IJSArray;
   ResultValue: IJSValue;
 begin
-  JsArgs := TValueArrayToJSArray(args, Self);
-  ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), JsArgs);
-  Result := JSValueToUnknownTValue(ResultValue)
+  if Active then
+  begin
+    JsArgs := TValueArrayToJSArray(args, Self);
+    ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), JsArgs);
+    Result := JSValueToUnknownTValue(ResultValue)
+  end;
 end;
 
 function TJSEngine.CallFunction(funcName: string): TValue;
 var
   ResultValue: IJSValue;
 begin
-  ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), nil);
-  Result := JSValueToUnknownTValue(ResultValue)
+  if Active then
+  begin
+    ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), nil);
+    Result := JSValueToUnknownTValue(ResultValue)
+  end;
 end;
 
 procedure TJSEngine.CheckEventLoop;
 begin
-  FEngine.CheckEventLoop;
+  if Active then
+    FEngine.CheckEventLoop;
 end;
 
 procedure TJSEngine.CheckType(typ: TRttiType);
@@ -577,12 +590,14 @@ end;
 
 procedure TJSEngine.RunFile(filename: string);
 begin
-  FEngine.RunFile(StringToPUtf8Char(TPath.GetFullPath(filename)));
+  if Active then
+    FEngine.RunFile(StringToPUtf8Char(TPath.GetFullPath(filename)));
 end;
 
 procedure TJSEngine.RunString(code: string);
 begin
-  FEngine.RunString(StringToPUtf8Char(code));
+  if Active then
+    FEngine.RunString(StringToPUtf8Char(code));
 end;
 
 function TJSEngine._AddRef: integer;
