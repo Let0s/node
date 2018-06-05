@@ -55,6 +55,7 @@ type
     FParent: TClassWrapper;
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FProps: TObjectDictionary<string, TClassProp>;
+    FDefaultIndexedProperty: TRttiIndexedProperty;
     FEngine: INodeEngine;
     // Add all methods to JS tepmlate. Add only methods, that belong to current
     // classtype (parent methods will be inherited from parent JS template)
@@ -65,6 +66,7 @@ type
     procedure AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddProps(ClassTyp: TRttiType; Engine: TJSEngine);
     procedure AddFields(ClassTyp: TRttiType; Engine: TJSEngine);
+    procedure AddIndexedProps(ClassTyp: TRttiType; Engine: TJSEngine);
 
     procedure AddHelperMethods(Helper: TJSClassHelper; Engine: TJSEngine);
     procedure AddHelperProps(Helper: TJSClassHelper; Engine: TJSEngine);
@@ -104,6 +106,7 @@ type
     procedure RegisterHelper(CType: TClass; HelperType: TJSHelperType);
     procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
+    function GetClassWrapper(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure AddGlobalVariable(Name: string; Variable: TObject);
     procedure AddPreCode(code: string);
@@ -120,6 +123,7 @@ type
   procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
   procedure FieldGetterCallBack(Args: IGetterArgs); stdcall;
   procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
+  procedure IndexedPropGetter(Args: IIndexedGetterArgs); stdcall;
 
   // returns content of WritePipe, if it was created;
   // if application had default stdio before node initialization
@@ -370,6 +374,36 @@ begin
   end;
 end;
 
+procedure IndexedPropGetter(Args: IIndexedGetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Prop: TRttiIndexedProperty;
+  Obj: TObject;
+  Result: TValue;
+  JSResult: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Prop := Args.GetPropPointer as TRttiIndexedProperty;
+    if not Assigned(Prop) and Assigned(Obj) then
+      Prop := Engine.GetClassWrapper(Obj.ClassType).FDefaultIndexedProperty;
+    if Assigned(Prop) then
+    begin
+      Result := Prop.GetValue(Obj, [args.GetPropIndex]);
+      JSResult := TValueToJSValue(Result, Engine);
+      if Assigned(JSResult) then
+        Args.SetReturnValue(JSResult);
+    end;
+  end;
+end;
+
 { TJSEngine }
 
 function TJSEngine.AddClass(classType: TClass): TClassWrapper;
@@ -520,6 +554,7 @@ begin
       FEngine.SetPropSetterCallBack(PropSetterCallBack);
       FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
       FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
+      FEngine.SetIndexedGetterCallBack(IndexedPropGetter);
       FClasses := TDictionary<TClass, TClassWrapper>.Create;
       FJSHelperMap := TJSHelperMap.Create;
       FJSHelperList := TObjectList.Create;
@@ -545,6 +580,12 @@ begin
   FJSHelperList.Free;
   FEngine.Delete;
   inherited;
+end;
+
+function TJSEngine.GetClassWrapper(classType: TClass): TClassWrapper;
+begin
+  if not FClasses.TryGetValue(classType, Result) then
+    Result := nil;
 end;
 
 function TJSEngine.GetEngine: INodeEngine;
@@ -683,6 +724,24 @@ begin
   end;
 end;
 
+procedure TClassWrapper.AddIndexedProps(ClassTyp: TRttiType; Engine: TJSEngine);
+var
+  Prop: TRttiIndexedProperty;
+begin
+  for Prop in ClassTyp.GetIndexedProperties do
+  begin
+    if (Prop.Visibility = mvPublic) and
+      (Prop.Parent.Handle = ClassTyp.Handle) then
+    begin
+      Engine.CheckType(Prop.PropertyType);
+      if Prop.IsDefault then
+        FDefaultIndexedProperty := Prop;
+      FTemplate.SetIndexedProperty(StringToPUtf8Char(Prop.Name), Prop,
+        Prop.IsReadable, Prop.IsWritable);
+    end;
+  end;
+end;
+
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Method: TRttiMethod;
@@ -775,6 +834,7 @@ begin
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
+  AddIndexedProps(ClassTyp, Engine);
   // If assigned helper object, add its props and methods as props and methods
   // of this classtype
   if Assigned(Helper) then
