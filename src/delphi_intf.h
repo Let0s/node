@@ -139,6 +139,7 @@ namespace embed {
       bool read, bool write);
     virtual void APIENTRY SetIndexedProperty(char* propName,
       void * propObj, bool read, bool write);
+    virtual void APIENTRY SetDefaultIndexedProperty(void * prop);
     virtual void APIENTRY SetField(char* fieldName, void * fieldObj);
     virtual void APIENTRY SetParent(IClassTemplate * parent);
 
@@ -158,7 +159,7 @@ namespace embed {
     // childObject instanceof parentClass
     IClassTemplate * parentTemplate = nullptr;
     // default indexed property
-    IClassProp * defaultIndexedProp = nullptr;
+    void * defaultIndexedProp = nullptr;
 
     v8::Persistent<v8::FunctionTemplate> v8Template;
     std::vector<std::unique_ptr<IClassProp>> props;

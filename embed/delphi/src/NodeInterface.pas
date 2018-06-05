@@ -84,6 +84,8 @@ type
       read, write: Boolean); virtual; stdcall; abstract;
     procedure SetIndexedProperty(name: PAnsiChar; prop: Pointer;
       read, write: Boolean); virtual; stdcall; abstract;
+    procedure SetDefaultIndexedProperty(prop: TObject);
+      virtual; stdcall; abstract;
     procedure SetField(name: PAnsiChar; field: Pointer); virtual; stdcall; abstract;
     procedure SetParent(parent: IClassTemplate); virtual; stdcall; abstract;
   end;

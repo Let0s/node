@@ -481,7 +481,8 @@ namespace embed {
       engine->fieldGetterCallBack(&propArgs);
   }
 
-  void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+  void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<void>& info)
   {
     ISetterArgs propArgs(info, field, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
@@ -592,6 +593,10 @@ namespace embed {
     auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     indexed_props.push_back(std::move(prop));
   }
+  void IClassTemplate::SetDefaultIndexedProperty(void * prop)
+  {
+    defaultIndexedProp = prop;
+  }
   void IClassTemplate::SetField(char * fieldName, void * fieldObj)
   {
     auto field = std::make_unique<IClassField>(fieldName, fieldObj);
@@ -642,6 +647,10 @@ namespace embed {
         v8::NewStringType::kNormal);
       proto->SetAccessor(propName.ToLocalChecked(), IndexedPropObjGetter,
         NULL, v8::External::New(isolate, indProp->obj));
+    }
+    if (defaultIndexedProp) {
+      proto->SetIndexedPropertyHandler(IndexedPropGetter, IndexedPropSetter,
+        NULL, NULL, NULL, v8::External::New(isolate, defaultIndexedProp));
     }
     if (parentTemplate) {
       templ->Inherit(parentTemplate->FunctionTemplate(isolate));
@@ -1176,6 +1185,12 @@ namespace embed {
         auto prop = internalfield.As<v8::External>();
         result = prop->Value();
       }
+    } //else if we call default indexed property
+    else if (propinfo->Data()->IsExternal()){
+      auto data = propinfo->Data().As<v8::External>();
+      if (!data.IsEmpty()) {
+        result = data->Value();
+      }
     }
     return result;
   }
@@ -1247,6 +1262,12 @@ namespace embed {
       if (internalfield->IsExternal()) {
         auto prop = internalfield.As<v8::External>();
         result = prop->Value();
+      }
+    } //else if we call default indexed property
+    else if (propinfo->Data()->IsExternal()) {
+      auto data = propinfo->Data().As<v8::External>();
+      if (!data.IsEmpty()) {
+        result = data->Value();
       }
     }
     return result;

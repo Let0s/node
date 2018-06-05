@@ -55,7 +55,6 @@ type
     FParent: TClassWrapper;
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FProps: TObjectDictionary<string, TClassProp>;
-    FDefaultIndexedProperty: TRttiIndexedProperty;
     FEngine: INodeEngine;
     // Add all methods to JS tepmlate. Add only methods, that belong to current
     // classtype (parent methods will be inherited from parent JS template)
@@ -393,8 +392,6 @@ begin
         Obj := Engine.FGlobal;
     end;
     Prop := Args.GetPropPointer as TRttiIndexedProperty;
-    if not Assigned(Prop) and Assigned(Obj) then
-      Prop := Engine.GetClassWrapper(Obj.ClassType).FDefaultIndexedProperty;
     if Assigned(Prop) then
     begin
       Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
@@ -423,8 +420,6 @@ begin
         Obj := Engine.FGlobal;
     end;
     Prop := Args.GetPropPointer as TRttiIndexedProperty;
-    if not Assigned(Prop) and Assigned(Obj) then
-      Prop := Engine.GetClassWrapper(Obj.ClassType).FDefaultIndexedProperty;
     if Assigned(Prop) then
     begin
       Prop.SetValue(Obj, [args.GetPropIndex],
@@ -761,7 +756,9 @@ end;
 procedure TClassWrapper.AddIndexedProps(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Prop: TRttiIndexedProperty;
+  DefaultProp: TRttiIndexedProperty;
 begin
+  DefaultProp := nil;
   for Prop in ClassTyp.GetIndexedProperties do
   begin
     if (Prop.Visibility = mvPublic) and
@@ -769,11 +766,13 @@ begin
     begin
       Engine.CheckType(Prop.PropertyType);
       if Prop.IsDefault then
-        FDefaultIndexedProperty := Prop;
+        DefaultProp := Prop;
       FTemplate.SetIndexedProperty(StringToPUtf8Char(Prop.Name), Prop,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
+  if Assigned(DefaultProp) then
+    FTemplate.SetDefaultIndexedProperty(DefaultProp);
 end;
 
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
