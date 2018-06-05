@@ -397,7 +397,7 @@ begin
       Prop := Engine.GetClassWrapper(Obj.ClassType).FDefaultIndexedProperty;
     if Assigned(Prop) then
     begin
-      Result := Prop.GetValue(Obj, [args.GetPropIndex]);
+      Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
       JSResult := TValueToJSValue(Result, Engine);
       if Assigned(JSResult) then
         Args.SetReturnValue(JSResult);
@@ -429,7 +429,7 @@ begin
     begin
       Prop.SetValue(Obj, [args.GetPropIndex],
         JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
-      Result := Prop.GetValue(Obj, [args.GetPropIndex]);
+      Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
       JSResult := TValueToJSValue(Result, Engine);
       if Assigned(JSResult) then
         Args.SetReturnValue(JSResult);

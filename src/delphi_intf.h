@@ -252,37 +252,42 @@ namespace embed {
   public:
     IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
       uint32_t propIndex);
+    IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      v8::Local<v8::String> propIndex);
     ~IIndexedGetterArgs();
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
-    virtual uint32_t APIENTRY GetPropIndex();
+    virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
-    uint32_t index;
+    IJSValue * index;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
 
   class IIndexedSetterArgs : public IBaseArgs {
   public:
     IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
-      uint32_t index,
+      uint32_t propIndex,
+      v8::Local<v8::Value> newValue);
+    IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      v8::Local<v8::String> propIndex,
       v8::Local<v8::Value> newValue);
     ~IIndexedSetterArgs();
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
-    virtual uint32_t APIENTRY GetPropIndex();
+    virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual IJSValue * APIENTRY GetValue();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
-    uint32_t propIndex;
+    IJSValue * index;
     IJSValue * propValue = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
@@ -403,7 +408,6 @@ namespace embed {
   // it will be handled by IndexedPropObjGetter.
   // But accessor for "Items[i]" property will be handled
   // by IndexedPropGetter or IndexedPropSetter
-
   void IndexedPropObjGetter(v8::Local<v8::String> property,
     const v8::PropertyCallbackInfo<v8::Value>& info);
   // getter for indexed props
@@ -411,6 +415,16 @@ namespace embed {
     const v8::PropertyCallbackInfo<v8::Value>& info);
   // setter for indexed props
   void IndexedPropSetter(uint32_t index,
+    v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+
+  // NamedPropGetter and NamedPropSetter are used for getting/setting
+  // value to indexed property where index is string.
+  // Getter for indexed property, where index is string
+  static void NamedPropGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+  // Setter for indexed property, where index is string
+  static void NamedPropSetter(v8::Local<v8::String> property,
     v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<v8::Value>& info);
 

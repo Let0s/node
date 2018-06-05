@@ -43,7 +43,10 @@ namespace embed {
       // create template for indexed property object
       indexedObjectTemplate = v8::ObjectTemplate::New(isolate);
       indexedObjectTemplate->SetInternalFieldCount(INDEXED_PROP_OBJ_FIELD_COUNT);
+      // set handler for indexed property with number index
       indexedObjectTemplate->SetIndexedPropertyHandler(IndexedPropGetter, IndexedPropSetter);
+      // set handler for indexed property with string index
+      indexedObjectTemplate->SetNamedPropertyHandler(NamedPropGetter, NamedPropSetter);
     }
     auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
     if (globalTemplate) {
@@ -486,7 +489,8 @@ namespace embed {
       engine->fieldSetterCallBack(&propArgs);
   }
 
-  void IndexedPropObjGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+  void IndexedPropObjGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
   {
     //check if data contains pointer: it should be pointer to delphi prop
     if (info.Data()->IsExternal()) {
@@ -501,7 +505,8 @@ namespace embed {
     }
   }
 
-  void IndexedPropGetter(uint32_t index, const v8::PropertyCallbackInfo<v8::Value>& info)
+  void IndexedPropGetter(uint32_t index,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
   {
     IIndexedGetterArgs propArgs(info, index);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
@@ -509,9 +514,28 @@ namespace embed {
       engine->indexedGetter(&propArgs);
   }
 
-  void IndexedPropSetter(uint32_t index, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+  void IndexedPropSetter(uint32_t index, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
   {
     IIndexedSetterArgs propArgs(info, index, value);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedSetter)
+      engine->indexedSetter(&propArgs);
+  }
+
+  void NamedPropGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedGetterArgs propArgs(info, property);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedGetter)
+      engine->indexedGetter(&propArgs);
+  }
+
+  void NamedPropSetter(v8::Local<v8::String> property,
+    v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedSetterArgs propArgs(info, property, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
     if (engine->indexedSetter)
       engine->indexedSetter(&propArgs);
@@ -1092,11 +1116,22 @@ namespace embed {
   {
     values.emplace(std::make_pair(index, valueName));
   }
-  IIndexedGetterArgs::IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info, uint32_t propIndex)
+  IIndexedGetterArgs::IIndexedGetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    uint32_t propIndex)
   {
     iso = info.GetIsolate();
     propinfo = &info;
-    index = propIndex;
+    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedGetterArgs::IIndexedGetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    v8::Local<v8::String> propIndex)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    index = IJSValue::MakeValue(iso, propIndex);
     engine = IEmbedEngine::GetEngine(iso);
   }
   IIndexedGetterArgs::~IIndexedGetterArgs()
@@ -1126,7 +1161,7 @@ namespace embed {
     }
     return result;
   }
-  uint32_t IIndexedGetterArgs::GetPropIndex()
+  IJSValue * IIndexedGetterArgs::GetPropIndex()
   {
     return index;
   }
@@ -1150,12 +1185,24 @@ namespace embed {
       propinfo->GetReturnValue().Set(val->V8Value());
     }
   }
-  IIndexedSetterArgs::IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info, uint32_t index, v8::Local<v8::Value> newValue)
+  IIndexedSetterArgs::IIndexedSetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    uint32_t propIndex, v8::Local<v8::Value> newValue)
   {
     iso = info.GetIsolate();
     propinfo = &info;
     propValue = IJSValue::MakeValue(iso, newValue);
-    propIndex = index;
+    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedSetterArgs::IIndexedSetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    v8::Local<v8::String> propIndex, v8::Local<v8::Value> newValue)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    propValue = IJSValue::MakeValue(iso, newValue);
+    index = IJSValue::MakeValue(iso, propIndex);
     engine = IEmbedEngine::GetEngine(iso);
   }
   IIndexedSetterArgs::~IIndexedSetterArgs()
@@ -1186,9 +1233,9 @@ namespace embed {
     }
     return result;
   }
-  uint32_t IIndexedSetterArgs::GetPropIndex()
+  IJSValue * IIndexedSetterArgs::GetPropIndex()
   {
-    return propIndex;
+    return index;
   }
   void * IIndexedSetterArgs::GetPropPointer()
   {

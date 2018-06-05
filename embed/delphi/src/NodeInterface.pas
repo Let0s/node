@@ -121,12 +121,12 @@ type
   end;
 
   IIndexedGetterArgs = class (IBaseArgs)
-    function GetPropIndex: UInt32; virtual; stdcall; abstract;
+    function GetPropIndex: IJSValue; virtual; stdcall; abstract;
     function GetPropPointer: TObject; virtual; stdcall; abstract;
   end;
 
   IIndexedSetterArgs = class (IBaseArgs)
-    function GetPropIndex: UInt32; virtual; stdcall; abstract;
+    function GetPropIndex: IJSValue; virtual; stdcall; abstract;
     function GetPropPointer: TObject; virtual; stdcall; abstract;
     function GetValue: IJSValue; virtual; stdcall; abstract;
   end;
