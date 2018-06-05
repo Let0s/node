@@ -124,6 +124,7 @@ type
   procedure FieldGetterCallBack(Args: IGetterArgs); stdcall;
   procedure FieldSetterCallBack(Args: ISetterArgs); stdcall;
   procedure IndexedPropGetter(Args: IIndexedGetterArgs); stdcall;
+  procedure IndexedPropSetter(Args: IIndexedSetterArgs); stdcall;
 
   // returns content of WritePipe, if it was created;
   // if application had default stdio before node initialization
@@ -404,6 +405,38 @@ begin
   end;
 end;
 
+procedure IndexedPropSetter(Args: IIndexedSetterArgs); stdcall;
+var
+  Engine: TJSEngine;
+  Prop: TRttiIndexedProperty;
+  Obj: TObject;
+  Result: TValue;
+  JSResult: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    Obj := Args.GetDelphiObject;
+    if not Assigned(Obj) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Obj := Engine.FGlobal;
+    end;
+    Prop := Args.GetPropPointer as TRttiIndexedProperty;
+    if not Assigned(Prop) and Assigned(Obj) then
+      Prop := Engine.GetClassWrapper(Obj.ClassType).FDefaultIndexedProperty;
+    if Assigned(Prop) then
+    begin
+      Prop.SetValue(Obj, [args.GetPropIndex],
+        JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
+      Result := Prop.GetValue(Obj, [args.GetPropIndex]);
+      JSResult := TValueToJSValue(Result, Engine);
+      if Assigned(JSResult) then
+        Args.SetReturnValue(JSResult);
+    end;
+  end;
+end;
+
 { TJSEngine }
 
 function TJSEngine.AddClass(classType: TClass): TClassWrapper;
@@ -555,6 +588,7 @@ begin
       FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
       FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
       FEngine.SetIndexedGetterCallBack(IndexedPropGetter);
+      FEngine.SetIndexedSetterCallBack(IndexedPropSetter);
       FClasses := TDictionary<TClass, TClassWrapper>.Create;
       FJSHelperMap := TJSHelperMap.Create;
       FJSHelperList := TObjectList.Create;

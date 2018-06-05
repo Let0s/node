@@ -263,7 +263,27 @@ namespace embed {
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
     uint32_t index;
-    IJSValue * propWrapper = nullptr;
+    const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
+  };
+
+  class IIndexedSetterArgs : public IBaseArgs {
+  public:
+    IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      uint32_t index,
+      v8::Local<v8::Value> newValue);
+    ~IIndexedSetterArgs();
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+    virtual uint32_t APIENTRY GetPropIndex();
+    virtual void * APIENTRY GetPropPointer();
+    virtual IJSValue * APIENTRY GetValue();
+    virtual void APIENTRY SetReturnValue(IJSValue * val);
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    uint32_t propIndex;
+    IJSValue * propValue = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
 
@@ -271,6 +291,7 @@ namespace embed {
   typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
   typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
   typedef void(APIENTRY *TIndexedGetterCallBack) (IIndexedGetterArgs * args);
+  typedef void(APIENTRY *TIndexedSetterCallBack) (IIndexedSetterArgs * args);
 
   // Store link to Delphi object and classtype. Need for creation additional
   // global properties, that do not described in global template
@@ -317,6 +338,7 @@ namespace embed {
     virtual void APIENTRY SetFieldGetterCallBack(TGetterCallBack callback);
     virtual void APIENTRY SetFieldSetterCallBack(TSetterCallBack callBack);
     virtual void APIENTRY SetIndexedGetterCallBack(TIndexedGetterCallBack callBack);
+    virtual void APIENTRY SetIndexedSetterCallBack(TIndexedSetterCallBack callBack);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -344,6 +366,7 @@ namespace embed {
     TGetterCallBack fieldGetterCallBack = nullptr;
     TSetterCallBack fieldSetterCallBack = nullptr;
     TIndexedGetterCallBack indexedGetter = nullptr;
+    TIndexedSetterCallBack indexedSetter = nullptr;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;

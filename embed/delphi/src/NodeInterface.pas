@@ -125,10 +125,17 @@ type
     function GetPropPointer: TObject; virtual; stdcall; abstract;
   end;
 
+  IIndexedSetterArgs = class (IBaseArgs)
+    function GetPropIndex: UInt32; virtual; stdcall; abstract;
+    function GetPropPointer: TObject; virtual; stdcall; abstract;
+    function GetValue: IJSValue; virtual; stdcall; abstract;
+  end;
+
   TMethodCallBack = procedure(args: IMethodArgs); stdcall;
   TGetterCallBack = procedure(args: IGetterArgs); stdcall;
   TSetterCallBack = procedure(args: ISetterArgs); stdcall;
   TIndexedGetter = procedure(args: IIndexedGetterArgs); stdcall;
+  TIndexedSetter = procedure(args: IIndexedSetterArgs); stdcall;
 
   // Engine class;
   INodeEngine = class(IBaseEngine)
@@ -158,6 +165,8 @@ type
     procedure SetFieldSetterCallBack(callBack: TSetterCallBack);
       virtual; stdcall; abstract;
     procedure SetIndexedGetterCallBack(callBack: TIndexedGetter);
+      virtual; stdcall; abstract;
+    procedure SetIndexedSetterCallBack(callBack: TIndexedSetter);
       virtual; stdcall; abstract;
 
     // if no script running it will return nil;
