@@ -166,27 +166,20 @@ namespace embed {
     preCode += '\n';
   }
 
-  void IEmbedEngine::RunString(char * code)
+  ILaunchArguments * IEmbedEngine::CreateLaunchArguments()
   {
-    std::vector<const char *> args;
-    args.push_back(exeName.c_str());
-    args.push_back("-e");
-    args.push_back(code);
-    Run(args.size(), args.data());
+    return new ILaunchArguments();
   }
 
-  void IEmbedEngine::RunFile(char * filename)
+  void IEmbedEngine::Launch(ILaunchArguments * args)
   {
-    //set current directory for nodejs
-    std::string filePath = filename;
-    size_t pos = filePath.find_last_of("\\/");
-    filePath = (std::string::npos == pos) ? "" : filePath.substr(0, pos);
-    uv_chdir(filePath.c_str());
+    auto nodeArgs = args->GetLaunchArguments();
+    Run(nodeArgs.size(), nodeArgs.data());
+  }
 
-    std::vector<const char *> args;
-    args.push_back(exeName.c_str());
-    args.push_back(filename);
-    Run(args.size(), args.data());
+  void IEmbedEngine::ChangeWorkingDir(char * newDir)
+  {
+    uv_chdir(newDir);
   }
 
   IJSValue * IEmbedEngine::CallFunction(char * fName, IJSArray * args)
@@ -1279,5 +1272,18 @@ namespace embed {
   void IIndexedSetterArgs::SetReturnValue(IJSValue * val)
   {
     propinfo->GetReturnValue().Set(val->V8Value());
+  }
+  void ILaunchArguments::AddArgument(char * arg)
+  {
+    args.push_back(arg);
+  }
+  std::vector<const char*> ILaunchArguments::GetLaunchArguments()
+  {
+    std::vector<const char*> result;
+    result.reserve(args.size());
+
+    for (size_t i = 0; i < args.size(); ++i)
+      result.push_back(args[i].c_str());
+    return result;
   }
 }

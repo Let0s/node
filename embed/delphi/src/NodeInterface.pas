@@ -139,6 +139,10 @@ type
   TIndexedGetter = procedure(args: IIndexedGetterArgs); stdcall;
   TIndexedSetter = procedure(args: IIndexedSetterArgs); stdcall;
 
+  ILaunchArguments = class(IBaseInterface)
+    procedure AddArgument(arg: PAnsiChar); virtual; stdcall; abstract;
+  end;
+
   // Engine class;
   INodeEngine = class(IBaseEngine)
     function AddGlobal(classType: Pointer): IClassTemplate;
@@ -152,8 +156,9 @@ type
     procedure AddGlobalVariableObject(name: PAnsiChar; obj: TObject;
       classType: TClass); virtual; stdcall; abstract;
     procedure AddPreCode(code: PAnsiChar); virtual; stdcall; abstract;
-    procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
-    procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
+    function CreateLaunchArguments: ILaunchArguments; virtual; stdcall; abstract;
+    procedure Launch(args: ILaunchArguments); virtual; stdcall; abstract;
+    procedure ChangeWorkingDir(newDir: PAnsiChar); virtual; stdcall; abstract;
     function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
       virtual; stdcall; abstract;
     procedure SetMethodCallBack(callBack: TMethodCallBack);
