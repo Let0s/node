@@ -156,8 +156,6 @@ type
     procedure AddGlobalVariableObject(name: PAnsiChar; obj: TObject;
       classType: TClass); virtual; stdcall; abstract;
     procedure AddPreCode(code: PAnsiChar); virtual; stdcall; abstract;
-    procedure RunString(code: PAnsiChar); virtual; stdcall; abstract;
-    procedure RunFile(filename: PAnsiChar); virtual; stdcall; abstract;
     function CreateLaunchArguments: ILaunchArguments; virtual; stdcall; abstract;
     procedure Launch(args: ILaunchArguments); virtual; stdcall; abstract;
     procedure ChangeWorkingDir(newDir: PAnsiChar); virtual; stdcall; abstract;

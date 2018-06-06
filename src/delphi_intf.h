@@ -343,8 +343,6 @@ namespace embed {
     // Add "pre-code": JS code, that will be executed before runnning
     // main script. It can contain any helpful functions and variables.
     virtual void APIENTRY AddPreCode(char * code);
-    virtual void APIENTRY RunString(char * code);
-    virtual void APIENTRY RunFile(char * filename);
     virtual ILaunchArguments * APIENTRY CreateLaunchArguments();
     virtual void APIENTRY Launch(ILaunchArguments * args);
     virtual void APIENTRY ChangeWorkingDir(char * newDir);

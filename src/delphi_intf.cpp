@@ -166,29 +166,6 @@ namespace embed {
     preCode += '\n';
   }
 
-  void IEmbedEngine::RunString(char * code)
-  {
-    std::vector<const char *> args;
-    args.push_back(exeName.c_str());
-    args.push_back("-e");
-    args.push_back(code);
-    Run(args.size(), args.data());
-  }
-
-  void IEmbedEngine::RunFile(char * filename)
-  {
-    //set current directory for nodejs
-    std::string filePath = filename;
-    size_t pos = filePath.find_last_of("\\/");
-    filePath = (std::string::npos == pos) ? "" : filePath.substr(0, pos);
-    uv_chdir(filePath.c_str());
-
-    std::vector<const char *> args;
-    args.push_back(exeName.c_str());
-    args.push_back(filename);
-    Run(args.size(), args.data());
-  }
-
   ILaunchArguments * IEmbedEngine::CreateLaunchArguments()
   {
     return new ILaunchArguments();
