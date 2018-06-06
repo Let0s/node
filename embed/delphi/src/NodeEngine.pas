@@ -659,15 +659,39 @@ begin
 end;
 
 procedure TJSEngine.RunFile(filename: string);
+var
+  Args: ILaunchArguments;
 begin
   if Active then
-    FEngine.RunFile(StringToPUtf8Char(TPath.GetFullPath(filename)));
+  begin
+    Args := FEngine.CreateLaunchArguments;
+    try
+      Args.AddArgument(StringToPUtf8Char(ParamStr(0)));
+//      Args.AddArgument(StringToPUtf8Char('-e')); //here can be debug param
+      Args.AddArgument(StringToPUtf8Char(filename));
+      FEngine.Launch(Args);
+    finally
+      Args.Delete
+    end;
+  end;
 end;
 
 procedure TJSEngine.RunString(code: string);
+var
+  Args: ILaunchArguments;
 begin
   if Active then
-    FEngine.RunString(StringToPUtf8Char(code));
+  begin
+    Args := FEngine.CreateLaunchArguments;
+    try
+      Args.AddArgument(StringToPUtf8Char(ParamStr(0)));
+      Args.AddArgument(StringToPUtf8Char('-e'));
+      Args.AddArgument(StringToPUtf8Char(code));
+      FEngine.Launch(Args);
+    finally
+      Args.Delete
+    end;
+  end;
 end;
 
 function TJSEngine._AddRef: integer;

@@ -308,6 +308,14 @@ namespace embed {
     void * classType;
   };
 
+  class ILaunchArguments : IBaseIntf {
+  public:
+    virtual void APIENTRY AddArgument(char * arg);
+    std::vector<const char *> GetLaunchArguments();
+  private:
+    std::vector<std::string> args;
+  };
+
   class IEmbedEngine : public BaseEngine {
   public:
     IEmbedEngine(void * dEng);
@@ -337,6 +345,9 @@ namespace embed {
     virtual void APIENTRY AddPreCode(char * code);
     virtual void APIENTRY RunString(char * code);
     virtual void APIENTRY RunFile(char * filename);
+    virtual ILaunchArguments * APIENTRY CreateLaunchArguments();
+    virtual void APIENTRY Launch(ILaunchArguments * args);
+    virtual void APIENTRY ChangeWorkingDir(char * newDir);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
     virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
     virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);

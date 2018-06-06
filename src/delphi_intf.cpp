@@ -189,6 +189,22 @@ namespace embed {
     Run(args.size(), args.data());
   }
 
+  ILaunchArguments * IEmbedEngine::CreateLaunchArguments()
+  {
+    return new ILaunchArguments();
+  }
+
+  void IEmbedEngine::Launch(ILaunchArguments * args)
+  {
+    auto nodeArgs = args->GetLaunchArguments();
+    Run(nodeArgs.size(), nodeArgs.data());
+  }
+
+  void IEmbedEngine::ChangeWorkingDir(char * newDir)
+  {
+    uv_chdir(newDir);
+  }
+
   IJSValue * IEmbedEngine::CallFunction(char * fName, IJSArray * args)
   {
     auto context = Isolate()->GetCurrentContext();
@@ -1279,5 +1295,18 @@ namespace embed {
   void IIndexedSetterArgs::SetReturnValue(IJSValue * val)
   {
     propinfo->GetReturnValue().Set(val->V8Value());
+  }
+  void ILaunchArguments::AddArgument(char * arg)
+  {
+    args.push_back(arg);
+  }
+  std::vector<const char*> ILaunchArguments::GetLaunchArguments()
+  {
+    std::vector<const char*> result;
+    result.reserve(args.size());
+
+    for (size_t i = 0; i < args.size(); ++i)
+      result.push_back(args[i].c_str());
+    return result;
   }
 }
