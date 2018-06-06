@@ -308,7 +308,7 @@ begin
       tkFloat:
         Result := value.AsNumber;
       tkSet: ;
-      tkClass:
+      tkClass, tkInterface:
         Result := value.AsDelphiObject.GetDelphiObject;
       tkMethod:
         Result := JSValueToMethod(value, typ, Engine);
@@ -317,7 +317,6 @@ begin
       tkArray:
         Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
       tkRecord: Result := JsValueToRecord(value, typ, Engine);
-      tkInterface: ;
       tkInt64:
         Result := Round(value.AsNumber);
       tkDynArray:
