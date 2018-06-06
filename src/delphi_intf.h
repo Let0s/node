@@ -139,6 +139,7 @@ namespace embed {
       bool read, bool write);
     virtual void APIENTRY SetIndexedProperty(char* propName,
       void * propObj, bool read, bool write);
+    virtual void APIENTRY SetDefaultIndexedProperty(void * prop);
     virtual void APIENTRY SetField(char* fieldName, void * fieldObj);
     virtual void APIENTRY SetParent(IClassTemplate * parent);
 
@@ -157,6 +158,8 @@ namespace embed {
     // it will be need for type check like:
     // childObject instanceof parentClass
     IClassTemplate * parentTemplate = nullptr;
+    // default indexed property
+    void * defaultIndexedProp = nullptr;
 
     v8::Persistent<v8::FunctionTemplate> v8Template;
     std::vector<std::unique_ptr<IClassProp>> props;
@@ -246,10 +249,55 @@ namespace embed {
     const v8::PropertyCallbackInfo<void> * propinfo = nullptr;
   };
 
+  class IIndexedGetterArgs : public IBaseArgs {
+  public:
+    IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      uint32_t propIndex);
+    IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      v8::Local<v8::String> propIndex);
+    ~IIndexedGetterArgs();
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+    virtual IJSValue * APIENTRY GetPropIndex();
+    virtual void * APIENTRY GetPropPointer();
+    virtual void APIENTRY SetReturnValue(IJSValue * val);
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    IJSValue * index;
+    const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
+  };
+
+  class IIndexedSetterArgs : public IBaseArgs {
+  public:
+    IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      uint32_t propIndex,
+      v8::Local<v8::Value> newValue);
+    IIndexedSetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
+      v8::Local<v8::String> propIndex,
+      v8::Local<v8::Value> newValue);
+    ~IIndexedSetterArgs();
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
+    virtual IJSValue * APIENTRY GetPropIndex();
+    virtual void * APIENTRY GetPropPointer();
+    virtual IJSValue * APIENTRY GetValue();
+    virtual void APIENTRY SetReturnValue(IJSValue * val);
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    IJSValue * index;
+    IJSValue * propValue = nullptr;
+    const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
+  };
 
   typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
   typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
   typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
+  typedef void(APIENTRY *TIndexedGetterCallBack) (IIndexedGetterArgs * args);
+  typedef void(APIENTRY *TIndexedSetterCallBack) (IIndexedSetterArgs * args);
 
   // Store link to Delphi object and classtype. Need for creation additional
   // global properties, that do not described in global template
@@ -295,6 +343,8 @@ namespace embed {
     virtual void APIENTRY SetPropSetterCallBack(TSetterCallBack callBack);
     virtual void APIENTRY SetFieldGetterCallBack(TGetterCallBack callback);
     virtual void APIENTRY SetFieldSetterCallBack(TSetterCallBack callBack);
+    virtual void APIENTRY SetIndexedGetterCallBack(TIndexedGetterCallBack callBack);
+    virtual void APIENTRY SetIndexedSetterCallBack(TIndexedSetterCallBack callBack);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -313,20 +363,28 @@ namespace embed {
     void* GetDelphiClasstype(v8::Local<v8::Object> obj);
     IClassTemplate * GetDelphiClassTemplate(void * classType);
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
+    v8::Local<v8::Object> GetIndexedPropertyObject(void * obj,
+      void * cType, void * indexedProp);
 
     TMethodCallBack functionCallBack = nullptr;
     TGetterCallBack propGetterCallBack = nullptr;
     TSetterCallBack propSetterCallBack = nullptr;
     TGetterCallBack fieldGetterCallBack = nullptr;
     TSetterCallBack fieldSetterCallBack = nullptr;
+    TIndexedGetterCallBack indexedGetter = nullptr;
+    TIndexedSetterCallBack indexedSetter = nullptr;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
     //global template, which is used for creating context
     IClassTemplate * globalTemplate = nullptr;
+    //object template for indexed property
+    v8::Local<v8::ObjectTemplate> indexedObjectTemplate;
     std::vector<std::unique_ptr<IClassTemplate>> classes;
     std::vector<std::unique_ptr<IEnumTemplate>> enums;
     std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
+    std::unordered_map<int64_t, v8::Persistent<v8::Object,
+      v8::CopyablePersistentTraits<v8::Object>>> jsIndexedPropObjects;
     std::vector<std::unique_ptr<ObjectVariableLink>> objectLinks;
     std::vector<std::unique_ptr<IJSValue>> jsValues;
     // code, that will be executed before script execution (without NodeJS features)
@@ -344,7 +402,32 @@ namespace embed {
   void FieldSetter(v8::Local<v8::String> field,
     v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<void>& info);
+  // Getter for indexed property object. For example:
+  // if we have object with indexed property "Items",
+  // then full accessor is "Items[i]".
+  // At first JS call accessor for "Items" property -
+  // it will be handled by IndexedPropObjGetter.
+  // But accessor for "Items[i]" property will be handled
+  // by IndexedPropGetter or IndexedPropSetter
+  void IndexedPropObjGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+  // getter for indexed props
+  void IndexedPropGetter(uint32_t index,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+  // setter for indexed props
+  void IndexedPropSetter(uint32_t index,
+    v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
 
+  // NamedPropGetter and NamedPropSetter are used for getting/setting
+  // value to indexed property where index is string.
+  // Getter for indexed property, where index is string
+  static void NamedPropGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
+  // Setter for indexed property, where index is string
+  static void NamedPropSetter(v8::Local<v8::String> property,
+    v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info);
 
   extern "C" {
     EMBED_EXTERN IEmbedEngine * WINAPIV NewDelphiEngine(void * dEngine);

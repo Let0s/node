@@ -1,8 +1,16 @@
 #include "delphi_intf.h"
 namespace embed {
+  // internal field count for wrapped delphi object
   const int CLASS_INTERNAL_FIELD_COUNT = 2;
+  // index of internal field with stored object classtype
   const int CLASSTYPE_INTERNAL_FIELD_NUMBER = 0;
+  // index of internal field with stored pointer to object
   const int OBJECT_INTERNAL_FIELD_NUMBER = 1;
+
+  //indexed property object has one more field for pointer to property
+  const int INDEXED_PROP_OBJ_FIELD_COUNT = 3;
+  // index of internal field with stored pointer to indexed property
+  const int INDEXED_PROP_FIELD_INDEX = 2;
 
   //full path to executable (argv0)
   std::string exeName;
@@ -32,6 +40,13 @@ namespace embed {
                                         templ->classTypeName.c_str(),
                                         classTemplate);
       }
+      // create template for indexed property object
+      indexedObjectTemplate = v8::ObjectTemplate::New(isolate);
+      indexedObjectTemplate->SetInternalFieldCount(INDEXED_PROP_OBJ_FIELD_COUNT);
+      // set handler for indexed property with number index
+      indexedObjectTemplate->SetIndexedPropertyHandler(IndexedPropGetter, IndexedPropSetter);
+      // set handler for indexed property with string index
+      indexedObjectTemplate->SetNamedPropertyHandler(NamedPropGetter, NamedPropSetter);
     }
     auto context = v8::Context::New(isolate, NULL, global->PrototypeTemplate());
     if (globalTemplate) {
@@ -223,6 +238,16 @@ namespace embed {
     fieldSetterCallBack = callBack;
   }
 
+  void IEmbedEngine::SetIndexedGetterCallBack(TIndexedGetterCallBack callBack)
+  {
+    indexedGetter = callBack;
+  }
+
+  void IEmbedEngine::SetIndexedSetterCallBack(TIndexedSetterCallBack callBack)
+  {
+    indexedSetter = callBack;
+  }
+
   IJSValue * IEmbedEngine::NewInt32(int32_t value)
   {
     IJSValue * result = nullptr;
@@ -389,6 +414,39 @@ namespace embed {
     return nullptr;
   }
 
+  v8::Local<v8::Object> IEmbedEngine::GetIndexedPropertyObject(void * obj,
+    void * cType, void * indexedProp)
+  {
+    v8::Local<v8::Object> result;
+    uint64_t hash = (uint64_t(obj) << 32) + uint32_t(indexedProp);
+    {
+      auto item = jsIndexedPropObjects.find(hash);
+      if (item != jsIndexedPropObjects.end())
+      {
+        result = item->second.Get(Isolate());
+      }
+    }
+    if (result.IsEmpty()) {
+      auto templ = indexedObjectTemplate;
+      if (!templ.IsEmpty()) {
+        auto indexedPropObject = templ->NewInstance();
+        if (!indexedPropObject.IsEmpty()) {
+          indexedPropObject->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER,
+            v8::External::New(Isolate(), cType));
+          indexedPropObject->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
+            v8::External::New(Isolate(), obj));
+          indexedPropObject->SetInternalField(INDEXED_PROP_FIELD_INDEX,
+            v8::External::New(Isolate(), indexedProp));
+          v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>> obj(
+            Isolate(), indexedPropObject);
+          jsIndexedPropObjects.emplace(std::make_pair(hash, obj));
+          result = obj.Get(Isolate());
+        }
+      }
+    }
+    return result;
+  }
+
   void FunctionCallBack(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
     IMethodArgs methodArgs(args);
@@ -423,12 +481,65 @@ namespace embed {
       engine->fieldGetterCallBack(&propArgs);
   }
 
-  void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+  void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<void>& info)
   {
     ISetterArgs propArgs(info, field, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
     if (engine->fieldSetterCallBack)
       engine->fieldSetterCallBack(&propArgs);
+  }
+
+  void IndexedPropObjGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    //check if data contains pointer: it should be pointer to delphi prop
+    if (info.Data()->IsExternal()) {
+      v8::Isolate * iso = info.GetIsolate();
+      auto engine = IEmbedEngine::GetEngine(iso);
+      auto holder = info.This();
+      void * data = info.Data().As<v8::External>()->Value();
+      void * obj = engine->GetDelphiObject(holder);
+      void * cType = engine->GetDelphiClasstype(holder);
+      auto result = engine->GetIndexedPropertyObject(obj, cType, data);
+      info.GetReturnValue().Set(result);
+    }
+  }
+
+  void IndexedPropGetter(uint32_t index,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedGetterArgs propArgs(info, index);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedGetter)
+      engine->indexedGetter(&propArgs);
+  }
+
+  void IndexedPropSetter(uint32_t index, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedSetterArgs propArgs(info, index, value);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedSetter)
+      engine->indexedSetter(&propArgs);
+  }
+
+  void NamedPropGetter(v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedGetterArgs propArgs(info, property);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedGetter)
+      engine->indexedGetter(&propArgs);
+  }
+
+  void NamedPropSetter(v8::Local<v8::String> property,
+    v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+  {
+    IIndexedSetterArgs propArgs(info, property, value);
+    auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
+    if (engine->indexedSetter)
+      engine->indexedSetter(&propArgs);
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -482,6 +593,10 @@ namespace embed {
     auto prop = std::make_unique<IClassProp>(propName, propObj, read, write);
     indexed_props.push_back(std::move(prop));
   }
+  void IClassTemplate::SetDefaultIndexedProperty(void * prop)
+  {
+    defaultIndexedProp = prop;
+  }
   void IClassTemplate::SetField(char * fieldName, void * fieldObj)
   {
     auto field = std::make_unique<IClassField>(fieldName, fieldObj);
@@ -525,6 +640,17 @@ namespace embed {
                            FieldGetter,
                            FieldSetter,
                            v8::External::New(isolate, field->obj));
+    }
+    for (auto &indProp : indexed_props) {
+      auto propName = v8::String::NewFromUtf8(isolate,
+        indProp->name.c_str(),
+        v8::NewStringType::kNormal);
+      proto->SetAccessor(propName.ToLocalChecked(), IndexedPropObjGetter,
+        NULL, v8::External::New(isolate, indProp->obj));
+    }
+    if (defaultIndexedProp) {
+      proto->SetIndexedPropertyHandler(IndexedPropGetter, IndexedPropSetter,
+        NULL, NULL, NULL, v8::External::New(isolate, defaultIndexedProp));
     }
     if (parentTemplate) {
       templ->Inherit(parentTemplate->FunctionTemplate(isolate));
@@ -998,5 +1124,160 @@ namespace embed {
   void IEnumTemplate::AddValue(char * valueName, int index)
   {
     values.emplace(std::make_pair(index, valueName));
+  }
+  IIndexedGetterArgs::IIndexedGetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    uint32_t propIndex)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedGetterArgs::IIndexedGetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    v8::Local<v8::String> propIndex)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    index = IJSValue::MakeValue(iso, propIndex);
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedGetterArgs::~IIndexedGetterArgs()
+  {
+  }
+  void * IIndexedGetterArgs::GetEngine()
+  {
+    if (engine)
+      return engine->DelphiEngine();
+    return nullptr;
+  }
+  void * IIndexedGetterArgs::GetDelphiObject()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiObject(holder);
+    }
+    return result;
+  }
+  void * IIndexedGetterArgs::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiClasstype(holder);
+    }
+    return result;
+  }
+  IJSValue * IIndexedGetterArgs::GetPropIndex()
+  {
+    return index;
+  }
+  void * IIndexedGetterArgs::GetPropPointer()
+  {
+    void * result = nullptr;
+    auto holder = propinfo->This();
+    if (holder->InternalFieldCount() >= INDEXED_PROP_OBJ_FIELD_COUNT) {
+      auto internalfield = holder->GetInternalField(
+        INDEXED_PROP_FIELD_INDEX);
+      if (internalfield->IsExternal()) {
+        auto prop = internalfield.As<v8::External>();
+        result = prop->Value();
+      }
+    } //else if we call default indexed property
+    else if (propinfo->Data()->IsExternal()){
+      auto data = propinfo->Data().As<v8::External>();
+      if (!data.IsEmpty()) {
+        result = data->Value();
+      }
+    }
+    return result;
+  }
+  void IIndexedGetterArgs::SetReturnValue(IJSValue * val)
+  {
+    if (val) {
+      propinfo->GetReturnValue().Set(val->V8Value());
+    }
+  }
+  IIndexedSetterArgs::IIndexedSetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    uint32_t propIndex, v8::Local<v8::Value> newValue)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    propValue = IJSValue::MakeValue(iso, newValue);
+    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedSetterArgs::IIndexedSetterArgs(
+    const v8::PropertyCallbackInfo<v8::Value>& info,
+    v8::Local<v8::String> propIndex, v8::Local<v8::Value> newValue)
+  {
+    iso = info.GetIsolate();
+    propinfo = &info;
+    propValue = IJSValue::MakeValue(iso, newValue);
+    index = IJSValue::MakeValue(iso, propIndex);
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  IIndexedSetterArgs::~IIndexedSetterArgs()
+  {
+    delete propValue;
+  }
+  void * IIndexedSetterArgs::GetEngine()
+  {
+    if (engine)
+      return engine->DelphiEngine();
+    return nullptr;
+  }
+  void * IIndexedSetterArgs::GetDelphiObject()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiObject(holder);
+    }
+    return result;
+  }
+  void * IIndexedSetterArgs::GetDelphiClasstype()
+  {
+    void * result = nullptr;
+    if (engine) {
+      auto holder = propinfo->This();
+      result = engine->GetDelphiClasstype(holder);
+    }
+    return result;
+  }
+  IJSValue * IIndexedSetterArgs::GetPropIndex()
+  {
+    return index;
+  }
+  void * IIndexedSetterArgs::GetPropPointer()
+  {
+    void * result = nullptr;
+    auto holder = propinfo->This();
+    if (holder->InternalFieldCount() >= INDEXED_PROP_OBJ_FIELD_COUNT) {
+      auto internalfield = holder->GetInternalField(
+        INDEXED_PROP_FIELD_INDEX);
+      if (internalfield->IsExternal()) {
+        auto prop = internalfield.As<v8::External>();
+        result = prop->Value();
+      }
+    } //else if we call default indexed property
+    else if (propinfo->Data()->IsExternal()) {
+      auto data = propinfo->Data().As<v8::External>();
+      if (!data.IsEmpty()) {
+        result = data->Value();
+      }
+    }
+    return result;
+  }
+  IJSValue * IIndexedSetterArgs::GetValue()
+  {
+    return propValue;
+  }
+  void IIndexedSetterArgs::SetReturnValue(IJSValue * val)
+  {
+    propinfo->GetReturnValue().Set(val->V8Value());
   }
 }
