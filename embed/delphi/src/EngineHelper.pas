@@ -80,6 +80,7 @@ type
   function TValueToJSArray(value: TValue; Engine: IJSEngine): IJSArray;
   function InterfaceTValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
   function ObjectToJSWrappedObject(value: TObject; Engine: IJSEngine): IJSValue;
+  function VariantToJSValue(value: Variant; Engine: IJSEngine): IJSValue;
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
@@ -151,7 +152,7 @@ begin
       tkSet: ;
       tkClass: Result := ObjectToJSWrappedObject(value.AsObject, Engine);
       tkMethod: Result := TValueToJSFunction(value, Engine);
-      tkVariant: ;
+      tkVariant: Result := VariantToJSValue(value.AsVariant, Engine);
       tkArray: Result := TValueToJSArray(value, Engine);
       tkRecord: Result := RecordToJSValue(value, Engine);
       tkInterface: Result := InterfaceTValueToJSValue(value, Engine);
@@ -268,6 +269,23 @@ begin
     end;
     if Assigned(cType) then
       Result := NodeEngine.NewDelphiObject(value, cType);
+  end;
+end;
+
+function VariantToJSValue(value: Variant; Engine: IJSEngine): IJSValue;
+var
+  NodeEngine: INodeEngine;
+begin
+  Result := nil;
+  NodeEngine := Engine.Engine;
+  if VarType(value) = varBoolean then
+    Result := NodeEngine.NewBool(Boolean(value))
+  else
+  begin
+    if VarIsNumeric(value) then
+      Result := NodeEngine.NewNumber(Double(value))
+    else if VarIsStr(value) then
+      Result := NodeEngine.NewString(StringToPUtf8Char(value));
   end;
 end;
 
