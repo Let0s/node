@@ -96,6 +96,8 @@ type
     FGarbageCollector: TGarbageCollector;
     FIgnoredExceptions: TList<TClass>;
     FActive: boolean;
+    // param for debugging
+    FDebugParam: string;
     // it is used for conversion to PAnsiChar
     FUTF8String: UTF8String;
   protected
@@ -121,6 +123,7 @@ type
     function GetClassWrapper(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure AddGlobalVariable(Name: string; Variable: TObject);
+    procedure SetDebugParam(param: string);
     procedure AddPreCode(code: string);
     procedure RunString(code: string);
     procedure RunFile(filename: string);
@@ -775,7 +778,9 @@ begin
       FEngine.ChangeWorkingDir(StringToPAnsiChar(
         ExtractFileDir(FullName)));
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
-//      Args.AddArgument(StringToPAnsiChar('-e')); //here can be debug param
+      Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
+      if FDebugParam <> '' then
+        Args.AddArgument(StringToPAnsiChar(FDebugParam));
       Args.AddArgument(StringToPAnsiChar(FullName));
       FEngine.Launch(Args);
     finally
@@ -806,6 +811,11 @@ function TJSEngine.StringToPAnsiChar(const S: string): PAnsiChar;
 begin
   FUTF8String := UTF8String(S);
   Result := PAnsiChar(FUTF8String);
+end;
+
+procedure TJSEngine.SetDebugParam(param: string);
+begin
+  FDebugParam := param;
 end;
 
 function TJSEngine._AddRef: integer;
