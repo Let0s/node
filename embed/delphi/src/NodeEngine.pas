@@ -235,35 +235,41 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    Overloads := Args.GetDelphiMethod as TRttiMethodList;
-    MethodInfo := Overloads.GetMethod(Args.GetArgs);
-    Method := MethodInfo.Method;
-    if Assigned(Method) then
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at method callback');
+    {$ENDIF}
+    if Assigned(Obj) then
     begin
-      MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
-        Engine);
-      //if method has helper, then we call method of helper with given object
-      if Assigned(MethodInfo.Helper) then
+      Overloads := Args.GetDelphiMethod as TRttiMethodList;
+      MethodInfo := Overloads.GetMethod(Args.GetArgs);
+      Method := MethodInfo.Method;
+      if Assigned(Method) then
       begin
-        Helper := MethodInfo.Helper;
-        Helper.Source := Obj;
-        Result := Method.Invoke(Helper, MethodArgs);
-        Helper.Source := nil;
-      end
-      else
-      begin
-        if Assigned(Obj) and (not Method.IsClassMethod) then
-          Result := Method.Invoke(Obj, MethodArgs)
-        else if Method.IsClassMethod then
+        MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
+          Engine);
+        //if method has helper, then we call method of helper with given object
+        if Assigned(MethodInfo.Helper) then
         begin
-          if Assigned(Obj) then
-            ObjType := Obj.ClassType
-          else
-            ObjType := Method.Parent.Handle.TypeData.ClassType;
-          Result := Method.Invoke(ObjType, MethodArgs);
+          Helper := MethodInfo.Helper;
+          Helper.Source := Obj;
+          Result := Method.Invoke(Helper, MethodArgs);
+          Helper.Source := nil;
+        end
+        else
+        begin
+          if Assigned(Obj) and (not Method.IsClassMethod) then
+            Result := Method.Invoke(Obj, MethodArgs)
+          else if Method.IsClassMethod then
+          begin
+            if Assigned(Obj) then
+              ObjType := Obj.ClassType
+            else
+              ObjType := Method.Parent.Handle.TypeData.ClassType;
+            Result := Method.Invoke(ObjType, MethodArgs);
+          end;
         end;
+        SetReturnValue(Args, Result);
       end;
-      SetReturnValue(Args, Result);
     end;
   end;
 end;
@@ -280,17 +286,23 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    PropInfo := Args.GetProp as TClassProp;
-    //if prop has helper, then we call prop of helper with given object
-    if Assigned(PropInfo.Helper) then
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at prop getter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
     begin
-      PropInfo.Helper.Source := Obj;
-      Obj := PropInfo.Helper;
+      PropInfo := Args.GetProp as TClassProp;
+      //if prop has helper, then we call prop of helper with given object
+      if Assigned(PropInfo.Helper) then
+      begin
+        PropInfo.Helper.Source := Obj;
+        Obj := PropInfo.Helper;
+      end;
+      Result := PropInfo.Prop.GetValue(Obj);
+      if Assigned(PropInfo.Helper) then
+        PropInfo.Helper.Source := nil;
+      SetReturnValue(Args, Result);
     end;
-    Result := PropInfo.Prop.GetValue(Obj);
-    if Assigned(PropInfo.Helper) then
-      PropInfo.Helper.Source := nil;
-    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -307,22 +319,28 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    PropInfo := Args.GetProp as TClassProp;
-    Prop := PropInfo.Prop;
-    //if prop has helper, then we call prop of helper with given object
-    if Assigned(PropInfo.Helper) then
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at prop setter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
     begin
-      PropInfo.Helper.Source := Obj;
-      Obj := PropInfo.Helper;
+      PropInfo := Args.GetProp as TClassProp;
+      Prop := PropInfo.Prop;
+      //if prop has helper, then we call prop of helper with given object
+      if Assigned(PropInfo.Helper) then
+      begin
+        PropInfo.Helper.Source := Obj;
+        Obj := PropInfo.Helper;
+      end;
+      JSValue := Args.GetPropValue;
+      if Assigned(JSValue) then
+        Prop.SetValue(Obj,
+          JSValueToTValue(JSValue, Prop.PropertyType, Engine));
+      Result := Prop.GetValue(Obj);
+      if Assigned(PropInfo.Helper) then
+        PropInfo.Helper.Source := nil;
+      SetReturnValue(Args, Result);
     end;
-    JSValue := Args.GetPropValue;
-    if Assigned(JSValue) then
-      Prop.SetValue(Obj,
-        JSValueToTValue(JSValue, Prop.PropertyType, Engine));
-    Result := Prop.GetValue(Obj);
-    if Assigned(PropInfo.Helper) then
-      PropInfo.Helper.Source := nil;
-    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -339,9 +357,15 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    Field := Args.GetProp as TRttiField;
-    Result := Field.GetValue(Obj);
-    SetReturnValue(Args, Result);
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at field getter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
+    begin
+      Field := Args.GetProp as TRttiField;
+      Result := Field.GetValue(Obj);
+      SetReturnValue(Args, Result);
+    end;
   end;
 end;
 
@@ -357,13 +381,19 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    Field := Args.GetProp as TRttiField;
-    JSValue := Args.GetPropValue;
-    if Assigned(JSValue) then
-      Field.SetValue(Obj,
-        JSValueToTValue(JSValue, Field.FieldType, Engine));
-    Result := Field.GetValue(Obj);
-    SetReturnValue(Args, Result);
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at field setter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
+    begin
+      Field := Args.GetProp as TRttiField;
+      JSValue := Args.GetPropValue;
+      if Assigned(JSValue) then
+        Field.SetValue(Obj,
+          JSValueToTValue(JSValue, Field.FieldType, Engine));
+      Result := Field.GetValue(Obj);
+      SetReturnValue(Args, Result);
+    end;
   end;
 end;
 
@@ -379,11 +409,17 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    Prop := Args.GetPropPointer as TRttiIndexedProperty;
-    if Assigned(Prop) then
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at indexed prop getter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
     begin
-      Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
-      SetReturnValue(Args, Result);
+      Prop := Args.GetPropPointer as TRttiIndexedProperty;
+      if Assigned(Prop) then
+      begin
+        Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
+        SetReturnValue(Args, Result);
+      end;
     end;
   end;
 end;
@@ -400,13 +436,19 @@ begin
   if Assigned(Engine) then
   begin
     Obj := GetDelphiObject(Args);
-    Prop := Args.GetPropPointer as TRttiIndexedProperty;
-    if Assigned(Prop) then
+    {$IFDEF DEBUG}
+    Assert(Assigned(Obj), 'Obj is not assigned at indexed prop setter callback');
+    {$ENDIF}
+    if Assigned(Obj) then
     begin
-      Prop.SetValue(Obj, [args.GetPropIndex],
-        JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
-      Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
-      SetReturnValue(Args, Result);
+      Prop := Args.GetPropPointer as TRttiIndexedProperty;
+      if Assigned(Prop) then
+      begin
+        Prop.SetValue(Obj, [args.GetPropIndex],
+          JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
+        Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
+        SetReturnValue(Args, Result);
+      end;
     end;
   end;
 end;
