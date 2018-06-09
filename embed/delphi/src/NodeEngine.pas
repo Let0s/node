@@ -117,6 +117,11 @@ type
     property Active: boolean read FActive;
   end;
 
+  // unwrap delphi object from js object in arguments
+  function GetDelphiObject(Args: IBaseArgs): TObject;
+  // set return value to js arguments
+  procedure SetReturnValue(Args: IBaseArgs; Value: TValue);
+
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
   procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
   procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
@@ -180,6 +185,39 @@ begin
   end;
 end;
 
+function GetDelphiObject(Args: IBaseArgs): TObject;
+var
+  Engine: TJSEngine;
+begin
+  Result := nil;
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    //all objects will be stored in JS value when accessor (or function)
+    // will be called
+    Result := Args.GetDelphiObject;
+    if not Assigned(Result) then
+    begin
+      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
+        Result := Engine.FGlobal;
+    end;
+  end;
+end;
+
+procedure SetReturnValue(Args: IBaseArgs; Value: TValue);
+var
+  Engine: TJSEngine;
+  JSResult: IJSValue;
+begin
+  Engine := Args.GetEngine as TJSEngine;
+  if Assigned(Engine) then
+  begin
+    JSResult := TValueToJSValue(Value, Engine);
+    if Assigned(JSResult) then
+      Args.SetReturnValue(JSResult);
+  end;
+end;
+
 procedure MethodCallBack(Args: IMethodArgs);
 var
   Engine: TJSEngine;
@@ -196,14 +234,7 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    //all objects will be stored in JS value when accessor (or function)
-    // will be called
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     Overloads := Args.GetDelphiMethod as TRttiMethodList;
     MethodInfo := Overloads.GetMethod(Args.GetArgs);
     Method := MethodInfo.Method;
@@ -232,9 +263,7 @@ begin
           Result := Method.Invoke(ObjType, MethodArgs);
         end;
       end;
-      JSResult := TValueToJSValue(Result, Engine);
-      if Assigned(JSResult) then
-        Args.SetReturnValue(JSResult);
+      SetReturnValue(Args, Result);
     end;
   end;
 end;
@@ -250,14 +279,7 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    //all objects will be stored in JS value when accessor (or function)
-    // will be called
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     PropInfo := Args.GetProp as TClassProp;
     //if prop has helper, then we call prop of helper with given object
     if Assigned(PropInfo.Helper) then
@@ -268,9 +290,7 @@ begin
     Result := PropInfo.Prop.GetValue(Obj);
     if Assigned(PropInfo.Helper) then
       PropInfo.Helper.Source := nil;
-    JSResult := TValueToJSValue(Result, Engine);
-    if Assigned(JSResult) then
-      Args.SetReturnValue(JSResult);
+    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -286,14 +306,7 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    //all objects will be stored in JS value when accessor (or function)
-    // will be called
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     PropInfo := Args.GetProp as TClassProp;
     Prop := PropInfo.Prop;
     //if prop has helper, then we call prop of helper with given object
@@ -309,9 +322,7 @@ begin
     Result := Prop.GetValue(Obj);
     if Assigned(PropInfo.Helper) then
       PropInfo.Helper.Source := nil;
-    JSValue := TValueToJSValue(Result, Engine);
-    if Assigned(JSValue) then
-      Args.SetReturnValue(JSValue);
+    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -327,19 +338,10 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    //all objects will be stored in JS value when accessor (or function)
-    // will be called
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     Field := Args.GetProp as TRttiField;
     Result := Field.GetValue(Obj);
-    JSResult := TValueToJSValue(Result, Engine);
-    if Assigned(JSResult) then
-      Args.SetReturnValue(JSResult);
+    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -354,23 +356,14 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    //all objects will be stored in JS value when accessor (or function)
-    // will be called
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     Field := Args.GetProp as TRttiField;
     JSValue := Args.GetPropValue;
     if Assigned(JSValue) then
       Field.SetValue(Obj,
         JSValueToTValue(JSValue, Field.FieldType, Engine));
     Result := Field.GetValue(Obj);
-    JSValue := TValueToJSValue(Result, Engine);
-    if Assigned(JSValue) then
-      Args.SetReturnValue(JSValue);
+    SetReturnValue(Args, Result);
   end;
 end;
 
@@ -385,19 +378,12 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     Prop := Args.GetPropPointer as TRttiIndexedProperty;
     if Assigned(Prop) then
     begin
       Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
-      JSResult := TValueToJSValue(Result, Engine);
-      if Assigned(JSResult) then
-        Args.SetReturnValue(JSResult);
+      SetReturnValue(Args, Result);
     end;
   end;
 end;
@@ -413,21 +399,14 @@ begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
   begin
-    Obj := Args.GetDelphiObject;
-    if not Assigned(Obj) then
-    begin
-      if Args.GetDelphiClasstype = Engine.FGlobal.ClassType then
-        Obj := Engine.FGlobal;
-    end;
+    Obj := GetDelphiObject(Args);
     Prop := Args.GetPropPointer as TRttiIndexedProperty;
     if Assigned(Prop) then
     begin
       Prop.SetValue(Obj, [args.GetPropIndex],
         JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
       Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
-      JSResult := TValueToJSValue(Result, Engine);
-      if Assigned(JSResult) then
-        Args.SetReturnValue(JSResult);
+      SetReturnValue(Args, Result);
     end;
   end;
 end;
