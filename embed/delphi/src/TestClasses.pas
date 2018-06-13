@@ -109,7 +109,7 @@ end;
 
 function TTestRectangle.GetSquare: double;
 begin
-  Result := (Abs(FMin.x - FMax.x) + Abs(FMax.y - FMin.y)) * 2;
+  Result := (Abs(FMin.x - FMax.x) * Abs(FMax.y - FMin.y));
 end;
 
 end.

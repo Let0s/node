@@ -1,26 +1,23 @@
-﻿var testClasses = {
+﻿var assert = require('assert');
+var testClasses = {
     testCircle: ()=>{
         var circle = CreateCircle(5);
-        if (!circle){
-            throw new Error('circle is undefined');
-        }
-        if (Math.round(circle.Radius) != 5){
-            throw new Error('circle radius is not 5');
-        }
+        assert.ok(circle, 'circle is undefined');
+        assert.strictEqual(Math.round(circle.Radius), 5, 'circle radius is not 5');
         var center = circle.Center;
-        if (!center){
-            throw new Error('circle center is undefined')            
-        }
+        assert.ok(center, 'circle center is undefined');
         circle.Center = {
-            x : 5
+            x : 4
         }
         var center = circle.Center;
-        if (!center){
-            throw new Error('circle center is undefined')            
-        }
-        if (Math.round(center.x) != 5){
-            throw new Error('circle center x is not 5')
-        }
+        assert.ok(center, 'circle center is undefined');
+        assert.strictEqual(Math.round(center.x), 4, 'circle center x is not 4');
+    },
+    testRectangle: ()=>{
+        var rect = CreateRectangle({x: 0, y: 0}, {x: 10, y: 10});
+        assert.ok(rect, 'rect is undefined');
+        assert.strictEqual(rect.GetSquare(), 100, 'rect\'s square is not 100');
+
     }
 }
 
