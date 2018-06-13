@@ -178,11 +178,27 @@ namespace embed {
     std::unordered_map<int, std::string> values;
   };
 
+  class IMethodArgs;
+  class IGetterArgs;
+  class ISetterArgs;
+  class IIndexedGetterArgs;
+  class IIndexedSetterArgs;
+
   class IBaseArgs : public IBaseIntf {
     virtual void * APIENTRY GetEngine() abstract;
     virtual void * APIENTRY GetDelphiObject() abstract;
     virtual void * APIENTRY GetDelphiClasstype() abstract;
     virtual void APIENTRY SetReturnValue(IJSValue * val) abstract;
+    virtual bool APIENTRY IsMethodArgs();
+    virtual bool APIENTRY IsGetterArgs();
+    virtual bool APIENTRY IsSetterArgs();
+    virtual bool APIENTRY IsIndexedGetterArgs();
+    virtual bool APIENTRY IsIndexedSetterArgs();
+    virtual IMethodArgs * APIENTRY AsMethodArgs();
+    virtual IGetterArgs * APIENTRY AsGetterArgs();
+    virtual ISetterArgs * APIENTRY AsSetterArgs();
+    virtual IIndexedGetterArgs * APIENTRY AsIndexedGetterArgs();
+    virtual IIndexedSetterArgs * APIENTRY AsIndexedSetterArgs();
   };
 
   class IMethodArgs : public IBaseArgs {
@@ -191,6 +207,8 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsMethodArgs();
+    virtual IMethodArgs * APIENTRY AsMethodArgs();
     virtual IJSArray * APIENTRY GetArguments();
 
     virtual char * APIENTRY GetMethodName();
@@ -214,6 +232,8 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsGetterArgs();
+    virtual IGetterArgs * APIENTRY AsGetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
     virtual void * APIENTRY GetPropPointer();
 
@@ -235,6 +255,8 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsSetterArgs();
+    virtual ISetterArgs * APIENTRY AsSetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
     virtual void * APIENTRY GetPropPointer();
 
@@ -259,6 +281,8 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsIndexedGetterArgs();
+    virtual IIndexedGetterArgs * APIENTRY AsIndexedGetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
@@ -281,6 +305,8 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsIndexedSetterArgs();
+    virtual IIndexedSetterArgs * APIENTRY AsIndexedSetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual IJSValue * APIENTRY GetValue();
@@ -293,11 +319,7 @@ namespace embed {
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
 
-  typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
-  typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
-  typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
-  typedef void(APIENTRY *TIndexedGetterCallBack) (IIndexedGetterArgs * args);
-  typedef void(APIENTRY *TIndexedSetterCallBack) (IIndexedSetterArgs * args);
+  typedef void(APIENTRY *TBaseCallBack) (IBaseArgs * args);
 
   // Store link to Delphi object and classtype. Need for creation additional
   // global properties, that do not described in global template
@@ -347,13 +369,7 @@ namespace embed {
     virtual void APIENTRY Launch(ILaunchArguments * args);
     virtual void APIENTRY ChangeWorkingDir(char * newDir);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
-    virtual void APIENTRY SetFunctionCallBack(TMethodCallBack functionCB);
-    virtual void APIENTRY SetPropGetterCallBack(TGetterCallBack functionCB);
-    virtual void APIENTRY SetPropSetterCallBack(TSetterCallBack callBack);
-    virtual void APIENTRY SetFieldGetterCallBack(TGetterCallBack callback);
-    virtual void APIENTRY SetFieldSetterCallBack(TSetterCallBack callBack);
-    virtual void APIENTRY SetIndexedGetterCallBack(TIndexedGetterCallBack callBack);
-    virtual void APIENTRY SetIndexedSetterCallBack(TIndexedSetterCallBack callBack);
+    virtual void APIENTRY SetExternalCallback(TBaseCallBack callback);
 
     //these functions avaliable only when script running
     virtual IJSValue * APIENTRY NewInt32(int32_t value);
@@ -375,13 +391,7 @@ namespace embed {
     v8::Local<v8::Object> GetIndexedPropertyObject(void * obj,
       void * cType, void * indexedProp);
 
-    TMethodCallBack functionCallBack = nullptr;
-    TGetterCallBack propGetterCallBack = nullptr;
-    TSetterCallBack propSetterCallBack = nullptr;
-    TGetterCallBack fieldGetterCallBack = nullptr;
-    TSetterCallBack fieldSetterCallBack = nullptr;
-    TIndexedGetterCallBack indexedGetter = nullptr;
-    TIndexedSetterCallBack indexedSetter = nullptr;
+    TBaseCallBack externalCallback = nullptr;
   private:
     //this will be pointer to delphi engine object
     void * dEngine = nullptr;
