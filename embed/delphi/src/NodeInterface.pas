@@ -114,7 +114,7 @@ type
     function AsGetterArgs(): IGetterArgs; virtual; stdcall; abstract;
     function AsSetterArgs(): ISetterArgs; virtual; stdcall; abstract;
     function AsIndexedGetterArgs(): IIndexedGetterArgs; virtual; stdcall; abstract;
-    function AsIndexedSetterArgs(): IIndexedGetterArgs; virtual; stdcall; abstract;
+    function AsIndexedSetterArgs(): IIndexedSetterArgs; virtual; stdcall; abstract;
   end;
 
   IMethodArgs = class (IBaseArgs)

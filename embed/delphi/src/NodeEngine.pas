@@ -122,6 +122,8 @@ type
   // set return value to js arguments
   procedure SetReturnValue(Args: IBaseArgs; Value: TValue);
 
+  procedure BaseCallBack(args: IBaseArgs); stdcall;
+
   procedure MethodCallBack(Args: IMethodArgs); stdcall;
   procedure PropGetterCallBack(Args: IGetterArgs); stdcall;
   procedure PropSetterCallBack(Args: ISetterArgs); stdcall;
@@ -215,6 +217,41 @@ begin
     JSResult := TValueToJSValue(Value, Engine);
     if Assigned(JSResult) then
       Args.SetReturnValue(JSResult);
+  end;
+end;
+
+procedure BaseCallBack(args: IBaseArgs); stdcall;
+begin
+  try
+    if args.IsMethodArgs then
+      MethodCallBack(args.AsMethodArgs)
+    else if args.IsGetterArgs then
+    begin
+      if args.AsGetterArgs.GetProp is TClassProp then
+        PropGetterCallback(args.AsGetterArgs);
+      if args.AsGetterArgs.GetProp is TRttiField then
+        FieldGetterCallback(args.AsGetterArgs);
+    end
+    else if args.IsSetterArgs then
+    begin
+      if args.AsSetterArgs.GetProp is TClassProp then
+        PropSetterCallback(args.AsSetterArgs);
+      if args.AsSetterArgs.GetProp is TRttiField then
+        FieldSetterCallback(args.AsSetterArgs);
+    end
+    else if args.IsIndexedGetterArgs then
+      IndexedPropGetter(args.AsIndexedGetterArgs)
+    else if args.IsIndexedSetterArgs then
+      IndexedPropSetter(args.AsIndexedSetterArgs);
+  except
+    on EInvalidCast do
+    begin
+
+    end;
+    on EAccessViolation do
+    begin
+
+    end;
   end;
 end;
 
@@ -598,13 +635,7 @@ begin
     if InitJS then
     begin
       FEngine := NewDelphiEngine(Self);
-      FEngine.SetMethodCallBack(MethodCallBack);
-      FEngine.SetPropGetterCallBack(PropGetterCallBack);
-      FEngine.SetPropSetterCallBack(PropSetterCallBack);
-      FEngine.SetFieldGetterCallBack(FieldGetterCallBack);
-      FEngine.SetFieldSetterCallBack(FieldSetterCallBack);
-      FEngine.SetIndexedGetterCallBack(IndexedPropGetter);
-      FEngine.SetIndexedSetterCallBack(IndexedPropSetter);
+      FEngine.SetExternalCallback(BaseCallBack);
       FClasses := TDictionary<TClass, TClassWrapper>.Create;
       FJSHelperMap := TJSHelperMap.Create;
       FJSHelperList := TObjectList.Create;
