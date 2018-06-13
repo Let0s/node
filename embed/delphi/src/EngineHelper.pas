@@ -309,7 +309,8 @@ begin
         Result := value.AsNumber;
       tkSet: ;
       tkClass, tkInterface:
-        Result := value.AsDelphiObject.GetDelphiObject;
+        if value.IsDelphiObject then
+          Result := value.AsDelphiObject.GetDelphiObject;
       tkMethod:
         Result := JSValueToMethod(value, typ, Engine);
       tkVariant:
