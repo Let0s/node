@@ -713,14 +713,20 @@ end;
 procedure TJSEngine.RunFile(filename: string);
 var
   Args: ILaunchArguments;
+  FullName: string;
 begin
   if Active then
   begin
     Args := FEngine.CreateLaunchArguments;
     try
+      //get absolute path to script file
+      FullName := ExpandFileName(filename);
+      // set nodejs cwd to script path
+      FEngine.ChangeWorkingDir(StringToPUtf8Char(
+        ExtractFileDir(FullName)));
       Args.AddArgument(StringToPUtf8Char(ParamStr(0)));
 //      Args.AddArgument(StringToPUtf8Char('-e')); //here can be debug param
-      Args.AddArgument(StringToPUtf8Char(filename));
+      Args.AddArgument(StringToPUtf8Char(FullName));
       FEngine.Launch(Args);
     finally
       Args.Delete
