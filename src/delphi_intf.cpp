@@ -206,39 +206,9 @@ namespace embed {
     return nullptr;
   }
 
-  void IEmbedEngine::SetFunctionCallBack(TMethodCallBack functionCB)
+  void IEmbedEngine::SetExternalCallback(TBaseCallBack callback)
   {
-    functionCallBack = functionCB;
-  }
-
-  void IEmbedEngine::SetPropGetterCallBack(TGetterCallBack functionCB)
-  {
-    propGetterCallBack = functionCB;
-  }
-
-  void IEmbedEngine::SetPropSetterCallBack(TSetterCallBack callBack)
-  {
-    propSetterCallBack = callBack;
-  }
-
-  void IEmbedEngine::SetFieldGetterCallBack(TGetterCallBack callback)
-  {
-    fieldGetterCallBack = callback;
-  }
-
-  void IEmbedEngine::SetFieldSetterCallBack(TSetterCallBack callBack)
-  {
-    fieldSetterCallBack = callBack;
-  }
-
-  void IEmbedEngine::SetIndexedGetterCallBack(TIndexedGetterCallBack callBack)
-  {
-    indexedGetter = callBack;
-  }
-
-  void IEmbedEngine::SetIndexedSetterCallBack(TIndexedSetterCallBack callBack)
-  {
-    indexedSetter = callBack;
+    externalCallback = callback;
   }
 
   IJSValue * IEmbedEngine::NewInt32(int32_t value)
@@ -444,8 +414,8 @@ namespace embed {
   {
     IMethodArgs methodArgs(args);
     auto engine = IEmbedEngine::GetEngine(args.GetIsolate());
-    if (engine->functionCallBack)
-      engine->functionCallBack(&methodArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&methodArgs);
   }
 
   void PropGetter(v8::Local<v8::String> prop,
@@ -453,8 +423,8 @@ namespace embed {
   {
     IGetterArgs propArgs(info, prop);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->propGetterCallBack)
-      engine->propGetterCallBack(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void PropSetter(v8::Local<v8::String> prop, v8::Local<v8::Value> value,
@@ -462,16 +432,16 @@ namespace embed {
   {
     ISetterArgs propArgs(info, prop, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->propSetterCallBack)
-      engine->propSetterCallBack(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void FieldGetter(v8::Local<v8::String> field, const v8::PropertyCallbackInfo<v8::Value>& info)
   {
     IGetterArgs propArgs(info, field);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->fieldGetterCallBack)
-      engine->fieldGetterCallBack(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void FieldSetter(v8::Local<v8::String> field, v8::Local<v8::Value> value,
@@ -479,8 +449,8 @@ namespace embed {
   {
     ISetterArgs propArgs(info, field, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->fieldSetterCallBack)
-      engine->fieldSetterCallBack(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void IndexedPropObjGetter(v8::Local<v8::String> property,
@@ -504,8 +474,8 @@ namespace embed {
   {
     IIndexedGetterArgs propArgs(info, index);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->indexedGetter)
-      engine->indexedGetter(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void IndexedPropSetter(uint32_t index, v8::Local<v8::Value> value,
@@ -513,8 +483,8 @@ namespace embed {
   {
     IIndexedSetterArgs propArgs(info, index, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->indexedSetter)
-      engine->indexedSetter(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void NamedPropGetter(v8::Local<v8::String> property,
@@ -522,8 +492,8 @@ namespace embed {
   {
     IIndexedGetterArgs propArgs(info, property);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->indexedGetter)
-      engine->indexedGetter(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   void NamedPropSetter(v8::Local<v8::String> property,
@@ -531,8 +501,8 @@ namespace embed {
   {
     IIndexedSetterArgs propArgs(info, property, value);
     auto engine = IEmbedEngine::GetEngine(info.GetIsolate());
-    if (engine->indexedSetter)
-      engine->indexedSetter(&propArgs);
+    if (engine->externalCallback)
+      engine->externalCallback(&propArgs);
   }
 
   EMBED_EXTERN IEmbedEngine * NewDelphiEngine(void * dEngine)
@@ -699,6 +669,10 @@ namespace embed {
   bool IMethodArgs::IsMethodArgs()
   {
     return true;
+  }
+  IMethodArgs * IMethodArgs::AsMethodArgs()
+  {
+    return this;
   }
   IJSArray * IMethodArgs::GetArguments()
   {
@@ -1035,6 +1009,10 @@ namespace embed {
   {
     return true;
   }
+  IGetterArgs * IGetterArgs::AsGetterArgs()
+  {
+    return this;
+  }
   IJSValue * IGetterArgs::GetPropName()
   {
     if (!propWrapper) {
@@ -1097,6 +1075,10 @@ namespace embed {
   bool ISetterArgs::IsSetterArgs()
   {
     return true;
+  }
+  ISetterArgs * ISetterArgs::AsSetterArgs()
+  {
+    return this;
   }
   IJSValue * ISetterArgs::GetPropName()
   {
@@ -1178,6 +1160,10 @@ namespace embed {
   bool IIndexedGetterArgs::IsIndexedGetterArgs()
   {
     return true;
+  }
+  IIndexedGetterArgs * IIndexedGetterArgs::AsIndexedGetterArgs()
+  {
+    return this;
   }
   IJSValue * IIndexedGetterArgs::GetPropIndex()
   {
@@ -1261,6 +1247,10 @@ namespace embed {
   {
     return true;
   }
+  IIndexedSetterArgs * IIndexedSetterArgs::AsIndexedSetterArgs()
+  {
+    return this;
+  }
   IJSValue * IIndexedSetterArgs::GetPropIndex()
   {
     return index;
@@ -1325,5 +1315,25 @@ namespace embed {
   bool IBaseArgs::IsIndexedSetterArgs()
   {
     return false;
+  }
+  IMethodArgs * IBaseArgs::AsMethodArgs()
+  {
+    return nullptr;
+  }
+  IGetterArgs * IBaseArgs::AsGetterArgs()
+  {
+    return nullptr;
+  }
+  ISetterArgs * IBaseArgs::AsSetterArgs()
+  {
+    return nullptr;
+  }
+  IIndexedGetterArgs * IBaseArgs::AsIndexedGetterArgs()
+  {
+    return nullptr;
+  }
+  IIndexedSetterArgs * IBaseArgs::AsIndexedSetterArgs()
+  {
+    return nullptr;
   }
 }

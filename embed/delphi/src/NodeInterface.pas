@@ -12,6 +12,11 @@ type
   IJSArray = class;
   IJSFunction = class;
   INodeEngine = class;
+  IMethodArgs = class;
+  IGetterArgs = class;
+  ISetterArgs = class;
+  IIndexedGetterArgs = class;
+  IIndexedSetterArgs = class;
 
   IBaseInterface = class
     // do not call!
@@ -100,6 +105,16 @@ type
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
     function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
     procedure SetReturnValue(val: IJSValue); virtual; stdcall; abstract;
+    function IsMethodArgs(): boolean; virtual; stdcall; abstract;
+    function IsGetterArgs(): boolean; virtual; stdcall; abstract;
+    function IsSetterArgs(): boolean; virtual; stdcall; abstract;
+    function IsIndexedGetterArgs(): boolean; virtual; stdcall; abstract;
+    function IsIndexedSetterArgs(): boolean; virtual; stdcall; abstract;
+    function AsMethodArgs(): IMethodArgs; virtual; stdcall; abstract;
+    function AsGetterArgs(): IGetterArgs; virtual; stdcall; abstract;
+    function AsSetterArgs(): ISetterArgs; virtual; stdcall; abstract;
+    function AsIndexedGetterArgs(): IIndexedGetterArgs; virtual; stdcall; abstract;
+    function AsIndexedSetterArgs(): IIndexedGetterArgs; virtual; stdcall; abstract;
   end;
 
   IMethodArgs = class (IBaseArgs)
@@ -133,11 +148,7 @@ type
     function GetValue: IJSValue; virtual; stdcall; abstract;
   end;
 
-  TMethodCallBack = procedure(args: IMethodArgs); stdcall;
-  TGetterCallBack = procedure(args: IGetterArgs); stdcall;
-  TSetterCallBack = procedure(args: ISetterArgs); stdcall;
-  TIndexedGetter = procedure(args: IIndexedGetterArgs); stdcall;
-  TIndexedSetter = procedure(args: IIndexedSetterArgs); stdcall;
+  TBaseCallBack = procedure(args: IBaseArgs); stdcall;
 
   ILaunchArguments = class(IBaseInterface)
     procedure AddArgument(arg: PAnsiChar); virtual; stdcall; abstract;
@@ -161,20 +172,7 @@ type
     procedure ChangeWorkingDir(newDir: PAnsiChar); virtual; stdcall; abstract;
     function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
       virtual; stdcall; abstract;
-    procedure SetMethodCallBack(callBack: TMethodCallBack);
-      virtual; stdcall; abstract;
-    procedure SetPropGetterCallBack(callBack: TGetterCallBack);
-      virtual; stdcall; abstract;
-    procedure SetPropSetterCallBack(callBack: TSetterCallBack);
-      virtual; stdcall; abstract;
-    procedure SetFieldGetterCallBack(callBack: TGetterCallBack);
-      virtual; stdcall; abstract;
-    procedure SetFieldSetterCallBack(callBack: TSetterCallBack);
-      virtual; stdcall; abstract;
-    procedure SetIndexedGetterCallBack(callBack: TIndexedGetter);
-      virtual; stdcall; abstract;
-    procedure SetIndexedSetterCallBack(callBack: TIndexedSetter);
-      virtual; stdcall; abstract;
+    procedure SetExternalCallback(cb: TBaseCallBack); virtual; stdcall; abstract;
 
     // if no script running it will return nil;
     function NewInt32(value: Int32): IJSValue; virtual; stdcall; abstract;
