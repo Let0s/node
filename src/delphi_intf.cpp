@@ -696,6 +696,10 @@ namespace embed {
     }
     return result;
   }
+  bool IMethodArgs::IsMethodArgs()
+  {
+    return true;
+  }
   IJSArray * IMethodArgs::GetArguments()
   {
     return argv;
@@ -1027,6 +1031,10 @@ namespace embed {
     }
     return result;
   }
+  bool IGetterArgs::IsGetterArgs()
+  {
+    return true;
+  }
   IJSValue * IGetterArgs::GetPropName()
   {
     if (!propWrapper) {
@@ -1085,6 +1093,10 @@ namespace embed {
       result = engine->GetDelphiClasstype(holder);
     }
     return result;
+  }
+  bool ISetterArgs::IsSetterArgs()
+  {
+    return true;
   }
   IJSValue * ISetterArgs::GetPropName()
   {
@@ -1162,6 +1174,10 @@ namespace embed {
       result = engine->GetDelphiClasstype(holder);
     }
     return result;
+  }
+  bool IIndexedGetterArgs::IsIndexedGetterArgs()
+  {
+    return true;
   }
   IJSValue * IIndexedGetterArgs::GetPropIndex()
   {
@@ -1241,6 +1257,10 @@ namespace embed {
     }
     return result;
   }
+  bool IIndexedSetterArgs::IsIndexedSetterArgs()
+  {
+    return true;
+  }
   IJSValue * IIndexedSetterArgs::GetPropIndex()
   {
     return index;
@@ -1285,5 +1305,25 @@ namespace embed {
     for (size_t i = 0; i < args.size(); ++i)
       result.push_back(args[i].c_str());
     return result;
+  }
+  bool IBaseArgs::IsMethodArgs()
+  {
+    return false;
+  }
+  bool IBaseArgs::IsGetterArgs()
+  {
+    return false;
+  }
+  bool IBaseArgs::IsSetterArgs()
+  {
+    return false;
+  }
+  bool IBaseArgs::IsIndexedGetterArgs()
+  {
+    return false;
+  }
+  bool IBaseArgs::IsIndexedSetterArgs()
+  {
+    return false;
   }
 }

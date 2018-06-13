@@ -183,6 +183,11 @@ namespace embed {
     virtual void * APIENTRY GetDelphiObject() abstract;
     virtual void * APIENTRY GetDelphiClasstype() abstract;
     virtual void APIENTRY SetReturnValue(IJSValue * val) abstract;
+    virtual bool APIENTRY IsMethodArgs();
+    virtual bool APIENTRY IsGetterArgs();
+    virtual bool APIENTRY IsSetterArgs();
+    virtual bool APIENTRY IsIndexedGetterArgs();
+    virtual bool APIENTRY IsIndexedSetterArgs();
   };
 
   class IMethodArgs : public IBaseArgs {
@@ -191,6 +196,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsMethodArgs();
     virtual IJSArray * APIENTRY GetArguments();
 
     virtual char * APIENTRY GetMethodName();
@@ -214,6 +220,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsGetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
     virtual void * APIENTRY GetPropPointer();
 
@@ -235,6 +242,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsSetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
     virtual void * APIENTRY GetPropPointer();
 
@@ -259,6 +267,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsIndexedGetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
@@ -281,6 +290,7 @@ namespace embed {
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
+    virtual bool APIENTRY IsIndexedSetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual IJSValue * APIENTRY GetValue();
@@ -293,6 +303,7 @@ namespace embed {
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
 
+  typedef void(APIENTRY *TBaseCallBack) (IBaseArgs * args);
   typedef void(APIENTRY *TMethodCallBack) (IMethodArgs * args);
   typedef void(APIENTRY *TGetterCallBack) (IGetterArgs * args);
   typedef void(APIENTRY *TSetterCallBack) (ISetterArgs * args);
