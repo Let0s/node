@@ -42,6 +42,7 @@ type
     FMethod: TMethod;
   protected
     procedure SetMethod(NewMethod: TMethod);
+    function ConvertFunctionResult(res: IJSValue): TValue;
     function CallFunction(Args: array of TValue): TValue;
   public
     constructor Create(Func: IJSFunction); virtual;
@@ -524,7 +525,6 @@ var
   ArgLength: Int32;
   i: Integer;
   ArgArray: IJSArray;
-//  ResultValue: IJSValue;
 begin
   Result := TValue.Empty;
   Engine := FFunction.GetEngine;
@@ -536,7 +536,30 @@ begin
     begin
       ArgArray.SetValue(TValueToJSValue(Args[i], FEngine), 0);
     end;
-    FFunction.Call(ArgArray);
+    Result := ConvertFunctionResult(FFunction.Call(ArgArray));
+  end;
+end;
+
+function TEventWrapper.ConvertFunctionResult(res: IJSValue): TValue;
+var
+  ObjType: TRttiType;
+  ObjMethod: TRttiMethod;
+  ReturnType: TRttiType;
+begin
+  ReturnType := nil;
+  if Assigned(res) then
+  begin
+    ObjType := Context.GetType(Self.ClassType);
+    for ObjMethod in ObjType.GetMethods do
+      if ObjMethod.CodeAddress = Method.Code then
+      begin
+        ReturnType := ObjMethod.ReturnType;
+        break;
+      end;
+    if Assigned(ReturnType) then
+      Result := JSValueToTValue(res, ReturnType, FEngine)
+    else
+      Result := JSValueToUnknownTValue(res);
   end;
 end;
 
