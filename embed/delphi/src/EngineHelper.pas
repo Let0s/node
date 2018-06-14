@@ -90,7 +90,7 @@ type
   function JSValueToVariant(value: IJSValue): Variant;
   function JSValueToRecord(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
-  function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+  function JSArrayToTValue(value: IJSArray; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function JSValueToMethod(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
@@ -322,7 +322,7 @@ begin
       tkInt64:
         Result := Round(value.AsNumber);
       tkDynArray:
-        Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
+        Result := JSArrayToTValue(value.AsArray, typ, Engine);
       tkClassRef: ;
       tkPointer: ;
       tkProcedure: ;
@@ -385,20 +385,27 @@ begin
   end;
 end;
 
-function JSArrayToTValue(value: IJSArray; typ: TRttiArrayType;
+function JSArrayToTValue(value: IJSArray; typ: TRttiType;
   Engine: IJSEngine): TValue;
 var
   TValueArr: array of TValue;
   i, count: Int32;
+  ElemType: TRttiType;
 begin
   Result := TValue.Empty;
+  if typ is TRttiArrayType then
+    ElemType := TRttiArrayType(typ).ElementType
+  else if typ is TRttiDynamicArrayType then
+    ElemType := TRttiDynamicArrayType(typ).ElementType
+  else
+    Exit;
   if Assigned(value) then
   begin
     count := value.GetCount;
     SetLength(TValueArr, count);
     for i := 0 to count - 1 do
     begin
-      TValueArr[i] := JSValueToTValue(value.GetValue(i), typ.ElementType, Engine);
+      TValueArr[i] := JSValueToTValue(value.GetValue(i), ElemType, Engine);
     end;
     Result := TValue.FromArray(typ.Handle, TValueArr);
   end;
