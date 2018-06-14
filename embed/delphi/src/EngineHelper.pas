@@ -525,7 +525,6 @@ var
   ArgLength: Int32;
   i: Integer;
   ArgArray: IJSArray;
-//  ResultValue: IJSValue;
 begin
   Result := TValue.Empty;
   Engine := FFunction.GetEngine;
@@ -548,20 +547,20 @@ var
   ReturnType: TRttiType;
 begin
   ReturnType := nil;
-  if Assigned(TObject(Method.Data)) then
+  if Assigned(res) then
   begin
-    ObjType := Context.GetType(TObject(Method.Data).ClassType);
+    ObjType := Context.GetType(Self.ClassType);
     for ObjMethod in ObjType.GetMethods do
       if ObjMethod.CodeAddress = Method.Code then
       begin
         ReturnType := ObjMethod.ReturnType;
         break;
       end;
+    if Assigned(ReturnType) then
+      Result := JSValueToTValue(res, ReturnType, FEngine)
+    else
+      Result := JSValueToUnknownTValue(res);
   end;
-  if Assigned(ReturnType) then
-    Result := JSValueToTValue(res, ReturnType, FEngine)
-  else
-    Result := JSValueToUnknownTValue(res);
 end;
 
 constructor TEventWrapper.Create(Func: IJSFunction);
