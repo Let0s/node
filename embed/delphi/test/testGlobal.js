@@ -1,10 +1,10 @@
 ﻿var assert = require('assert');
 var testGlobal = {
-    testProperty: () => {
+    testGlobalProperty: () => {
         assert.ok(Five, 'property Five is undefined');
         assert.strictEqual(Five, 5, 'property Five is not equal to 5');
     },
-    testField: () => {
+    testGlobalField: () => {
         assert.ok(Four, 'property Four is undefined');
         assert.strictEqual(Four, 4, 'field Four doesnt equal ');
         var setterResult = 0;
@@ -13,7 +13,7 @@ var testGlobal = {
         assert.strictEqual(setterResult, 5,
             'setter for Four field doesnt return result value');
     },
-    testFunction: () => {
+    testGlobalFunction: () => {
         assert.ok(typeof CreateRandomFigure == 'function',
             `CreateRandomFigure is not function, but ${typeof CreateRandomFigure}`);
         assert.ok(typeof CreateRectangle == 'function',
@@ -21,7 +21,7 @@ var testGlobal = {
         assert.ok(typeof CreateCircle == 'function',
             `CreateCircle is not function, but ${typeof CreateCircle}`);
     },
-    testEvent: () => {
+    testGlobalEvent: () => {
         var figures = [];
         OnGetFigure = function (fig) {
             if (fig)
