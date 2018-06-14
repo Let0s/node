@@ -20,6 +20,20 @@ var testGlobal = {
             `CreateRectangle is not function, but ${typeof CreateRectangle}`);
         assert.ok(typeof CreateCircle == 'function',
             `CreateCircle is not function, but ${typeof CreateCircle}`);
+    },
+    testEvent: () => {
+        var figures = [];
+        OnGetFigure = function (fig) {
+            if (fig)
+                figures.push(fig);
+        }
+        assert.notStrictEqual(figures.indexOf(CreateRandomFigure()), -1,
+            'callback OnGetFigure does not work with CreateRandomFigure()');
+        assert.notStrictEqual(figures.indexOf(CreateCircle(5)), -1,
+            'callback OnGetFigure does not work with CreateCircle()');
+        assert.notStrictEqual(figures.indexOf(CreateRectangle()), -1,
+            'callback OnGetFigure does not work with CreateRectangle()');
+        OnGetFigure = null;
     }
 }
 
