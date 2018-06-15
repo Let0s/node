@@ -7,6 +7,8 @@ uses
 
 type
 
+  TTestFigureType = (tftCircle, tftRect, tftCustom);
+
   TTestPointArray = array of TTestPoint;
   T2PointArray = array [0..1] of TTestPoint;
 
@@ -65,6 +67,7 @@ type
     function CreateCircle(Radius: double): TTestCircle; overload;
     function CreateCircle(CenterPoint: TTestPoint;
       Radius: double): TTestCircle; overload;
+    function CreateFigure(figType: TTestFigureType): TTestFigure;
   end;
 
 implementation
@@ -94,6 +97,17 @@ end;
 function TTestGlobal.CreateCustomFigure: TCustomFigure;
 begin
   Result := TCustomFigure.Create;
+end;
+
+function TTestGlobal.CreateFigure(figType: TTestFigureType): TTestFigure;
+begin
+  Result := nil;
+  case figType of
+    tftCircle: Result := CreateCircle(1);
+    tftRect: Result := CreateRectangle(TTestPoint.Create(0, 0),
+      TTestPoint.Create(1, 1));
+    tftCustom: Result := CreateCustomFigure;
+  end;
 end;
 
 function TTestGlobal.CreateRandomFigure: ITestFigure;

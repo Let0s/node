@@ -55,6 +55,27 @@ var testClasses = {
                 Math.round(sizes[i] * sizes[i]), 
                 `rect${i}'s square is not equal to its size`);
         }
+    },
+    testInterface: ()=>{
+        const intf = CreateRandomFigure();
+        assert.ok(intf, 'intf is not defined');
+        assert.ok(typeof intf.GetSquare == 'function', 
+            'GetSquare of interface is not a function');
+    },
+    testClasstype: ()=>{
+        var rect = CreateRectangle({ x: 0, y: 0 }, { x: 10, y: 10 });
+        assert.ok(rect instanceof TTestRectangle, 
+            'rect is not instance of TTestRectangle class');
+    },
+    testInheritance: ()=>{
+        var rect = CreateRectangle({ x: 0, y: 0 }, { x: 10, y: 10 });
+        assert.ok(rect instanceof TTestFigure,
+            'rect is not instance of parent: TTestFigure class');
+    },
+    testEnum: ()=>{
+        var obj = CreateFigure(TTestFigureType.tftCircle);
+        assert.ok(obj, 'obj is not defined');
+        assert.ok(obj instanceof TTestCircle, 'obj is not TTestCircle');
     }
 }
 
