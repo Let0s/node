@@ -56,6 +56,8 @@ type
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FProps: TObjectDictionary<string, TClassProp>;
     FEngine: INodeEngine;
+
+    procedure CheckMethod(Method: TRttiMethod; Engine: TJSEngine);
     // Add all methods to JS tepmlate. Add only methods, that belong to current
     // classtype (parent methods will be inherited from parent JS template)
     //
@@ -796,7 +798,7 @@ begin
       (method.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
       (Method.MethodKind in [mkProcedure, mkFunction]) then
     begin
-      Engine.CheckType(Method.ReturnType);
+      CheckMethod(Method, Engine);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
       begin
         Overloads := TRttiMethodList.Create;
@@ -870,7 +872,7 @@ begin
       (not (Method.IsConstructor or Method.IsDestructor)) and
       (Method.Parent.Handle = ClassTyp.Handle) then
     begin
-      Engine.CheckType(Method.ReturnType);
+      CheckMethod(Method, Engine);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
       begin
         Overloads := TRttiMethodList.Create;
@@ -892,7 +894,7 @@ begin
       (not (Method.IsConstructor or Method.IsDestructor)) and
       FMethods.TryGetValue(Method.Name, Overloads) then
     begin
-      Engine.CheckType(Method.ReturnType);
+      CheckMethod(Method, Engine);
       // TODO: think about overrided methods, that can be added as overloads
       // Check by parameter count and types?
       MethodInfo.Method := Method;
@@ -919,6 +921,15 @@ begin
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
+end;
+
+procedure TClassWrapper.CheckMethod(Method: TRttiMethod; Engine: TJSEngine);
+var
+  Param: TRttiParameter;
+begin
+  Engine.CheckType(Method.ReturnType);
+  for Param in Method.GetParameters do
+    Engine.CheckType(Param.ParamType);
 end;
 
 constructor TClassWrapper.Create(cType: TClass);
