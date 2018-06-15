@@ -76,6 +76,18 @@ var testClasses = {
         var obj = CreateFigure(TTestFigureType.tftCircle);
         assert.ok(obj, 'obj is not defined');
         assert.ok(obj instanceof TTestCircle, 'obj is not TTestCircle');
+    },
+    testIndexedProperty: ()=>{
+        var list = CreateFigureList();
+        var fig = CreateCustomFigure();
+        list.Add(fig);
+        assert.strictEqual(list.Items[0], fig, 'figure is not equal to list[0]');
+    },
+    testDefaultIndexedProperty: ()=>{
+        var list = CreateFigureList();
+        var fig = CreateCustomFigure();
+        list.Add(fig);
+        assert.strictEqual(list[0], fig, 'figure is not equal to list[0]');
     }
 }
 

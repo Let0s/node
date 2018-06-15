@@ -3,7 +3,7 @@ unit TestClasses;
 interface
 
 uses
-  Math, TestRecords, TestInterfaces, Classes, TestHelpers;
+  Math, TestRecords, TestInterfaces, Classes, TestHelpers, Generics.Collections;
 
 type
 
@@ -50,6 +50,17 @@ type
     function GetSquare: double;
   end;
 
+  TTestFigureList = class(TTestFigure)
+  private
+    FList: TList<TTestFigure>;
+    function GetItems(index: integer): TTestFigure;
+  public
+    constructor Create;
+    destructor Destroy;
+    procedure Add(Figure: TTestFigure);
+    property Items[index: integer]: TTestFigure read GetItems; default;
+  end;
+
   TTestGlobal = class(TObject)
   private
     FOnGetFigure: TNotifyEvent;
@@ -68,6 +79,7 @@ type
     function CreateCircle(CenterPoint: TTestPoint;
       Radius: double): TTestCircle; overload;
     function CreateFigure(figType: TTestFigureType): TTestFigure;
+    function CreateFigureList: TTestFigureList;
   end;
 
 implementation
@@ -108,6 +120,11 @@ begin
       TTestPoint.Create(1, 1));
     tftCustom: Result := CreateCustomFigure;
   end;
+end;
+
+function TTestGlobal.CreateFigureList: TTestFigureList;
+begin
+  Result := TTestFigureList.Create;
 end;
 
 function TTestGlobal.CreateRandomFigure: ITestFigure;
@@ -202,6 +219,28 @@ end;
 function TTestFigure.GetSquare: double;
 begin
   Result := -1;
+end;
+
+{ TFigureList }
+
+procedure TTestFigureList.Add(Figure: TTestFigure);
+begin
+  FList.Add(Figure);
+end;
+
+constructor TTestFigureList.Create;
+begin
+  FList := TList<TTestFigure>.Create;
+end;
+
+destructor TTestFigureList.Destroy;
+begin
+  FList.Free;
+end;
+
+function TTestFigureList.GetItems(index: integer): TTestFigure;
+begin
+  Result := FList[index]
 end;
 
 end.
