@@ -40,6 +40,7 @@ type
     property Max: TTestPoint read FMax;
     function GetSquare: double;
     function AsPoints: T2PointArray;
+    procedure ApplyPoints(Points: T2PointArray);
   end;
 
   TCustomFigure = class(TTestFigure)
@@ -187,6 +188,12 @@ begin
 end;
 
 { TTestRectangle }
+
+procedure TTestRectangle.ApplyPoints(Points: T2PointArray);
+begin
+  FMin := Points[0];
+  FMax := Points[1];
+end;
 
 function TTestRectangle.AsPoints: T2PointArray;
 begin

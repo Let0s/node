@@ -35,7 +35,8 @@ var testClasses = {
         assert.ok(callbackCalled, 'callback was not called');
     },
     testStaticArray: () => {
-        var rect = CreateRectangle({ x: 0, y: 0 }, { x: 10, y: 10 });
+        var rect = CreateRectangle({ x: 0, y: 0 }, { x: 5, y: 5 });
+        rect.ApplyPoints([{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 4, y: 8 }])
         var points = rect.AsPoints();
         assert.ok(points, 'rect points are not defined');
         assert.strictEqual(points.length, 2, `points length is not 2`);
@@ -50,40 +51,40 @@ var testClasses = {
         assert.ok(rects, 'rects is not defined');
         assert.strictEqual(rects.length, sizes.length,
             'rects have different length than sizes');
-        for (var i = 0; i < sizes.length; i++){
-            assert.strictEqual(Math.round(rects[i].GetSquare()), 
-                Math.round(sizes[i] * sizes[i]), 
+        for (var i = 0; i < sizes.length; i++) {
+            assert.strictEqual(Math.round(rects[i].GetSquare()),
+                Math.round(sizes[i] * sizes[i]),
                 `rect${i}'s square is not equal to its size`);
         }
     },
-    testInterface: ()=>{
+    testInterface: () => {
         const intf = CreateRandomFigure();
         assert.ok(intf, 'intf is not defined');
-        assert.ok(typeof intf.GetSquare == 'function', 
+        assert.ok(typeof intf.GetSquare == 'function',
             'GetSquare of interface is not a function');
     },
-    testClasstype: ()=>{
+    testClasstype: () => {
         var rect = CreateRectangle({ x: 0, y: 0 }, { x: 10, y: 10 });
-        assert.ok(rect instanceof TTestRectangle, 
+        assert.ok(rect instanceof TTestRectangle,
             'rect is not instance of TTestRectangle class');
     },
-    testInheritance: ()=>{
+    testInheritance: () => {
         var rect = CreateRectangle({ x: 0, y: 0 }, { x: 10, y: 10 });
         assert.ok(rect instanceof TTestFigure,
             'rect is not instance of parent: TTestFigure class');
     },
-    testEnum: ()=>{
+    testEnum: () => {
         var obj = CreateFigure(TTestFigureType.tftCircle);
         assert.ok(obj, 'obj is not defined');
         assert.ok(obj instanceof TTestCircle, 'obj is not TTestCircle');
     },
-    testIndexedProperty: ()=>{
+    testIndexedProperty: () => {
         var list = CreateFigureList();
         var fig = CreateCustomFigure();
         list.Add(fig);
         assert.strictEqual(list.Items[0], fig, 'figure is not equal to list[0]');
     },
-    testDefaultIndexedProperty: ()=>{
+    testDefaultIndexedProperty: () => {
         var list = CreateFigureList();
         var fig = CreateCustomFigure();
         list.Add(fig);
