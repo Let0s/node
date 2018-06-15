@@ -389,23 +389,32 @@ function JSArrayToTValue(value: IJSArray; typ: TRttiType;
   Engine: IJSEngine): TValue;
 var
   TValueArr: array of TValue;
-  i, count: Int32;
+  i, count, arrTypeLength: Int32;
   ElemType: TRttiType;
 begin
   Result := TValue.Empty;
-  if typ is TRttiArrayType then
-    ElemType := TRttiArrayType(typ).ElementType
-  else if typ is TRttiDynamicArrayType then
-    ElemType := TRttiDynamicArrayType(typ).ElementType
-  else
-    Exit;
   if Assigned(value) then
   begin
     count := value.GetCount;
-    SetLength(TValueArr, count);
-    for i := 0 to count - 1 do
+    if typ is TRttiArrayType then
     begin
-      TValueArr[i] := JSValueToTValue(value.GetValue(i), ElemType, Engine);
+      ElemType := TRttiArrayType(typ).ElementType;
+      arrTypeLength := TRttiArrayType(typ).TotalElementCount;
+    end
+    else if typ is TRttiDynamicArrayType then
+    begin
+      ElemType := TRttiDynamicArrayType(typ).ElementType;
+      arrTypeLength := count;
+    end
+    else
+      Exit;
+    SetLength(TValueArr, arrTypeLength);
+    for i := 0 to arrTypeLength - 1 do
+    begin
+      if i < count then
+        TValueArr[i] := JSValueToTValue(value.GetValue(i), ElemType, Engine)
+      else
+        TValueArr[i] := DefaultTValue(ElemType);
     end;
     Result := TValue.FromArray(typ.Handle, TValueArr);
   end;
