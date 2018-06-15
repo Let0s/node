@@ -12,7 +12,8 @@ uses
   TestClasses in 'src\TestClasses.pas',
   EngineHelper in 'src\EngineHelper.pas',
   TestRecords in 'src\TestRecords.pas',
-  TestInterfaces in 'src\TestInterfaces.pas';
+  TestInterfaces in 'src\TestInterfaces.pas',
+  TestHelpers in 'src\TestHelpers.pas';
 
 const
   NewLine = #10#13;
