@@ -69,6 +69,7 @@ type
     FCallbackList: TObjectList<TEventWrapper>;
   public
     constructor Create();
+    destructor Destroy; override;
     procedure AddCallback(Event: TEventWrapper);
     function GetCallBack(Method: TValue): TEventWrapper;
     procedure AddObject(Obj: TObject);
@@ -627,6 +628,13 @@ constructor TGarbageCollector.Create;
 begin
   FObjectList := TObjectList<TObject>.Create;
   FCallbackList := TObjectList<TEventWrapper>.Create;
+end;
+
+destructor TGarbageCollector.Destroy;
+begin
+  FObjectList.Free;
+  FCallbackList.Free;
+  inherited;
 end;
 
 function TGarbageCollector.GetCallBack(Method: TValue): TEventWrapper;
