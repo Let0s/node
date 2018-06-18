@@ -86,7 +86,7 @@ namespace embed {
     virtual IJSValue * APIENTRY GetValue(int32_t index);
     virtual void APIENTRY SetValue(IJSValue * value, int32_t index);
     v8::Local<v8::Array> V8Array();
-    std::unordered_map<int32_t, IJSValue *> values;
+    std::unordered_map<int32_t, std::unique_ptr<IJSValue>> values;
     std::vector<v8::Local<v8::Value>> ToVector();
   };
 
@@ -204,6 +204,7 @@ namespace embed {
   class IMethodArgs : public IBaseArgs {
   public:
     IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs);
+    ~IMethodArgs();
     virtual void * APIENTRY GetEngine();
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
@@ -401,7 +402,7 @@ namespace embed {
     v8::Local<v8::ObjectTemplate> indexedObjectTemplate;
     std::vector<std::unique_ptr<IClassTemplate>> classes;
     std::vector<std::unique_ptr<IEnumTemplate>> enums;
-    std::unordered_map<int64_t, IJSDelphiObject *> JSDelphiObjects;
+    std::unordered_map<int64_t, std::unique_ptr<IJSDelphiObject>> JSDelphiObjects;
     std::unordered_map<int64_t, v8::Persistent<v8::Object,
       v8::CopyablePersistentTraits<v8::Object>>> jsIndexedPropObjects;
     std::vector<std::unique_ptr<ObjectVariableLink>> objectLinks;

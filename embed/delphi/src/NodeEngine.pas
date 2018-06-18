@@ -82,7 +82,7 @@ type
   private
     FEngine: INodeEngine;
     FGlobal: TObject;
-    FClasses: TDictionary<TClass, TClassWrapper>;
+    FClasses: TObjectDictionary<TClass, TClassWrapper>;
     // Store matches "classtype <-> helper object"
     FJSHelperMap: TJSHelperMap;
     // Store helper objects. Any Helper class have only one helper object.
@@ -638,7 +638,7 @@ begin
     begin
       FEngine := NewDelphiEngine(Self);
       FEngine.SetExternalCallback(BaseCallBack);
-      FClasses := TDictionary<TClass, TClassWrapper>.Create;
+      FClasses := TObjectDictionary<TClass, TClassWrapper>.Create;
       FJSHelperMap := TJSHelperMap.Create;
       FJSHelperList := TObjectList.Create;
       FGarbageCollector := TGarbageCollector.Create;
