@@ -952,13 +952,11 @@ namespace embed {
   {
     SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propName.Reset(Isolate(), prop);
+    propWrapper = IJSValue::MakeValue(Isolate(), prop);
   }
   IGetterArgs::~IGetterArgs()
   {
-    if (propWrapper) {
-      delete propWrapper;
-    }
+    delete propWrapper;
   }
   bool IGetterArgs::IsGetterArgs()
   {
@@ -970,9 +968,6 @@ namespace embed {
   }
   IJSValue * IGetterArgs::GetPropName()
   {
-    if (!propWrapper) {
-      propWrapper = new IJSValue(Isolate(), propName.Get(Isolate()));
-    }
     return propWrapper;
   }
   void * IGetterArgs::GetPropPointer()

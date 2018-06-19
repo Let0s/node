@@ -242,7 +242,6 @@ namespace embed {
 
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
-    v8::Persistent<v8::Value> propName;
     IJSValue * propWrapper = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
