@@ -638,12 +638,13 @@ namespace embed {
       for (int i = 0; i < length; i++) {
         arr->Set(i, newArgs[i]);
       }
-      argv = new IJSArray(Isolate(), arr);
+      // we don't know if values from arguments will be used
+      // after IMethodArgs disposing, so we should keep them in engine
+      argv = Engine()->MakeValue(arr)->AsArray();
     }
   }
   IMethodArgs::~IMethodArgs()
   {
-    delete argv;
   }
   bool IMethodArgs::IsMethodArgs()
   {
@@ -993,12 +994,13 @@ namespace embed {
     SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
     propName = IJSValue::MakeValue(Isolate(), prop);
-    propValue = IJSValue::MakeValue(Isolate(), newValue);
+    // we don't know if property value will be used after ISetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
   }
   ISetterArgs::~ISetterArgs()
   {
     delete propName;
-    delete propValue;
   }
   bool ISetterArgs::IsSetterArgs()
   {
@@ -1104,7 +1106,9 @@ namespace embed {
   {
     SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propValue = IJSValue::MakeValue(Isolate(), newValue);
+    // we don't know if property value will be used after IIndexedSetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
     index = IJSValue::MakeValue(Isolate(), v8::Integer::New(Isolate(), propIndex));
   }
   IIndexedSetterArgs::IIndexedSetterArgs(
@@ -1113,12 +1117,13 @@ namespace embed {
   {
     SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propValue = IJSValue::MakeValue(Isolate(), newValue);
+    // we don't know if property value will be used after IIndexedSetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
     index = IJSValue::MakeValue(Isolate(), propIndex);
   }
   IIndexedSetterArgs::~IIndexedSetterArgs()
   {
-    delete propValue;
     delete index;
   }
   bool IIndexedSetterArgs::IsIndexedSetterArgs()
@@ -1237,5 +1242,9 @@ namespace embed {
   v8::Isolate * IBaseArgs::Isolate()
   {
     return iso;
+  }
+  IEmbedEngine * IBaseArgs::Engine()
+  {
+    return engine;
   }
 }

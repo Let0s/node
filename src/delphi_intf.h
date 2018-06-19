@@ -203,6 +203,7 @@ namespace embed {
 
     void SetupArgs(v8::Isolate * isolate, v8::Local<v8::Object> holderObj);
     v8::Isolate * Isolate();
+    IEmbedEngine * Engine();
   private:
     v8::Isolate * iso = nullptr;
     IEmbedEngine * engine = nullptr;
