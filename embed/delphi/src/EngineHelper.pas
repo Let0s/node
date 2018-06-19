@@ -86,6 +86,7 @@ type
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
+  procedure CheckConversion(value: IJSValue; typ: TRttiType);
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function JSValueToVariant(value: IJSValue): Variant;
@@ -291,11 +292,22 @@ begin
   end;
 end;
 
+procedure CheckConversion(value: IJSValue; typ: TRttiType);
+begin
+  if not (value.IsUndefined or value.IsNull) then
+  begin
+    if not CompareType(typ, value) then
+      raise EInvalidCast.Create('Type mismatch. Expected ' + typ.Name);
+  end;
+end;
+
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
   Engine: IJSEngine): TValue;
 begin
   Result := TValue.Empty;
   if Assigned(value) then
+  begin
+    CheckConversion(value, typ);
     case typ.TypeKind of
       tkUnknown: ;
       tkInteger:
@@ -328,6 +340,7 @@ begin
       tkPointer: ;
       tkProcedure: ;
     end;
+  end;
 end;
 
 function JSValueToVariant(value: IJSValue): Variant;
