@@ -185,9 +185,10 @@ namespace embed {
   class IIndexedSetterArgs;
 
   class IBaseArgs : public IBaseIntf {
-    virtual void * APIENTRY GetEngine() abstract;
-    virtual void * APIENTRY GetDelphiObject() abstract;
-    virtual void * APIENTRY GetDelphiClasstype() abstract;
+  public:
+    virtual void * APIENTRY GetEngine();
+    virtual void * APIENTRY GetDelphiObject();
+    virtual void * APIENTRY GetDelphiClasstype();
     virtual void APIENTRY SetReturnValue(IJSValue * val) abstract;
     virtual bool APIENTRY IsMethodArgs();
     virtual bool APIENTRY IsGetterArgs();
@@ -199,15 +200,21 @@ namespace embed {
     virtual ISetterArgs * APIENTRY AsSetterArgs();
     virtual IIndexedGetterArgs * APIENTRY AsIndexedGetterArgs();
     virtual IIndexedSetterArgs * APIENTRY AsIndexedSetterArgs();
+
+    void SetupArgs(v8::Isolate * isolate, v8::Local<v8::Object> holderObj);
+    v8::Isolate * Isolate();
+    IEmbedEngine * Engine();
+  private:
+    v8::Isolate * iso = nullptr;
+    IEmbedEngine * engine = nullptr;
+    // object, which property/function is called
+    v8::Local<v8::Object> holder = v8::Local<v8::Object>();
   };
 
   class IMethodArgs : public IBaseArgs {
   public:
     IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs);
     ~IMethodArgs();
-    virtual void * APIENTRY GetEngine();
-    virtual void * APIENTRY GetDelphiObject();
-    virtual void * APIENTRY GetDelphiClasstype();
     virtual bool APIENTRY IsMethodArgs();
     virtual IMethodArgs * APIENTRY AsMethodArgs();
     virtual IJSArray * APIENTRY GetArguments();
@@ -218,8 +225,6 @@ namespace embed {
 
     virtual void * APIENTRY GetDelphiMethod();
   private:
-    v8::Isolate * iso = nullptr;
-    IEmbedEngine * engine = nullptr;
     const v8::FunctionCallbackInfo<v8::Value>* args = nullptr;
     IJSArray * argv;
     std::string run_string_result;
@@ -230,9 +235,6 @@ namespace embed {
     IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
       v8::Local<v8::Value> prop);
     ~IGetterArgs();
-    virtual void * APIENTRY GetEngine();
-    virtual void * APIENTRY GetDelphiObject();
-    virtual void * APIENTRY GetDelphiClasstype();
     virtual bool APIENTRY IsGetterArgs();
     virtual IGetterArgs * APIENTRY AsGetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
@@ -240,9 +242,6 @@ namespace embed {
 
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
-    v8::Isolate * iso = nullptr;
-    IEmbedEngine * engine = nullptr;
-    v8::Persistent<v8::Value> propName;
     IJSValue * propWrapper = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
@@ -253,9 +252,6 @@ namespace embed {
                 v8::Local<v8::Value> prop,
                 v8::Local<v8::Value> newValue);
     ~ISetterArgs();
-    virtual void * APIENTRY GetEngine();
-    virtual void * APIENTRY GetDelphiObject();
-    virtual void * APIENTRY GetDelphiClasstype();
     virtual bool APIENTRY IsSetterArgs();
     virtual ISetterArgs * APIENTRY AsSetterArgs();
     virtual IJSValue * APIENTRY GetPropName();
@@ -265,8 +261,6 @@ namespace embed {
 
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
-    v8::Isolate * iso = nullptr;
-    IEmbedEngine * engine = nullptr;
     IJSValue * propName = nullptr;
     IJSValue * propValue = nullptr;
     const v8::PropertyCallbackInfo<void> * propinfo = nullptr;
@@ -279,17 +273,12 @@ namespace embed {
     IIndexedGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
       v8::Local<v8::String> propIndex);
     ~IIndexedGetterArgs();
-    virtual void * APIENTRY GetEngine();
-    virtual void * APIENTRY GetDelphiObject();
-    virtual void * APIENTRY GetDelphiClasstype();
     virtual bool APIENTRY IsIndexedGetterArgs();
     virtual IIndexedGetterArgs * APIENTRY AsIndexedGetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
     virtual void * APIENTRY GetPropPointer();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
-    v8::Isolate * iso = nullptr;
-    IEmbedEngine * engine = nullptr;
     IJSValue * index;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
   };
@@ -303,9 +292,6 @@ namespace embed {
       v8::Local<v8::String> propIndex,
       v8::Local<v8::Value> newValue);
     ~IIndexedSetterArgs();
-    virtual void * APIENTRY GetEngine();
-    virtual void * APIENTRY GetDelphiObject();
-    virtual void * APIENTRY GetDelphiClasstype();
     virtual bool APIENTRY IsIndexedSetterArgs();
     virtual IIndexedSetterArgs * APIENTRY AsIndexedSetterArgs();
     virtual IJSValue * APIENTRY GetPropIndex();
@@ -313,8 +299,6 @@ namespace embed {
     virtual IJSValue * APIENTRY GetValue();
     virtual void APIENTRY SetReturnValue(IJSValue * val);
   private:
-    v8::Isolate * iso = nullptr;
-    IEmbedEngine * engine = nullptr;
     IJSValue * index;
     IJSValue * propValue = nullptr;
     const v8::PropertyCallbackInfo<v8::Value> * propinfo = nullptr;
