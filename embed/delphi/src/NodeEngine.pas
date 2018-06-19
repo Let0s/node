@@ -10,12 +10,14 @@ type
   TJSEngine = class;
 
   // Class method info
-  TClassMethod = record
+  TClassMethod = class
+  public
     // Link to method, that can be called from JS
     Method: TRttiMethod;
     // If method doesn't belong to classtype, then it is method of helper,
     // that is stored here.
     Helper: TJSClassHelper;
+    constructor Create(AMethod: TRttiMethod; AHelper: TJSClassHelper);
   end;
 
   //Class property info
@@ -30,7 +32,7 @@ type
   end;
 
   //list of overloaded methods
-  TRttiMethodList = class(TList<TClassMethod>)
+  TRttiMethodList = class(TObjectList<TClassMethod>)
   public
     // This function tries to guess right method by given arguments.
     // There are a lot of cases, when it can return wrong result, so
@@ -82,7 +84,7 @@ type
   private
     FEngine: INodeEngine;
     FGlobal: TObject;
-    FClasses: TDictionary<TClass, TClassWrapper>;
+    FClasses: TObjectDictionary<TClass, TClassWrapper>;
     // Store matches "classtype <-> helper object"
     FJSHelperMap: TJSHelperMap;
     // Store helper objects. Any Helper class have only one helper object.
@@ -281,9 +283,9 @@ begin
     begin
       Overloads := Args.GetDelphiMethod as TRttiMethodList;
       MethodInfo := Overloads.GetMethod(Args.GetArgs);
-      Method := MethodInfo.Method;
-      if Assigned(Method) then
+      if Assigned(MethodInfo) then
       begin
+        Method := MethodInfo.Method;
         MethodArgs := JSParametersToTValueArray(Method.GetParameters, Args.GetArgs,
           Engine);
         //if method has helper, then we call method of helper with given object
@@ -638,7 +640,7 @@ begin
     begin
       FEngine := NewDelphiEngine(Self);
       FEngine.SetExternalCallback(BaseCallBack);
-      FClasses := TDictionary<TClass, TClassWrapper>.Create;
+      FClasses := TObjectDictionary<TClass, TClassWrapper>.Create([doOwnsValues]);
       FJSHelperMap := TJSHelperMap.Create;
       FJSHelperList := TObjectList.Create;
       FGarbageCollector := TGarbageCollector.Create;
@@ -785,7 +787,6 @@ procedure TClassWrapper.AddHelperMethods(Helper: TJSClassHelper;
   Engine: TJSEngine);
 var
   Method: TRttiMethod;
-  MethodInfo: TClassMethod;
   Overloads: TRttiMethodList;
   ClassTyp: TRttiType;
 begin
@@ -805,9 +806,7 @@ begin
         FMethods.Add(Method.Name, Overloads);
         FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
       end;
-      MethodInfo.Method := Method;
-      MethodInfo.Helper := Helper;
-      Overloads.Add(MethodInfo);
+      Overloads.Add(TClassMethod.Create(Method, Helper));
     end;
   end;
 end;
@@ -862,7 +861,6 @@ end;
 procedure TClassWrapper.AddMethods(ClassTyp: TRttiType; Engine: TJSEngine);
 var
   Method: TRttiMethod;
-  MethodInfo: TClassMethod;
   Overloads: TRttiMethodList;
 begin
   for Method in ClassTyp.GetMethods do
@@ -879,9 +877,7 @@ begin
         FMethods.Add(Method.Name, Overloads);
         FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
       end;
-      MethodInfo.Method := Method;
-      MethodInfo.Helper := nil;
-      Overloads.Add(MethodInfo);
+      Overloads.Add(TClassMethod.Create(Method, nil));
     end;
   end;
 
@@ -897,9 +893,7 @@ begin
       CheckMethod(Method, Engine);
       // TODO: think about overrided methods, that can be added as overloads
       // Check by parameter count and types?
-      MethodInfo.Method := Method;
-      MethodInfo.Helper := nil;
-      Overloads.Add(MethodInfo);
+      Overloads.Add(TClassMethod.Create(Method, nil));
     end;
   end;
 end;
@@ -935,8 +929,8 @@ end;
 constructor TClassWrapper.Create(cType: TClass);
 begin
   FType := cType;
-  FMethods := TObjectDictionary<string, TRttiMethodList>.Create;
-  FProps := TObjectDictionary<string, TClassProp>.Create;
+  FMethods := TObjectDictionary<string, TRttiMethodList>.Create([doOwnsValues]);
+  FProps := TObjectDictionary<string, TClassProp>.Create([doOwnsValues]);
 end;
 
 destructor TClassWrapper.Destroy;
@@ -981,7 +975,7 @@ var
   Params: TArray<TRttiParameter>;
   MethodInfo: TClassMethod;
 begin
-  Result.Method := nil;
+  Result := nil;
   if Count > 0 then
   begin
     Result := Items[0];
@@ -995,11 +989,11 @@ begin
           break;
         if not CompareType(Params[j].ParamType, args.GetValue(j)) then
         begin
-          MethodInfo.Method := nil;
+          MethodInfo := nil;
           break;
         end;
       end;
-      if Assigned(MethodInfo.Method) then
+      if Assigned(MethodInfo) then
       begin
         Result := MethodInfo;
         break;
@@ -1013,6 +1007,14 @@ end;
 constructor TClassProp.Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
 begin
   Prop := AProp;
+  Helper := AHelper;
+end;
+
+{ TClassMethod }
+
+constructor TClassMethod.Create(AMethod: TRttiMethod; AHelper: TJSClassHelper);
+begin
+  Method := AMethod;
   Helper := AHelper;
 end;
 
