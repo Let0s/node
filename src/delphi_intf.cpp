@@ -292,7 +292,7 @@ namespace embed {
       auto item = JSDelphiObjects.find(hash);
       if (item != JSDelphiObjects.end())
       {
-        result = item->second;
+        result = item->second.get();
       }
     }
     if (!result) {
@@ -307,8 +307,10 @@ namespace embed {
             obj->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
               v8::External::New(Isolate(), value));
             result = IJSValue::MakeValue(Isolate(), obj)->AsDelphiObject();
-            if (result)
-              JSDelphiObjects.emplace(std::make_pair(hash, result));
+            if (result) {
+              auto ptr = std::unique_ptr<IJSDelphiObject>(result);
+              JSDelphiObjects.emplace(std::make_pair(hash, std::move(ptr)));
+            }
           }
         }
       }
@@ -640,6 +642,10 @@ namespace embed {
       argv = new IJSArray(iso, arr);
     }
   }
+  IMethodArgs::~IMethodArgs()
+  {
+    delete argv;
+  }
   void * IMethodArgs::GetEngine()
   {
     void * result = nullptr;
@@ -879,10 +885,11 @@ namespace embed {
     if (findresult == values.end())
     {
       result = IJSValue::MakeValue(isolate, V8Array()->Get(index));
-      values.emplace(index, result);
+      std::unique_ptr<IJSValue> resultPtr(result);
+      values.emplace(index, std::move(resultPtr));
     }
     else
-      result = findresult->second;
+      result = findresult->second.get();
     return result;
   }
   void IJSArray::SetValue(IJSValue * value, int32_t index)
@@ -931,8 +938,9 @@ namespace embed {
       }
     }
     auto v8result = V8Function()->Call(V8Function(), args.size(), args.data());
-    auto result = IJSValue::MakeValue(isolate, v8result);
-
+    // engine is used to store IJSValue pointer until engine will be destroyed
+    auto engine = IEmbedEngine::GetEngine(isolate);    
+    auto result = engine->MakeValue(v8result);
     return result;
   }
   IJSDelphiObject::IJSDelphiObject(v8::Isolate * iso, v8::Local<v8::Value> val):
@@ -1132,6 +1140,7 @@ namespace embed {
   }
   IIndexedGetterArgs::~IIndexedGetterArgs()
   {
+    delete index;
   }
   void * IIndexedGetterArgs::GetEngine()
   {
@@ -1218,6 +1227,7 @@ namespace embed {
   IIndexedSetterArgs::~IIndexedSetterArgs()
   {
     delete propValue;
+    delete index;
   }
   void * IIndexedSetterArgs::GetEngine()
   {
