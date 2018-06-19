@@ -630,47 +630,21 @@ namespace embed {
   IMethodArgs::IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs)
   {
     args = &newArgs;
-    iso = args->GetIsolate();
-    engine = IEmbedEngine::GetEngine(iso);
+    SetupArgs(args->GetIsolate(), args->This());
     //setup arguments
     {
       auto length = args->Length();
-      auto arr = v8::Array::New(iso, length);
+      auto arr = v8::Array::New(Isolate(), length);
       for (int i = 0; i < length; i++) {
         arr->Set(i, newArgs[i]);
       }
-      argv = new IJSArray(iso, arr);
+      // we don't know if values from arguments will be used
+      // after IMethodArgs disposing, so we should keep them in engine
+      argv = Engine()->MakeValue(arr)->AsArray();
     }
   }
   IMethodArgs::~IMethodArgs()
   {
-    delete argv;
-  }
-  void * IMethodArgs::GetEngine()
-  {
-    void * result = nullptr;
-    if (engine) {
-      result = engine->DelphiEngine();
-    }
-    return result;
-  }
-  void * IMethodArgs::GetDelphiObject()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = args->This();
-      result = engine->GetDelphiObject(holder);
-    }
-    return result;
-  }
-  void * IMethodArgs::GetDelphiClasstype()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = args->This();
-      result = engine->GetDelphiClasstype(holder);
-    }
-    return result;
   }
   bool IMethodArgs::IsMethodArgs()
   {
@@ -976,42 +950,13 @@ namespace embed {
   IGetterArgs::IGetterArgs(const v8::PropertyCallbackInfo<v8::Value>& info,
                            v8::Local<v8::Value> prop)
   {
-    iso = info.GetIsolate();
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propName.Reset(iso, prop);
-    engine = IEmbedEngine::GetEngine(iso);
+    propWrapper = IJSValue::MakeValue(Isolate(), prop);
   }
   IGetterArgs::~IGetterArgs()
   {
-    if (propWrapper) {
-      delete propWrapper;
-    }
-  }
-  void * IGetterArgs::GetEngine()
-  {
-    void * result = nullptr;
-    if (engine) {
-      result = engine->DelphiEngine();
-    }
-    return result;
-  }
-  void * IGetterArgs::GetDelphiObject()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiObject(holder);
-    }
-    return result;
-  }
-  void * IGetterArgs::GetDelphiClasstype()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiClasstype(holder);
-    }
-    return result;
+    delete propWrapper;
   }
   bool IGetterArgs::IsGetterArgs()
   {
@@ -1023,9 +968,6 @@ namespace embed {
   }
   IJSValue * IGetterArgs::GetPropName()
   {
-    if (!propWrapper) {
-      propWrapper = new IJSValue(iso, propName.Get(iso));
-    }
     return propWrapper;
   }
   void * IGetterArgs::GetPropPointer()
@@ -1044,41 +986,16 @@ namespace embed {
                            v8::Local<v8::Value> prop,
                            v8::Local<v8::Value> newValue)
   {
-    iso = info.GetIsolate();
-    engine = IEmbedEngine::GetEngine(iso);
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propName = IJSValue::MakeValue(iso, prop);
-    propValue = engine->MakeValue(newValue);
+    propName = IJSValue::MakeValue(Isolate(), prop);
+    // we don't know if property value will be used after ISetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
   }
   ISetterArgs::~ISetterArgs()
   {
     delete propName;
-  }
-  void * ISetterArgs::GetEngine()
-  {
-    void * result = nullptr;
-    if (engine) {
-      result = engine->DelphiEngine();
-    }
-    return result;
-  }
-  void * ISetterArgs::GetDelphiObject()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiObject(holder);
-    }
-    return result;
-  }
-  void * ISetterArgs::GetDelphiClasstype()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiClasstype(holder);
-    }
-    return result;
   }
   bool ISetterArgs::IsSetterArgs()
   {
@@ -1124,48 +1041,22 @@ namespace embed {
     const v8::PropertyCallbackInfo<v8::Value>& info,
     uint32_t propIndex)
   {
-    iso = info.GetIsolate();
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
-    engine = IEmbedEngine::GetEngine(iso);
+    index = IJSValue::MakeValue(Isolate(), v8::Integer::New(Isolate(), propIndex));
   }
   IIndexedGetterArgs::IIndexedGetterArgs(
     const v8::PropertyCallbackInfo<v8::Value>& info,
     v8::Local<v8::String> propIndex)
   {
-    iso = info.GetIsolate();
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    index = IJSValue::MakeValue(iso, propIndex);
-    engine = IEmbedEngine::GetEngine(iso);
+    index = IJSValue::MakeValue(Isolate(), propIndex);
   }
   IIndexedGetterArgs::~IIndexedGetterArgs()
   {
     delete index;
-  }
-  void * IIndexedGetterArgs::GetEngine()
-  {
-    if (engine)
-      return engine->DelphiEngine();
-    return nullptr;
-  }
-  void * IIndexedGetterArgs::GetDelphiObject()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiObject(holder);
-    }
-    return result;
-  }
-  void * IIndexedGetterArgs::GetDelphiClasstype()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiClasstype(holder);
-    }
-    return result;
-  }
+  }  
   bool IIndexedGetterArgs::IsIndexedGetterArgs()
   {
     return true;
@@ -1208,50 +1099,27 @@ namespace embed {
     const v8::PropertyCallbackInfo<v8::Value>& info,
     uint32_t propIndex, v8::Local<v8::Value> newValue)
   {
-    iso = info.GetIsolate();
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propValue = IJSValue::MakeValue(iso, newValue);
-    index = IJSValue::MakeValue(iso, v8::Integer::New(iso, propIndex));
-    engine = IEmbedEngine::GetEngine(iso);
+    // we don't know if property value will be used after IIndexedSetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
+    index = IJSValue::MakeValue(Isolate(), v8::Integer::New(Isolate(), propIndex));
   }
   IIndexedSetterArgs::IIndexedSetterArgs(
     const v8::PropertyCallbackInfo<v8::Value>& info,
     v8::Local<v8::String> propIndex, v8::Local<v8::Value> newValue)
   {
-    iso = info.GetIsolate();
+    SetupArgs(info.GetIsolate(), info.This());
     propinfo = &info;
-    propValue = IJSValue::MakeValue(iso, newValue);
-    index = IJSValue::MakeValue(iso, propIndex);
-    engine = IEmbedEngine::GetEngine(iso);
+    // we don't know if property value will be used after IIndexedSetterArgs
+    // disposing, so we should keep them in engine
+    propValue = Engine()->MakeValue(newValue);
+    index = IJSValue::MakeValue(Isolate(), propIndex);
   }
   IIndexedSetterArgs::~IIndexedSetterArgs()
   {
-    delete propValue;
     delete index;
-  }
-  void * IIndexedSetterArgs::GetEngine()
-  {
-    if (engine)
-      return engine->DelphiEngine();
-    return nullptr;
-  }
-  void * IIndexedSetterArgs::GetDelphiObject()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiObject(holder);
-    }
-    return result;
-  }
-  void * IIndexedSetterArgs::GetDelphiClasstype()
-  {
-    void * result = nullptr;
-    if (engine) {
-      auto holder = propinfo->This();
-      result = engine->GetDelphiClasstype(holder);
-    }
-    return result;
   }
   bool IIndexedSetterArgs::IsIndexedSetterArgs()
   {
@@ -1306,6 +1174,18 @@ namespace embed {
       result.push_back(args[i].c_str());
     return result;
   }
+  void * IBaseArgs::GetEngine()
+  {
+    return engine->DelphiEngine();
+  }
+  void * IBaseArgs::GetDelphiObject()
+  {
+    return engine->GetDelphiObject(holder);
+  }
+  void * IBaseArgs::GetDelphiClasstype()
+  {
+    return engine->GetDelphiClasstype(holder);
+  }
   bool IBaseArgs::IsMethodArgs()
   {
     return false;
@@ -1345,5 +1225,21 @@ namespace embed {
   IIndexedSetterArgs * IBaseArgs::AsIndexedSetterArgs()
   {
     return nullptr;
+  }
+  void IBaseArgs::SetupArgs(v8::Isolate * isolate, v8::Local<v8::Object> holderObj)
+  {
+    CHECK(isolate);
+    CHECK(!holderObj.IsEmpty());
+    iso = isolate;
+    holder = holderObj;
+    engine = IEmbedEngine::GetEngine(iso);
+  }
+  v8::Isolate * IBaseArgs::Isolate()
+  {
+    return iso;
+  }
+  IEmbedEngine * IBaseArgs::Engine()
+  {
+    return engine;
   }
 }
