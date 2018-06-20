@@ -91,6 +91,7 @@ type
     FJSHelperList: TObjectList;
     FEnumList: TList<PTypeInfo>;
     FGarbageCollector: TGarbageCollector;
+    FIgnoredExceptions: TList<TClass>;
     FActive: boolean;
   protected
     function GetEngine: INodeEngine;
@@ -107,6 +108,7 @@ type
     // Use it to match classtype with helper class. Helper will be created
     // automatically (if it wasn't created).
     procedure RegisterHelper(CType: TClass; HelperType: TJSHelperType);
+    procedure IgnoreExceptionType(ExceptionType: TClass);
     procedure AddEnum(Enum: TRttiType);
     function AddClass(classType: TClass): TClassWrapper;
     function GetClassWrapper(classType: TClass): TClassWrapper;
@@ -225,6 +227,8 @@ begin
 end;
 
 procedure BaseCallBack(args: IBaseArgs); stdcall;
+var
+  Engine: TJSEngine;
 begin
   try
     if args.IsMethodArgs then
@@ -255,6 +259,14 @@ begin
     on E: EAccessViolation do
     begin
       args.ThrowError(StringToPUtf8Char(E.Message));
+    end;
+    on E: Exception do
+    begin
+      Engine := args.GetEngine as TJSEngine;
+      if Engine.FIgnoredExceptions.IndexOf(E.ClassType) < 0 then
+      begin
+        args.ThrowError(StringToPUtf8Char(E.Message));
+      end
     end;
   end;
 end;
@@ -645,6 +657,7 @@ begin
       FJSHelperList := TObjectList.Create;
       FGarbageCollector := TGarbageCollector.Create;
       FEnumList := TList<PTypeInfo>.Create;
+      FIgnoredExceptions := TList<TClass>.Create;
       FActive := True;
     end;
   except
@@ -663,6 +676,7 @@ begin
   FGarbageCollector.Free;
   FJSHelperMap.Free;
   FJSHelperList.Free;
+  FIgnoredExceptions.Free;
   FEngine.Delete;
   inherited;
 end;
@@ -681,6 +695,11 @@ end;
 function TJSEngine.GetGarbageCollector: TGarbageCollector;
 begin
   Result := FGarbageCollector;
+end;
+
+procedure TJSEngine.IgnoreExceptionType(ExceptionType: TClass);
+begin
+  FIgnoredExceptions.Add(ExceptionType);
 end;
 
 function TJSEngine.QueryInterface(const IID: TGUID; out Obj): HResult;
