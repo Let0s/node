@@ -515,7 +515,7 @@ begin
   Result := False;
   case typ.TypeKind of
     tkUnknown: ;
-    tkInteger, tkEnumeration: Result := value.IsInt32 or
+    tkInteger, tkEnumeration: Result := value.IsInt32 or value.IsBool or
       TryStrToInt(PUtf8CharToString(value.AsString), IntValue);
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       Result := True; // we can transform any data to string;
