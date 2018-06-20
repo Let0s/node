@@ -86,6 +86,7 @@ type
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
+  procedure CheckConversion(value: IJSValue; typ: TRttiType);
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function JSValueToVariant(value: IJSValue): Variant;
@@ -291,11 +292,22 @@ begin
   end;
 end;
 
+procedure CheckConversion(value: IJSValue; typ: TRttiType);
+begin
+  if not (value.IsUndefined or value.IsNull) then
+  begin
+    if not CompareType(typ, value) then
+      raise EInvalidCast.Create('Type mismatch. Expected ' + typ.Name);
+  end;
+end;
+
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
   Engine: IJSEngine): TValue;
 begin
   Result := TValue.Empty;
   if Assigned(value) then
+  begin
+    CheckConversion(value, typ);
     case typ.TypeKind of
       tkUnknown: ;
       tkInteger:
@@ -328,6 +340,7 @@ begin
       tkPointer: ;
       tkProcedure: ;
     end;
+  end;
 end;
 
 function JSValueToVariant(value: IJSValue): Variant;
@@ -494,25 +507,38 @@ begin
 end;
 
 function CompareType(typ: TRttiType; value: IJSValue): Boolean;
+var
+  IntValue: Integer;
+  Int64Value: Int64;
+  FloatValue: Double;
 begin
   Result := False;
   case typ.TypeKind of
     tkUnknown: ;
-    tkInteger: Result := value.IsInt32;
+    tkInteger, tkEnumeration: Result := value.IsInt32 or
+      TryStrToInt(PUtf8CharToString(value.AsString), IntValue);
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-      Result := value.IsString or value.IsNumber or value.IsBool;
-    tkEnumeration: Result := value.IsInt32;
-    tkFloat: Result := value.IsNumber;
+      Result := True; // we can transform any data to string;
+    tkFloat: Result := value.IsNumber or
+      TryStrToFloat(PUtf8CharToString(value.AsString), FloatValue);
     tkSet: ;
     tkClass: Result := value.IsDelphiObject;
     tkMethod: Result := value.IsFunction;
-    tkVariant: ;
+    tkVariant: Result := True;
     tkArray, tkDynArray: Result := value.IsArray;
     tkRecord: Result := value.IsObject;
     tkInterface: ;
-    tkInt64: Result := value.IsNumber;
+    tkInt64: Result := value.IsNumber or
+      TryStrToInt64(PUtf8CharToString(value.AsString), Int64Value);
     tkClassRef: ;
-    tkPointer: Result := value.IsNumber;
+    tkPointer: Result :=
+    {$IFDEF WIN32}
+      value.IsInt32 or
+      TryStrToInt(PUtf8CharToString(value.AsString), IntValue);
+    {$ELSE}
+      value.IsNumber or
+      TryStrToInt64(PUtf8CharToString(value.AsString), Int64Value);
+    {$ENDIF}
     tkProcedure: ;
   end;
 end;
