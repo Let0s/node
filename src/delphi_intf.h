@@ -190,6 +190,8 @@ namespace embed {
     virtual void * APIENTRY GetDelphiObject();
     virtual void * APIENTRY GetDelphiClasstype();
     virtual void APIENTRY SetReturnValue(IJSValue * val) abstract;
+    virtual void APIENTRY ThrowError(char * message);
+    virtual void APIENTRY ThrowTypeError(char * message);
     virtual bool APIENTRY IsMethodArgs();
     virtual bool APIENTRY IsGetterArgs();
     virtual bool APIENTRY IsSetterArgs();

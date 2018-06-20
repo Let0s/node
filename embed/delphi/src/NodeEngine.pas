@@ -248,13 +248,13 @@ begin
     else if args.IsIndexedSetterArgs then
       IndexedPropSetter(args.AsIndexedSetterArgs);
   except
-    on EInvalidCast do
+    on E: EInvalidCast do
     begin
-
+      args.ThrowTypeError(StringToPUtf8Char(E.Message));
     end;
-    on EAccessViolation do
+    on E: EAccessViolation do
     begin
-
+      args.ThrowError(StringToPUtf8Char(E.Message));
     end;
   end;
 end;

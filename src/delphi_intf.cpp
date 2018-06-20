@@ -1226,6 +1226,18 @@ namespace embed {
   {
     return nullptr;
   }
+  void IBaseArgs::ThrowError(char * message)
+  {
+    auto err = v8::Exception::Error(v8::String::NewFromUtf8(Isolate(), message,
+      v8::NewStringType::kNormal).ToLocalChecked());
+    Isolate()->ThrowException(err);
+  }
+  void IBaseArgs::ThrowTypeError(char * message)
+  {
+    auto err = v8::Exception::TypeError(v8::String::NewFromUtf8(Isolate(), message,
+      v8::NewStringType::kNormal).ToLocalChecked());
+    Isolate()->ThrowException(err);
+  }
   void IBaseArgs::SetupArgs(v8::Isolate * isolate, v8::Local<v8::Object> holderObj)
   {
     CHECK(isolate);
