@@ -105,6 +105,8 @@ type
     function GetDelphiObject: TObject; virtual; stdcall; abstract;
     function GetDelphiClasstype: TClass; virtual; stdcall; abstract;
     procedure SetReturnValue(val: IJSValue); virtual; stdcall; abstract;
+    procedure ThrowError(msg: PAnsiChar); virtual; stdcall; abstract;
+    procedure ThrowTypeError(msg: PAnsiChar); virtual; stdcall; abstract;
     function IsMethodArgs(): boolean; virtual; stdcall; abstract;
     function IsGetterArgs(): boolean; virtual; stdcall; abstract;
     function IsSetterArgs(): boolean; virtual; stdcall; abstract;
