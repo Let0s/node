@@ -3,7 +3,8 @@ unit EngineHelper;
 interface
 
 uses
-  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes, SysUtils, Variants;
+  NodeInterface, RTTI, TypInfo, Generics.Collections, Classes, SysUtils,
+  ScriptAttributes, Variants;
 
 type
   EScriptEngineException = class(Exception);
@@ -75,6 +76,11 @@ type
     procedure AddObject(Obj: TObject);
   end;
 
+  function HaveScriptSetting(Attributes: TArray<TCustomAttribute>;
+    Setting: TScriptAttributeType): boolean; overload;
+  function HaveScriptSetting(Attribute: TScriptAttribute;
+    Setting: TScriptAttributeType): boolean; overload;
+
   function TValueToJSValue(value: TValue; Engine: IJSEngine): IJSValue;
   function RecordToJSValue(rec: TValue; Engine: IJSEngine): IJSObject;
   function TValueToJSFunction(value: TValue; Engine: IJSEngine): IJSValue;
@@ -111,6 +117,27 @@ var
   EventWrapperClassList: TDictionary<PTypeInfo, TEventWrapperClass>;
 
 implementation
+
+function HaveScriptSetting(Attributes: TArray<TCustomAttribute>;
+  Setting: TScriptAttributeType): boolean;
+var
+  Attr: TCustomAttribute;
+begin
+  Result := false;
+  for Attr in Attributes do
+    if Attr is TScriptAttribute then
+      if HaveScriptSetting(Attr as TScriptAttribute, Setting) then
+      begin
+        Result := True;
+        break;
+      end;
+end;
+
+function HaveScriptSetting(Attribute: TScriptAttribute;
+  Setting: TScriptAttributeType): boolean;
+begin
+  Result := Attribute.HaveSetting(Setting);
+end;
 
 function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
   JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
