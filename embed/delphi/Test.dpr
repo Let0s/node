@@ -29,6 +29,9 @@ var
   Engine: TJSEngine;
   Global: TTestGlobal;
 begin
+  {$IFDEF DEBUG}
+    ReportMemoryLeaksOnShutdown := True;
+  {$ENDIF}
   Math.SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow,
     exUnderflow, exPrecision]);
   try
