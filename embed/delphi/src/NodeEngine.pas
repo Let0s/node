@@ -243,8 +243,8 @@ procedure BaseCallBack(args: IBaseArgs); stdcall;
 var
   Engine: TJSEngine;
 begin
+  Engine := args.GetEngine as TJSEngine;
   try
-    Engine := args.GetEngine as TJSEngine;
     if args.IsMethodArgs then
       MethodCallBack(args.AsMethodArgs)
     else if args.IsGetterArgs then
@@ -570,7 +570,8 @@ begin
     begin
       i := 0;
       EnumName := '';
-      EnumTemplate := FEngine.AddEnum(StringToPAnsiChar(Enum.Handle.Name));
+      EnumTemplate := FEngine.AddEnum(
+        StringToPAnsiChar(String(Enum.Handle.Name)));
       // TODO: find better way
       while true do
       begin
