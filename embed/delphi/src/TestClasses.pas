@@ -58,7 +58,7 @@ type
     function GetItems(index: integer): TTestFigure;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     procedure Add(Figure: TTestFigure);
     property Items[index: integer]: TTestFigure read GetItems; default;
   end;
@@ -252,6 +252,7 @@ end;
 destructor TTestFigureList.Destroy;
 begin
   FList.Free;
+  inherited;
 end;
 
 function TTestFigureList.GetItems(index: integer): TTestFigure;
