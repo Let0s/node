@@ -293,7 +293,6 @@ var
   Obj: TObject;
   ObjType: TClass;
   Result: TValue;
-  JSResult: IJSValue;
   MethodArgs: TArray<TValue>;
   Helper: TJSClassHelper;
 begin
@@ -348,7 +347,6 @@ var
   PropInfo: TClassProp;
   Obj: TObject;
   Result: TValue;
-  JSResult: IJSValue;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -419,7 +417,6 @@ var
   Field: TRttiField;
   Obj: TObject;
   Result: TValue;
-  JSResult: IJSValue;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -471,7 +468,6 @@ var
   Prop: TRttiIndexedProperty;
   Obj: TObject;
   Result: TValue;
-  JSResult: IJSValue;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
@@ -499,7 +495,6 @@ var
   Prop: TRttiIndexedProperty;
   Obj: TObject;
   Result: TValue;
-  JSResult: IJSValue;
 begin
   Engine := Args.GetEngine as TJSEngine;
   if Assigned(Engine) then
