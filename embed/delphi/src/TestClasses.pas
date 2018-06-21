@@ -63,6 +63,10 @@ type
     property Items[index: integer]: TTestFigure read GetItems; default;
   end;
 
+  //should be never used in JS
+  [TScriptAttribute([satForbidden])]
+  TForbiddenClass = class(TObject);
+
   TTestGlobal = class(TObject)
   private
     FOnGetFigure: TNotifyEvent;
@@ -90,6 +94,9 @@ type
     function CreateFigure(figType: TTestFigureType): TTestFigure;
     [TScriptAttribute([satGarbage])]
     function CreateFigureList: TTestFigureList;
+    //should be never called from JS
+    [TScriptAttribute([satForbidden])]
+    function CreateForbiddenClass: TForbiddenClass;
   end;
 
 implementation
@@ -135,6 +142,11 @@ end;
 function TTestGlobal.CreateFigureList: TTestFigureList;
 begin
   Result := TTestFigureList.Create;
+end;
+
+function TTestGlobal.CreateForbiddenClass: TForbiddenClass;
+begin
+  Result := TForbiddenClass.Create;
 end;
 
 function TTestGlobal.CreateRandomFigure: ITestFigure;

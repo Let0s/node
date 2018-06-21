@@ -8,11 +8,8 @@ type
   TScriptAttributeType = (
     // Return value should be stored in garbage collector
     satGarbage,
-    // Property/method shouldn't be available in JS
-    satForbiddenProp,
-    // Class shouldn't be available in JS
-    // If method/prop have this setting, it must return undefined
-    satForbiddenClass
+    // Property/method/field/class shouldn't be available in JS
+    satForbidden
   );
 
   TScriptAttributeSettings = set of TScriptAttributeType;
