@@ -4,7 +4,7 @@ interface
 
 uses
   NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper, IOUtils,
-  Generics.Collections, Windows, Classes, Contnrs;
+  Generics.Collections, Windows, Classes, Contnrs, ScriptAttributes;
 
 type
   TJSEngine = class;
@@ -121,6 +121,7 @@ type
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
     property Active: boolean read FActive;
+    property GC: TGarbageCollector read GetGarbageCollector;
   end;
 
   // unwrap delphi object from js object in arguments
@@ -321,6 +322,8 @@ begin
             Result := Method.Invoke(ObjType, MethodArgs);
           end;
         end;
+        if HaveScriptSetting(Method.GetAttributes, satGarbage) then
+          Engine.GC.Add(Result);
         SetReturnValue(Args, Result);
       end;
     end;
