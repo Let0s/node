@@ -521,6 +521,15 @@ end;
 { TJSEngine }
 
 function TJSEngine.AddClass(classType: TClass): TClassWrapper;
+
+  function ClassIsForbidden(cl: TClass): boolean;
+  var
+    Typ: TRttiType;
+  begin
+    Typ := EngineHelper.Context.GetType(cl);
+    Result := HaveScriptSetting(Typ.GetAttributes, satForbidden);
+  end;
+
 var
   ClassWrapper: TClassWrapper;
   ParentWrapper: TClassWrapper;
@@ -528,7 +537,7 @@ var
   Helper: TJSClassHelper;
 begin
   Result := nil;
-  if Active then
+  if Active and (not ClassIsForbidden(classType)) then
   begin
     if (classType = FGlobal.ClassType) or (classType = TObject) then
       Exit;
@@ -817,11 +826,15 @@ var
 begin
   for Field in Classtyp.GetFields do
   begin
-    if (Field.Visibility = mvPublic) and
-      (Field.Parent.Handle = Classtyp.Handle) then
+    // check if field is not forbidden for JS
+    if not HaveScriptSetting(Field.GetAttributes, satForbidden) then
     begin
-      Engine.CheckType(Field.FieldType);
-      FTemplate.SetField(Engine.StringToPAnsiChar(Field.Name), Field);
+      if (Field.Visibility = mvPublic) and
+        (Field.Parent.Handle = Classtyp.Handle) then
+      begin
+        Engine.CheckType(Field.FieldType);
+        FTemplate.SetField(Engine.StringToPAnsiChar(Field.Name), Field);
+      end;
     end;
   end;
 end;
@@ -836,20 +849,24 @@ begin
   ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
   for Method in ClassTyp.GetMethods do
   begin
-    // Add only public methods from full class hierarchy
-    // (exclude TObject's methods)
-    if (Method.Visibility = mvPublic) and
-      (method.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
-      (Method.MethodKind in [mkProcedure, mkFunction]) then
+    // check if method is not forbidden for JS
+    if not HaveScriptSetting(Method.GetAttributes, satForbidden) then
     begin
-      CheckMethod(Method, Engine);
-      if not FMethods.TryGetValue(Method.Name, Overloads) then
+      // Add only public methods from full class hierarchy
+      // (exclude TObject's methods)
+      if (Method.Visibility = mvPublic) and
+        (method.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
+        (Method.MethodKind in [mkProcedure, mkFunction]) then
       begin
-        Overloads := TRttiMethodList.Create(Engine);
-        FMethods.Add(Method.Name, Overloads);
-        FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
+        CheckMethod(Method, Engine);
+        if not FMethods.TryGetValue(Method.Name, Overloads) then
+        begin
+          Overloads := TRttiMethodList.Create(Engine);
+          FMethods.Add(Method.Name, Overloads);
+          FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
+        end;
+        Overloads.Add(TClassMethod.Create(Method, Helper));
       end;
-      Overloads.Add(TClassMethod.Create(Method, Helper));
     end;
   end;
 end;
@@ -864,17 +881,21 @@ begin
   ClassTyp := EngineHelper.Context.GetType(Helper.ClassType);
   for Prop in ClassTyp.GetProperties do
   begin
-    // Add only public props from full class hierarchy
-    // (exclude TObject's props)
-    if (Prop.Visibility = mvPublic) and
-      (Prop.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
-      not FProps.ContainsKey(Prop.Name) then
+    // check if prop is not forbidden for JS
+    if not HaveScriptSetting(Prop.GetAttributes, satForbidden) then
     begin
-      Engine.CheckType(Prop.PropertyType);
-      PropInfo := TClassProp.Create(Prop, Helper);
-      FProps.Add(Prop.Name, PropInfo);
-      FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
-        Prop.IsReadable, Prop.IsWritable);
+      // Add only public props from full class hierarchy
+      // (exclude TObject's props)
+      if (Prop.Visibility = mvPublic) and
+        (Prop.Parent.Handle.TypeData.ClassType.InheritsFrom(TJSClassHelper)) and
+        not FProps.ContainsKey(Prop.Name) then
+      begin
+        Engine.CheckType(Prop.PropertyType);
+        PropInfo := TClassProp.Create(Prop, Helper);
+        FProps.Add(Prop.Name, PropInfo);
+        FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
+          Prop.IsReadable, Prop.IsWritable);
+      end;
     end;
   end;
 end;
@@ -887,14 +908,18 @@ begin
   DefaultProp := nil;
   for Prop in ClassTyp.GetIndexedProperties do
   begin
-    if (Prop.Visibility = mvPublic) and
-      (Prop.Parent.Handle = ClassTyp.Handle) then
+    // check if prop is not forbidden for JS
+    if not HaveScriptSetting(Prop.GetAttributes, satForbidden) then
     begin
-      Engine.CheckType(Prop.PropertyType);
-      if Prop.IsDefault then
-        DefaultProp := Prop;
-      FTemplate.SetIndexedProperty(Engine.StringToPAnsiChar(Prop.Name), Prop,
-        Prop.IsReadable, Prop.IsWritable);
+      if (Prop.Visibility = mvPublic) and
+        (Prop.Parent.Handle = ClassTyp.Handle) then
+      begin
+        Engine.CheckType(Prop.PropertyType);
+        if Prop.IsDefault then
+          DefaultProp := Prop;
+        FTemplate.SetIndexedProperty(Engine.StringToPAnsiChar(Prop.Name), Prop,
+          Prop.IsReadable, Prop.IsWritable);
+      end;
     end;
   end;
   if Assigned(DefaultProp) then
@@ -908,35 +933,43 @@ var
 begin
   for Method in ClassTyp.GetMethods do
   begin
-    //check if method belongs to given class type (not to the parent)
-    if (Method.Visibility = mvPublic) and
-      (not (Method.IsConstructor or Method.IsDestructor)) and
-      (Method.Parent.Handle = ClassTyp.Handle) then
+    // check if method is not forbidden for JS
+    if not HaveScriptSetting(Method.GetAttributes, satForbidden) then
     begin
-      CheckMethod(Method, Engine);
-      if not FMethods.TryGetValue(Method.Name, Overloads) then
+      //check if method belongs to given class type (not to the parent)
+      if (Method.Visibility = mvPublic) and
+        (not (Method.IsConstructor or Method.IsDestructor)) and
+        (Method.Parent.Handle = ClassTyp.Handle) then
       begin
-        Overloads := TRttiMethodList.Create(Engine);
-        FMethods.Add(Method.Name, Overloads);
-        FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
+        CheckMethod(Method, Engine);
+        if not FMethods.TryGetValue(Method.Name, Overloads) then
+        begin
+          Overloads := TRttiMethodList.Create(Engine);
+          FMethods.Add(Method.Name, Overloads);
+          FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
+        end;
+        Overloads.Add(TClassMethod.Create(Method, nil));
       end;
-      Overloads.Add(TClassMethod.Create(Method, nil));
     end;
   end;
 
   for Method in ClassTyp.GetMethods do
   begin
-    //check if method belongs to parent class type
-    //  and current class type have an overloaded method
-    if (Method.Parent.Handle <> ClassTyp.Handle) and
-      (Method.Visibility = mvPublic) and
-      (not (Method.IsConstructor or Method.IsDestructor)) and
-      FMethods.TryGetValue(Method.Name, Overloads) then
+    // check if method is not forbidden for JS
+    if not HaveScriptSetting(Method.GetAttributes, satForbidden) then
     begin
-      CheckMethod(Method, Engine);
-      // TODO: think about overrided methods, that can be added as overloads
-      // Check by parameter count and types?
-      Overloads.Add(TClassMethod.Create(Method, nil));
+      //check if method belongs to parent class type
+      //  and current class type have an overloaded method
+      if (Method.Parent.Handle <> ClassTyp.Handle) and
+        (Method.Visibility = mvPublic) and
+        (not (Method.IsConstructor or Method.IsDestructor)) and
+        FMethods.TryGetValue(Method.Name, Overloads) then
+      begin
+        CheckMethod(Method, Engine);
+        // TODO: think about overrided methods, that can be added as overloads
+        // Check by parameter count and types?
+        Overloads.Add(TClassMethod.Create(Method, nil));
+      end;
     end;
   end;
 end;
@@ -948,14 +981,18 @@ var
 begin
   for Prop in ClassTyp.GetProperties do
   begin
-    if (Prop.Visibility = mvPublic) and
-      (Prop.Parent.Handle = ClassTyp.Handle) then
+    // check if prop is not forbidden for JS
+    if not HaveScriptSetting(Prop.GetAttributes, satForbidden) then
     begin
-      Engine.CheckType(Prop.PropertyType);
-      PropInfo := TClassProp.Create(Prop, nil);
-      FProps.Add(Prop.Name, PropInfo);
-      FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
-        Prop.IsReadable, Prop.IsWritable);
+      if (Prop.Visibility = mvPublic) and
+        (Prop.Parent.Handle = ClassTyp.Handle) then
+      begin
+        Engine.CheckType(Prop.PropertyType);
+        PropInfo := TClassProp.Create(Prop, nil);
+        FProps.Add(Prop.Name, PropInfo);
+        FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
+          Prop.IsReadable, Prop.IsWritable);
+      end;
     end;
   end;
 end;
