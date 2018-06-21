@@ -74,6 +74,7 @@ type
     procedure AddCallback(Event: TEventWrapper);
     function GetCallBack(Method: TValue): TEventWrapper;
     procedure AddObject(Obj: TObject);
+    procedure Add(Value: TValue);
   end;
 
   function HaveScriptSetting(Attributes: TArray<TCustomAttribute>;
@@ -666,6 +667,23 @@ begin
 end;
 
 { TGarbageCollector }
+
+procedure TGarbageCollector.Add(Value: TValue);
+var
+  i, count: integer;
+begin
+  case Value.Kind of
+    tkClass:
+      AddObject(Value.AsObject);
+    tkInterface: ;
+    tkArray, tkDynArray:
+    begin
+      count := Value.GetArrayLength;
+      for i := 0 to count - 1 do
+        Add(Value.GetArrayElement(i));
+    end;
+  end;
+end;
 
 procedure TGarbageCollector.AddCallback(Event: TEventWrapper);
 begin

@@ -3,7 +3,8 @@ unit TestClasses;
 interface
 
 uses
-  Math, TestRecords, TestInterfaces, Classes, TestHelpers, Generics.Collections;
+  Math, TestRecords, TestInterfaces, Classes, TestHelpers, Generics.Collections,
+  ScriptAttributes;
 
 type
 
@@ -72,14 +73,22 @@ type
     destructor Destroy; override;
     property Five: integer read GetFive;
     property OnGetFigure: TNotifyEvent read FOnGetFigure write FOnGetFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateRandomFigure: ITestFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateCustomFigure: TCustomFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateRectangles(sizes: TArray<Double>): TTestFigureArray;
+    [TScriptAttribute([satGarbage])]
     function CreateRectangle(StartPoint, EndPoint: TTestPoint): TTestRectangle;
+    [TScriptAttribute([satGarbage])]
     function CreateCircle(Radius: double): TTestCircle; overload;
+    [TScriptAttribute([satGarbage])]
     function CreateCircle(CenterPoint: TTestPoint;
       Radius: double): TTestCircle; overload;
+    [TScriptAttribute([satGarbage])]
     function CreateFigure(figType: TTestFigureType): TTestFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateFigureList: TTestFigureList;
   end;
 
