@@ -36,15 +36,23 @@ var testGlobal = {
         OnGetFigure = null;
     },
     testError: () => {
-        try{
+        try {
             var rect = CreateRectangles(2);
-        }   
-        catch (e){
+        }
+        catch (e) {
             assert.ok(e instanceof TypeError, 'e is not TypeError');
             return;
         }
         //next line shouldn't be reached
         assert.ok(false, 'no error was occured with invalid parameters');
+    },
+    testForbiddenMethod: () => {
+        assert(typeof CreateForbiddenClass == 'undefined',
+            'forbidden function CreateForbiddenClass exists');
+    },
+    testForbiddenClass: () => {
+        assert(typeof TForbiddenClass == 'undefined',
+            'forbidden class TForbiddenClass exists');
     }
 }
 
