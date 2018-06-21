@@ -778,7 +778,6 @@ begin
       FEngine.ChangeWorkingDir(StringToPAnsiChar(
         ExtractFileDir(FullName)));
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
-      Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
       if FDebugParam <> '' then
         Args.AddArgument(StringToPAnsiChar(FDebugParam));
       Args.AddArgument(StringToPAnsiChar(FullName));
