@@ -194,20 +194,5 @@ type
     external LIB_NAME delayed;
   function EmbedMajorVersion: integer; cdecl; external LIB_NAME delayed;
   function EmbedMinorVersion: integer; cdecl; external LIB_NAME delayed;
-
-
-  function PUtf8CharToString(s: PAnsiChar): string;
-  function StringToPUtf8Char(s: string): PAnsiChar;
-
 implementation
-
-function PUtf8CharToString(s: PAnsiChar): string;
-begin
-  Result := UTF8ToUnicodeString(RawByteString(s));
-end;
-
-function StringToPUtf8Char(s: string): PAnsiChar;
-begin
-  Result := PAnsiChar(UTF8String(s));
-end;
 end.

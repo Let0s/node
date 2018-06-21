@@ -14,6 +14,8 @@ type
   TValueArray = TArray<TValue>;
 
   IJSEngine = interface
+    function StringToPAnsiChar(const S: string): PAnsiChar;
+    function PAnsiCharToString(P: PAnsiChar): string;
     function GetEngine: INodeEngine;
     function GetGarbageCollector: TGarbagecollector;
     property Engine: INodeEngine read GetEngine;
@@ -93,10 +95,10 @@ type
 
   function JSParametersToTValueArray(Params: TArray<TRttiParameter>;
     JSParams: IJSArray; Engine: IJSEngine): TArray<TValue>;
-  procedure CheckConversion(value: IJSValue; typ: TRttiType);
+  procedure CheckConversion(value: IJSValue; typ: TRttiType; Engine: IJSEngine);
   function JSValueToTValue(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
-  function JSValueToVariant(value: IJSValue): Variant;
+  function JSValueToVariant(value: IJSValue; Engine: IJSEngine): Variant;
   function JSValueToRecord(value: IJSValue; typ: TRttiType;
     Engine: IJSEngine): TValue;
   function JSArrayToTValue(value: IJSArray; typ: TRttiType;
@@ -105,9 +107,10 @@ type
     Engine: IJSEngine): TValue;
   function DefaultTValue(typ: TRttiType): TValue;
 
-  function JSValueToUnknownTValue(value: IJSValue): TValue;
+  function JSValueToUnknownTValue(value: IJSValue; Engine: IJSEngine): TValue;
 
-  function CompareType(typ: TRttiType; value: IJSValue): Boolean;
+  function CompareType(typ: TRttiType; value: IJSValue;
+    Engine: IJSEngine): Boolean;
 
   function RegisterEventWrapper(Event: PTypeInfo;
     Wrapper: TEventWrapperClass): boolean;
@@ -173,7 +176,7 @@ begin
       tkUnknown: ;
       tkInteger: Result := NodeEngine.NewInt32(value.AsInteger);
       tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-        Result := NodeEngine.NewString(StringToPUtf8Char(value.ToString));
+        Result := NodeEngine.NewString(Engine.StringToPAnsiChar(value.ToString));
       tkEnumeration:
         if value.IsType<Boolean> then
           Result := NodeEngine.NewBool(value.AsBoolean)
@@ -316,15 +319,15 @@ begin
     if VarIsNumeric(value) then
       Result := NodeEngine.NewNumber(Double(value))
     else if VarIsStr(value) then
-      Result := NodeEngine.NewString(StringToPUtf8Char(value));
+      Result := NodeEngine.NewString(Engine.StringToPAnsiChar(value));
   end;
 end;
 
-procedure CheckConversion(value: IJSValue; typ: TRttiType);
+procedure CheckConversion(value: IJSValue; typ: TRttiType; Engine: IJSEngine);
 begin
   if not (value.IsUndefined or value.IsNull) then
   begin
-    if not CompareType(typ, value) then
+    if not CompareType(typ, value, Engine) then
       raise EInvalidCast.Create('Type mismatch. Expected ' + typ.Name);
   end;
 end;
@@ -335,13 +338,13 @@ begin
   Result := TValue.Empty;
   if Assigned(value) then
   begin
-    CheckConversion(value, typ);
+    CheckConversion(value, typ, Engine);
     case typ.TypeKind of
       tkUnknown: ;
       tkInteger:
         Result := value.AsInt32;
       tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-        Result := PUtf8CharToString(value.AsString);
+        Result := Engine.PAnsiCharToString(value.AsString);
       tkEnumeration:
         if typ.Handle = TypeInfo(Boolean) then
           Result := value.AsBool
@@ -356,7 +359,7 @@ begin
       tkMethod:
         Result := JSValueToMethod(value, typ, Engine);
       tkVariant:
-        Result := TValue.From<Variant>(JsValueToVariant(value));
+        Result := TValue.From<Variant>(JsValueToVariant(value, Engine));
       tkArray:
         Result := JSArrayToTValue(value.AsArray, typ as TRttiArrayType, Engine);
       tkRecord: Result := JsValueToRecord(value, typ, Engine);
@@ -371,7 +374,7 @@ begin
   end;
 end;
 
-function JSValueToVariant(value: IJSValue): Variant;
+function JSValueToVariant(value: IJSValue; Engine: IJSEngine): Variant;
 begin
   Result := Unassigned;
   if not assigned(value) or (value.IsUndefined) then
@@ -384,7 +387,7 @@ begin
   else if value.IsNumber then
     Result := value.AsNumber
   else if value.IsString then
-    Result := PUtf8CharToString(value.AsString);
+    Result := Engine.PAnsiCharToString(value.AsString);
 end;
 
 function JSValueToRecord(value: IJSValue; typ: TRttiType;
@@ -410,7 +413,7 @@ begin
       if not Assigned(Field.FieldType) or (Field.Visibility <> mvPublic) then
         Continue;
       Field.SetValue(ref,
-        JSValueToTValue(Rec.GetField(StringToPUtf8Char(Field.Name)),
+        JSValueToTValue(Rec.GetField(Engine.StringToPAnsiChar(Field.Name)),
                         Field.FieldType,
                         Engine));
     end;
@@ -420,7 +423,7 @@ begin
       if not Assigned(Prop.PropertyType) or (Prop.Visibility <> mvPublic) then
         Continue;
       Prop.SetValue(ref,
-        JSValueToTValue(Rec.GetField(StringToPUtf8Char(Prop.Name)),
+        JSValueToTValue(Rec.GetField(Engine.StringToPAnsiChar(Prop.Name)),
                         Prop.PropertyType,
                         Engine));
     end;
@@ -516,7 +519,7 @@ begin
   end;
 end;
 
-function JSValueToUnknownTValue(value: IJSValue): TValue;
+function JSValueToUnknownTValue(value: IJSValue; Engine: IJSEngine): TValue;
 begin
   Result := TValue.Empty;
   if not assigned(value) then
@@ -531,10 +534,11 @@ begin
   else if (value.IsDelphiObject) then
     Result := TValue.From<TObject>(value.AsDelphiObject)
   else if value.IsString then
-    Result := PUtf8CharToString(value.AsString);
+    Result := Engine.PAnsiCharToString(value.AsString);
 end;
 
-function CompareType(typ: TRttiType; value: IJSValue): Boolean;
+function CompareType(typ: TRttiType; value: IJSValue;
+  Engine: IJSEngine): Boolean;
 var
   IntValue: Integer;
   Int64Value: Int64;
@@ -544,11 +548,11 @@ begin
   case typ.TypeKind of
     tkUnknown: ;
     tkInteger, tkEnumeration: Result := value.IsInt32 or value.IsBool or
-      TryStrToInt(PUtf8CharToString(value.AsString), IntValue);
+      TryStrToInt(Engine.PAnsiCharToString(value.AsString), IntValue);
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       Result := True; // we can transform any data to string;
     tkFloat: Result := value.IsNumber or
-      TryStrToFloat(PUtf8CharToString(value.AsString), FloatValue);
+      TryStrToFloat(Engine.PAnsiCharToString(value.AsString), FloatValue);
     tkSet: ;
     tkClass: Result := value.IsDelphiObject;
     tkMethod: Result := value.IsFunction;
@@ -557,15 +561,15 @@ begin
     tkRecord: Result := value.IsObject;
     tkInterface: ;
     tkInt64: Result := value.IsNumber or
-      TryStrToInt64(PUtf8CharToString(value.AsString), Int64Value);
+      TryStrToInt64(Engine.PAnsiCharToString(value.AsString), Int64Value);
     tkClassRef: ;
     tkPointer: Result :=
     {$IFDEF WIN32}
       value.IsInt32 or
-      TryStrToInt(PUtf8CharToString(value.AsString), IntValue);
+      TryStrToInt(Engine.PAnsiCharToString(value.AsString), IntValue);
     {$ELSE}
       value.IsNumber or
-      TryStrToInt64(PUtf8CharToString(value.AsString), Int64Value);
+      TryStrToInt64(Engine.PAnsiCharToString(value.AsString), Int64Value);
     {$ENDIF}
     tkProcedure: ;
   end;
@@ -630,7 +634,7 @@ begin
     if Assigned(ReturnType) then
       Result := JSValueToTValue(res, ReturnType, FEngine)
     else
-      Result := JSValueToUnknownTValue(res);
+      Result := JSValueToUnknownTValue(res, FEngine);
   end;
 end;
 

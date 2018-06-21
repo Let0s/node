@@ -33,7 +33,10 @@ type
 
   //list of overloaded methods
   TRttiMethodList = class(TObjectList<TClassMethod>)
+  private
+    FEngine: TJSEngine;
   public
+    constructor Create(Engine: TJSEngine);
     // This function tries to guess right method by given arguments.
     // There are a lot of cases, when it can return wrong result, so
     // TODO: make it return correct result (if possible)
@@ -93,7 +96,11 @@ type
     FGarbageCollector: TGarbageCollector;
     FIgnoredExceptions: TList<TClass>;
     FActive: boolean;
+    // it is used for conversion to PAnsiChar
+    FUTF8String: UTF8String;
   protected
+    function StringToPAnsiChar(const S: string): PAnsiChar;
+    function PAnsiCharToString(P: PAnsiChar): string;
     function GetEngine: INodeEngine;
     function GetGarbageCollector: TGarbageCollector;
 
@@ -156,6 +163,8 @@ var
   StdInRead, StdInWrite, StdOutRead, StdOutWrite: THandle;
 
 function InitJS: boolean;
+var
+  utfStr: UTF8String;
 begin
   if not Initialized then
   begin
@@ -163,7 +172,10 @@ begin
     VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
       (EmbedMinorVersion >= EMBED_MINOR_VERSION);
     if VersionEqual then
-      InitNode(StringToPUtf8Char(ParamStr(0)));
+    begin
+      utfStr := UTF8String(ParamStr(0));
+      InitNode(PAnsiChar(utfStr));
+    end;
     Initialized := True;
   end;
   Result := VersionEqual;
@@ -232,6 +244,7 @@ var
   Engine: TJSEngine;
 begin
   try
+    Engine := args.GetEngine as TJSEngine;
     if args.IsMethodArgs then
       MethodCallBack(args.AsMethodArgs)
     else if args.IsGetterArgs then
@@ -255,18 +268,17 @@ begin
   except
     on E: EInvalidCast do
     begin
-      args.ThrowTypeError(StringToPUtf8Char(E.Message));
+      args.ThrowTypeError(Engine.StringToPAnsiChar(E.Message));
     end;
     on E: EAccessViolation do
     begin
-      args.ThrowError(StringToPUtf8Char(E.Message));
+      args.ThrowError(Engine.StringToPAnsiChar(E.Message));
     end;
     on E: Exception do
     begin
-      Engine := args.GetEngine as TJSEngine;
       if Engine.FIgnoredExceptions.IndexOf(E.ClassType) < 0 then
       begin
-        args.ThrowError(StringToPUtf8Char(E.Message));
+        args.ThrowError(Engine.StringToPAnsiChar(E.Message));
       end
     end;
   end;
@@ -473,7 +485,8 @@ begin
       Prop := Args.GetPropPointer as TRttiIndexedProperty;
       if Assigned(Prop) then
       begin
-        Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
+        Result := Prop.GetValue(Obj,
+          [JSValueToUnknownTValue(args.GetPropIndex, Engine)]);
         SetReturnValue(Args, Result);
       end;
     end;
@@ -502,7 +515,8 @@ begin
       begin
         Prop.SetValue(Obj, [args.GetPropIndex],
           JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
-        Result := Prop.GetValue(Obj, [JSValueToUnknownTValue(args.GetPropIndex)]);
+        Result := Prop.GetValue(Obj,
+          [JSValueToUnknownTValue(args.GetPropIndex, Engine)]);
         SetReturnValue(Args, Result);
       end;
     end;
@@ -556,7 +570,7 @@ begin
     begin
       i := 0;
       EnumName := '';
-      EnumTemplate := FEngine.AddEnum(StringToPUtf8Char(Enum.Handle.Name));
+      EnumTemplate := FEngine.AddEnum(StringToPAnsiChar(Enum.Handle.Name));
       // TODO: find better way
       while true do
       begin
@@ -564,7 +578,7 @@ begin
         enumNum := GetEnumValue(typInfo, EnumName);
         if enumNum <> i then
           break;
-        EnumTemplate.AddValue(StringToPUtf8Char(EnumName), i);
+        EnumTemplate.AddValue(StringToPAnsiChar(EnumName), i);
         inc(i);
       end;
       FEnumList.Add(typInfo);
@@ -591,13 +605,13 @@ var
 begin
   CType := Variable.ClassType;
   AddClass(CType);
-  FEngine.AddGlobalVariableObject(StringToPUtf8Char(Name), Variable, CType);
+  FEngine.AddGlobalVariableObject(StringToPAnsiChar(Name), Variable, CType);
 end;
 
 procedure TJSEngine.AddPreCode(code: string);
 begin
   if Active then
-    FEngine.AddPreCode(StringToPUtf8Char(code));
+    FEngine.AddPreCode(StringToPAnsiChar(code));
 end;
 
 function TJSEngine.CallFunction(funcName: string; args: TValueArray): TValue;
@@ -608,8 +622,8 @@ begin
   if Active then
   begin
     JsArgs := TValueArrayToJSArray(args, Self);
-    ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), JsArgs);
-    Result := JSValueToUnknownTValue(ResultValue)
+    ResultValue := FEngine.CallFunction(StringToPAnsiChar(funcName), JsArgs);
+    Result := JSValueToUnknownTValue(ResultValue, Self)
   end;
 end;
 
@@ -619,8 +633,8 @@ var
 begin
   if Active then
   begin
-    ResultValue := FEngine.CallFunction(StringToPUtf8Char(funcName), nil);
-    Result := JSValueToUnknownTValue(ResultValue)
+    ResultValue := FEngine.CallFunction(StringToPAnsiChar(funcName), nil);
+    Result := JSValueToUnknownTValue(ResultValue, Self)
   end;
 end;
 
@@ -705,6 +719,11 @@ begin
   FIgnoredExceptions.Add(ExceptionType);
 end;
 
+function TJSEngine.PAnsiCharToString(P: PAnsiChar): string;
+begin
+  Result := UTF8ToUnicodeString(RawByteString(P));
+end;
+
 function TJSEngine.QueryInterface(const IID: TGUID; out Obj): HResult;
 begin
   if GetInterface(IID, Obj) then
@@ -748,11 +767,11 @@ begin
       //get absolute path to script file
       FullName := ExpandFileName(filename);
       // set nodejs cwd to script path
-      FEngine.ChangeWorkingDir(StringToPUtf8Char(
+      FEngine.ChangeWorkingDir(StringToPAnsiChar(
         ExtractFileDir(FullName)));
-      Args.AddArgument(StringToPUtf8Char(ParamStr(0)));
-//      Args.AddArgument(StringToPUtf8Char('-e')); //here can be debug param
-      Args.AddArgument(StringToPUtf8Char(FullName));
+      Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
+//      Args.AddArgument(StringToPAnsiChar('-e')); //here can be debug param
+      Args.AddArgument(StringToPAnsiChar(FullName));
       FEngine.Launch(Args);
     finally
       Args.Delete
@@ -768,14 +787,20 @@ begin
   begin
     Args := FEngine.CreateLaunchArguments;
     try
-      Args.AddArgument(StringToPUtf8Char(ParamStr(0)));
-      Args.AddArgument(StringToPUtf8Char('-e'));
-      Args.AddArgument(StringToPUtf8Char(code));
+      Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
+      Args.AddArgument(StringToPAnsiChar('-e'));
+      Args.AddArgument(StringToPAnsiChar(code));
       FEngine.Launch(Args);
     finally
       Args.Delete
     end;
   end;
+end;
+
+function TJSEngine.StringToPAnsiChar(const S: string): PAnsiChar;
+begin
+  FUTF8String := UTF8String(S);
+  Result := PAnsiChar(FUTF8String);
 end;
 
 function TJSEngine._AddRef: integer;
@@ -800,7 +825,7 @@ begin
       (Field.Parent.Handle = Classtyp.Handle) then
     begin
       Engine.CheckType(Field.FieldType);
-      FTemplate.SetField(StringToPUtf8Char(Field.Name), Field);
+      FTemplate.SetField(Engine.StringToPAnsiChar(Field.Name), Field);
     end;
   end;
 end;
@@ -824,9 +849,9 @@ begin
       CheckMethod(Method, Engine);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
       begin
-        Overloads := TRttiMethodList.Create;
+        Overloads := TRttiMethodList.Create(Engine);
         FMethods.Add(Method.Name, Overloads);
-        FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
+        FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
       end;
       Overloads.Add(TClassMethod.Create(Method, Helper));
     end;
@@ -852,7 +877,7 @@ begin
       Engine.CheckType(Prop.PropertyType);
       PropInfo := TClassProp.Create(Prop, Helper);
       FProps.Add(Prop.Name, PropInfo);
-      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
+      FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
@@ -872,7 +897,7 @@ begin
       Engine.CheckType(Prop.PropertyType);
       if Prop.IsDefault then
         DefaultProp := Prop;
-      FTemplate.SetIndexedProperty(StringToPUtf8Char(Prop.Name), Prop,
+      FTemplate.SetIndexedProperty(Engine.StringToPAnsiChar(Prop.Name), Prop,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
@@ -895,9 +920,9 @@ begin
       CheckMethod(Method, Engine);
       if not FMethods.TryGetValue(Method.Name, Overloads) then
       begin
-        Overloads := TRttiMethodList.Create;
+        Overloads := TRttiMethodList.Create(Engine);
         FMethods.Add(Method.Name, Overloads);
-        FTemplate.SetMethod(StringToPUtf8Char(Method.Name), Overloads);
+        FTemplate.SetMethod(Engine.StringToPAnsiChar(Method.Name), Overloads);
       end;
       Overloads.Add(TClassMethod.Create(Method, nil));
     end;
@@ -933,7 +958,7 @@ begin
       Engine.CheckType(Prop.PropertyType);
       PropInfo := TClassProp.Create(Prop, nil);
       FProps.Add(Prop.Name, PropInfo);
-      FTemplate.SetProperty(StringToPUtf8Char(Prop.Name), PropInfo,
+      FTemplate.SetProperty(Engine.StringToPAnsiChar(Prop.Name), PropInfo,
         Prop.IsReadable, Prop.IsWritable);
     end;
   end;
@@ -972,7 +997,7 @@ begin
   if IsGlobal then
     FTemplate := FEngine.AddGlobal(FType)
   else
-    FTemplate := FEngine.AddObject(StringToPUtf8Char(FType.ClassName), FType);
+    FTemplate := FEngine.AddObject(Engine.StringToPAnsiChar(FType.ClassName), FType);
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
@@ -990,6 +1015,12 @@ begin
 end;
 
 { TRttiMethodList }
+
+constructor TRttiMethodList.Create(Engine: TJSEngine);
+begin
+  inherited Create;
+  FEngine := Engine;
+end;
 
 function TRttiMethodList.GetMethod(args: IJSArray): TClassMethod;
 var
@@ -1009,7 +1040,7 @@ begin
       begin
         if j >= args.GetCount then
           break;
-        if not CompareType(Params[j].ParamType, args.GetValue(j)) then
+        if not CompareType(Params[j].ParamType, args.GetValue(j), FEngine) then
         begin
           MethodInfo := nil;
           break;
