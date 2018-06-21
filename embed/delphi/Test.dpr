@@ -13,7 +13,8 @@ uses
   EngineHelper in 'src\EngineHelper.pas',
   TestRecords in 'src\TestRecords.pas',
   TestInterfaces in 'src\TestInterfaces.pas',
-  TestHelpers in 'src\TestHelpers.pas';
+  TestHelpers in 'src\TestHelpers.pas',
+  ScriptAttributes in 'src\ScriptAttributes.pas';
 
 const
   NewLine = #10#13;
@@ -28,6 +29,9 @@ var
   Engine: TJSEngine;
   Global: TTestGlobal;
 begin
+  {$IFDEF DEBUG}
+    ReportMemoryLeaksOnShutdown := True;
+  {$ENDIF}
   Math.SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow,
     exUnderflow, exPrecision]);
   try

@@ -3,7 +3,8 @@ unit TestClasses;
 interface
 
 uses
-  Math, TestRecords, TestInterfaces, Classes, TestHelpers, Generics.Collections;
+  Math, TestRecords, TestInterfaces, Classes, TestHelpers, Generics.Collections,
+  ScriptAttributes;
 
 type
 
@@ -57,7 +58,7 @@ type
     function GetItems(index: integer): TTestFigure;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     procedure Add(Figure: TTestFigure);
     property Items[index: integer]: TTestFigure read GetItems; default;
   end;
@@ -72,14 +73,22 @@ type
     destructor Destroy; override;
     property Five: integer read GetFive;
     property OnGetFigure: TNotifyEvent read FOnGetFigure write FOnGetFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateRandomFigure: ITestFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateCustomFigure: TCustomFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateRectangles(sizes: TArray<Double>): TTestFigureArray;
+    [TScriptAttribute([satGarbage])]
     function CreateRectangle(StartPoint, EndPoint: TTestPoint): TTestRectangle;
+    [TScriptAttribute([satGarbage])]
     function CreateCircle(Radius: double): TTestCircle; overload;
+    [TScriptAttribute([satGarbage])]
     function CreateCircle(CenterPoint: TTestPoint;
       Radius: double): TTestCircle; overload;
+    [TScriptAttribute([satGarbage])]
     function CreateFigure(figType: TTestFigureType): TTestFigure;
+    [TScriptAttribute([satGarbage])]
     function CreateFigureList: TTestFigureList;
   end;
 
@@ -243,6 +252,7 @@ end;
 destructor TTestFigureList.Destroy;
 begin
   FList.Free;
+  inherited;
 end;
 
 function TTestFigureList.GetItems(index: integer): TTestFigure;
