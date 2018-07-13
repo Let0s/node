@@ -39,7 +39,16 @@ begin
     Global := TTestGlobal.Create;
     try
       Engine.AddGlobal(Global);
-      Engine.RunFile('../embed/delphi/test/test.js');
+      // there should be 2 additional params for debugging test
+      // 1. --inspect-brk
+      // 2. script path (for test should be the same as without debugging)
+      if ParamCount = 2 then
+      begin
+        Engine.SetDebugParam(ParamStr(1));
+        Engine.RunFile(ParamStr(2));
+      end
+      else
+        Engine.RunFile('../embed/delphi/test/test.js');
       Engine.CallFunction('StartTest');
       Engine.CheckEventLoop; //check if event timer call callback
       Readln;
