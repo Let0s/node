@@ -92,6 +92,11 @@ namespace embed {
       exec_argv);
     running = true;
     PrepareForRun();
+    {// start inspector for script debugging
+      const char* path = argc > 1 ? argv[1] : nullptr;
+      CHECK(!env->inspector_agent()->IsStarted());
+      env->inspector_agent()->Start(v8_platform, path, node::debug_options);
+    }
     node::LoadEnvironment(env);
     //write v8 log messages (e.g. JS error) into stdout
     fflush(stdout);
@@ -109,6 +114,10 @@ namespace embed {
   void BaseEngine::Stop()
   {
     if (running) {
+      if (env->inspector_agent()->IsConnected()) {
+        env->inspector_agent()->WaitForDisconnect();
+      }
+      env->inspector_agent()->Stop();
       auto context = iso->GetCurrentContext();
       context->Exit();
       node::FreeEnvironment(env);
