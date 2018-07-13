@@ -57,6 +57,37 @@ var testClasses = {
                 `rect${i}'s square is not equal to its size`);
         }
     },
+    // Delphi RTTI joins array of arrays into one array,
+    // so "array[0..2] of array[0..2] of integer" will be converted to JS as 
+    // "array[0..8] of integer"
+    testArrayOfArrays: () => {
+        // 1. Check if getter works correct
+        const defaultRot = [
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1
+        ];
+        var circle = CreateCircle(5);
+        var rot = circle.Rotation
+        assert.strictEqual(rot.length, defaultRot.length);
+        for (var i = 0; i < rot.length; i++) {
+            assert.strictEqual(defaultRot[i], rot[i],
+                `rotation[${i}] value mismatch`);
+        }
+        // 2. Check if setter works correct
+        const newRot = [
+            0, 1, 0,
+            -1, 0, 0,
+            0, 0, 1
+        ];
+        circle.Rotation = newRot;
+        var rot = circle.Rotation
+        assert.strictEqual(rot.length, newRot.length);
+        for (var i = 0; i < rot.length; i++) {
+            assert.strictEqual(newRot[i], rot[i],
+                `rotation[${i}] value mismatch`);
+        }
+    },
     testInterface: () => {
         const intf = CreateRandomFigure();
         assert.ok(intf, 'intf is not defined');

@@ -12,10 +12,15 @@ type
 
   TTestPointArray = array of TTestPoint;
   T2PointArray = array [0..1] of TTestPoint;
+  TMatrix = array[0..2] of array[0..2] of Double;
 
   TTestFigure = class(TInterfacedObject, ITestFigure)
+  private
+    FRotation: TMatrix;
   public
+    constructor Create(); virtual;
     function GetSquare: double;
+    property Rotation: TMatrix read FRotation write FRotation;
   end;
 
   TTestFigureArray = array of TTestFigure;
@@ -25,7 +30,7 @@ type
     FRadius: double;
     FCenter: TTestPoint;
   public
-    constructor Create(CenterPoint: TTestPoint; Radius: double);
+    constructor Create(CenterPoint: TTestPoint; Radius: double); reintroduce;
     property Center: TTestPoint read FCenter write FCenter;
     property Radius: double read FRadius;
     function GetSquare: double;
@@ -36,7 +41,7 @@ type
     FMin: TTestPoint;
     FMax: TTestPoint;
   public
-    constructor Create(MinPoint, MaxPoint: TTestPoint);
+    constructor Create(MinPoint, MaxPoint: TTestPoint); reintroduce;
     property Min: TTestPoint read FMin;
     property Max: TTestPoint read FMax;
     function GetSquare: double;
@@ -57,7 +62,7 @@ type
     FList: TList<TTestFigure>;
     function GetItems(index: integer): TTestFigure;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Add(Figure: TTestFigure);
     property Items[index: integer]: TTestFigure read GetItems; default;
@@ -98,6 +103,13 @@ type
     [TScriptAttribute([satForbidden])]
     function CreateForbiddenClass: TForbiddenClass;
   end;
+
+const
+  IdentityMatrix: TMatrix = (
+    (1, 0, 0),
+    (0, 1, 0),
+    (0, 0, 1)
+  );
 
 implementation
 
@@ -199,6 +211,7 @@ end;
 
 constructor TTestCircle.Create(CenterPoint: TTestPoint; Radius: double);
 begin
+  inherited Create;
   FRadius := Radius;
   FCenter := CenterPoint;
 end;
@@ -224,6 +237,7 @@ end;
 
 constructor TTestRectangle.Create(MinPoint, MaxPoint: TTestPoint);
 begin
+  inherited Create;
   FMin := MinPoint;
   FMax := MaxPoint;
 end;
@@ -244,6 +258,11 @@ begin
 end;
 { TTestFigure }
 
+constructor TTestFigure.Create;
+begin
+  FRotation := IdentityMatrix;
+end;
+
 function TTestFigure.GetSquare: double;
 begin
   Result := -1;
@@ -258,6 +277,7 @@ end;
 
 constructor TTestFigureList.Create;
 begin
+  inherited Create;
   FList := TList<TTestFigure>.Create;
 end;
 
