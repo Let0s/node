@@ -42,7 +42,6 @@ begin
       // there should be 2 additional params for debugging test
       // 1. --inspect-brk
       // 2. script path (for test should be the same as without debugging)
-      WriteLn(ParamCount);
       if ParamCount = 2 then
       begin
         Engine.SetDebugParam(ParamStr(1));
