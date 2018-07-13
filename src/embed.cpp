@@ -114,6 +114,7 @@ namespace embed {
   void BaseEngine::Stop()
   {
     if (running) {
+      env->CleanupHandles();
       if (env->inspector_agent()->IsConnected()) {
         env->inspector_agent()->WaitForDisconnect();
       }
