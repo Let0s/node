@@ -4649,6 +4649,14 @@ void Init(int* argc,
   node_is_initialized = true;
 }
 
+NODE_EXTERN void ClearStaticData()
+{
+  modlist_addon = nullptr;
+  modlist_builtin = nullptr;
+  modlist_internal = nullptr;
+  modlist_linked = nullptr;
+  eval_string = nullptr;
+}
 
 void RunAtExit(Environment* env) {
   env->RunAtExitCallbacks();
