@@ -15,6 +15,8 @@ namespace embed {
                                            nullptr);
       v8::V8::InitializePlatform(v8_platform);
       v8::V8::Initialize();
+      node::tracing::TraceEventHelper::SetTracingController(
+        new v8::TracingController());
 
       initialized = true;
     }
