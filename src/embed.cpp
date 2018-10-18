@@ -73,6 +73,7 @@ namespace embed {
   void BaseEngine::Run(int argc, const char * argv[])
   {
     Stop();
+    node::ResetArguments();
 
     v8::Isolate::CreateParams params;
     params.array_buffer_allocator = &allocator;
