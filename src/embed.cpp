@@ -120,7 +120,6 @@ namespace embed {
       if (env->inspector_agent()->IsConnected()) {
         env->inspector_agent()->WaitForDisconnect();
       }
-      env->inspector_agent()->Stop();
       auto context = iso->GetCurrentContext();
       context->Exit();
       node::FreeEnvironment(env);
