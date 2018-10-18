@@ -4649,6 +4649,15 @@ void Init(int* argc,
   node_is_initialized = true;
 }
 
+NODE_EXTERN void ResetArguments()
+{
+  eval_string = nullptr;
+  modpending = nullptr;
+  modlist_builtin = nullptr;
+  modlist_internal = nullptr;
+  modlist_linked = nullptr;
+  modlist_addon = nullptr;
+}
 
 void RunAtExit(Environment* env) {
   env->RunAtExitCallbacks();
