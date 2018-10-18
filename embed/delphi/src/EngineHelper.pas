@@ -38,6 +38,17 @@ type
   // It is used to store mathces between classtype and its helper object
   TJSHelperMap = TDictionary<TClass, TJSClassHelper>;
 
+  // Wrapper, which allows to call native js function
+  TJSFunctionWrapper = class
+  private
+    FFunc: IJSFunction;
+    FEngine: IJSEngine;
+  public
+    constructor Create(AFunc: IJSFunction; AEngine: IJSEngine);
+    function Call(args: TValueArray): TValue; overload;
+    function Call: TValue; overload;
+  end;
+
   TEventWrapper = class(TObject)
   private
     FEngine: IJSEngine;
@@ -737,6 +748,35 @@ begin
       end;
     end;
   end;
+end;
+
+{ TJSFunctionWrapper }
+
+function TJSFunctionWrapper.Call(args: TValueArray): TValue;
+var
+  JSArgs: IJSArray;
+  JSResult: IJSValue;
+begin
+  JSArgs := TValueArrayToJSArray(args, FEngine);
+  JSResult := FFunc.Call(JSArgs);
+  Result := JSValueToUnknownTValue(JSResult, FEngine)
+end;
+
+function TJSFunctionWrapper.Call: TValue;
+var
+  JSResult: IJSValue;
+begin
+  JSResult := FFunc.Call(nil);
+  Result := JSValueToUnknownTValue(JSResult, FEngine)
+end;
+
+constructor TJSFunctionWrapper.Create(AFunc: IJSFunction; AEngine: IJSEngine);
+begin
+  if not Assigned(AFunc) then
+    raise EScriptEngineException.Create(
+      'Function passed to function wrapper is not assigned');
+  FFunc := AFunc;
+  FEngine := AEngine;
 end;
 
 initialization
