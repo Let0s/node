@@ -105,6 +105,7 @@ namespace embed {
   void IEmbedEngine::Stop()
   {
     JSDelphiObjects.clear();
+    jsIndexedPropObjects.clear();
     jsValues.clear();
     BaseEngine::Stop();
   }
