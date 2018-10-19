@@ -83,7 +83,8 @@ namespace embed {
 
     v8::Local<v8::Context> context = CreateContext(iso);
     context->Enter();
-    isolate_data = node::CreateIsolateData(iso, uv_default_loop());
+    uv_loop_init(&event_loop);
+    isolate_data = node::CreateIsolateData(iso, &event_loop);
     int exec_argc;
     const char ** exec_argv;
     node::Init(&argc, argv, &exec_argc, &exec_argv);
@@ -107,7 +108,7 @@ namespace embed {
   void BaseEngine::CheckEventLoop()
   {
     if (running) {
-      uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+      uv_run(env->event_loop(), UV_RUN_NOWAIT);
       //dont know if it is needed;
       v8_platform->DrainBackgroundTasks();
         
@@ -128,6 +129,7 @@ namespace embed {
       delete script_params;
       iso->Dispose();
       running = false;
+      uv_loop_close(&event_loop);
     }
   }
   void IBaseIntf::Delete()

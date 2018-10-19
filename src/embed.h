@@ -79,6 +79,7 @@ namespace embed {
 
     node::IsolateData* isolate_data = nullptr;
     node::Environment* env;
+    uv_loop_t event_loop;
 
   public:
     BaseEngine();
