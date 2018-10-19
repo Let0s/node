@@ -125,7 +125,7 @@ type
     procedure AddGlobalVariable(Name: string; Variable: TObject);
     procedure SetDebugParam(param: string);
     procedure AddPreCode(code: string);
-    procedure RunString(code: string);
+    procedure RunString(code, filename: string);
     procedure RunFile(filename: string);
     function CallFunction(funcName: string): TValue; overload;
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
@@ -789,12 +789,21 @@ begin
   end;
 end;
 
-procedure TJSEngine.RunString(code: string);
+procedure TJSEngine.RunString(code, filename: string);
 var
   Args: ILaunchArguments;
+  FullName: string;
 begin
   if Active then
   begin
+    if filename <> '' then
+    begin
+      //get absolute path to script file
+      FullName := ExpandFileName(filename);
+      // set nodejs cwd to script path
+      FEngine.ChangeWorkingDir(StringToPAnsiChar(
+        ExtractFileDir(FullName)));
+    end;
     Args := FEngine.CreateLaunchArguments;
     try
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
