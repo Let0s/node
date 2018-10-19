@@ -123,6 +123,8 @@ type
   function CompareType(typ: TRttiType; value: IJSValue;
     Engine: IJSEngine): Boolean;
 
+  function ArrayOfTValueToTValueArray(const Arr: array of TValue): TValueArray;
+
   function RegisterEventWrapper(Event: PTypeInfo;
     Wrapper: TEventWrapperClass): boolean;
   function GetEventWrapper(Event: PTypeInfo): TEventWrapperClass;
@@ -132,6 +134,16 @@ var
   EventWrapperClassList: TDictionary<PTypeInfo, TEventWrapperClass>;
 
 implementation
+
+function ArrayOfTValueToTValueArray(const Arr: array of TValue): TValueArray;
+var
+  Argc, i: Integer;
+begin
+  Argc := Length(Arr);
+  SetLength(Result, Argc);
+  for i := 0 to Argc - 1 do
+    Result[i] := Arr[i];
+end;
 
 function HaveScriptSetting(Attributes: TArray<TCustomAttribute>;
   Setting: TScriptAttributeType): boolean;
