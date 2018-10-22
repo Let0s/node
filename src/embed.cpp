@@ -94,6 +94,12 @@ namespace embed {
       argv,
       exec_argc,
       exec_argv);
+    { // copied from InitInspectorBindings function in inspector_js_api.cc 
+      auto obj = v8::Object::New(env->isolate());
+      auto null = v8::Null(env->isolate());
+      CHECK(obj->SetPrototype(context, null).FromJust());
+      env->set_inspector_console_api_object(obj);
+    }
     running = true;
     PrepareForRun();
     {// start inspector for script debugging
