@@ -4657,6 +4657,7 @@ NODE_EXTERN void ResetArguments()
   modlist_internal = nullptr;
   modlist_linked = nullptr;
   modlist_addon = nullptr;
+  debug_options.Reset();
 }
 
 void RunAtExit(Environment* env) {
