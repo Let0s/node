@@ -61,6 +61,7 @@ type
     FMethods: TObjectDictionary<string, TRttiMethodList>;
     FProps: TObjectDictionary<string, TClassProp>;
     FEngine: INodeEngine;
+    FIsGlobal: boolean;
 
     procedure CheckMethod(Method: TRttiMethod; Engine: TJSEngine);
     // Add all methods to JS tepmlate. Add only methods, that belong to current
@@ -854,7 +855,7 @@ begin
     if not HaveScriptSetting(Field.GetAttributes, satForbidden) then
     begin
       if (Field.Visibility = mvPublic) and
-        (Field.Parent.Handle = Classtyp.Handle) then
+        (FIsGlobal or (Field.Parent.Handle = Classtyp.Handle)) then
       begin
         Engine.CheckType(Field.FieldType);
         FTemplate.SetField(Engine.StringToPAnsiChar(Field.Name), Field);
@@ -960,10 +961,12 @@ begin
     // check if method is not forbidden for JS
     if not HaveScriptSetting(Method.GetAttributes, satForbidden) then
     begin
-      //check if method belongs to given class type (not to the parent)
+      // Check if method is public and belongs to given class type (not to
+      // the parent).
+      // Global class should have all properties of child classes
       if (Method.Visibility = mvPublic) and
         (not (Method.IsConstructor or Method.IsDestructor)) and
-        (Method.Parent.Handle = ClassTyp.Handle) then
+        (FIsGlobal or (Method.Parent.Handle = ClassTyp.Handle)) then
       begin
         CheckMethod(Method, Engine);
         if not FMethods.TryGetValue(Method.Name, Overloads) then
@@ -1009,7 +1012,7 @@ begin
     if not HaveScriptSetting(Prop.GetAttributes, satForbidden) then
     begin
       if (Prop.Visibility = mvPublic) and
-        (Prop.Parent.Handle = ClassTyp.Handle) then
+        (FIsGlobal or (Prop.Parent.Handle = ClassTyp.Handle)) then
       begin
         Engine.CheckType(Prop.PropertyType);
         PropInfo := TClassProp.Create(Prop, nil);
@@ -1055,6 +1058,7 @@ begin
     FTemplate := FEngine.AddGlobal(FType)
   else
     FTemplate := FEngine.AddObject(Engine.StringToPAnsiChar(FType.ClassName), FType);
+  FIsGlobal := IsGlobal;
   AddMethods(ClassTyp, Engine);
   AddProps(ClassTyp, Engine);
   AddFields(ClassTyp, Engine);
