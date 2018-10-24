@@ -128,6 +128,8 @@ type
     procedure AddPreCode(code: string);
     procedure RunString(code, filename: string);
     procedure RunFile(filename: string);
+    function RunIncludeFile(filename: string): TValue;
+    function RunIncludeCode(code: string; filename: string = ''): TValue;
     function CallFunction(funcName: string): TValue; overload;
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
@@ -788,6 +790,25 @@ begin
       Args.Delete
     end;
   end;
+end;
+
+function TJSEngine.RunIncludeCode(code, filename: string): TValue;
+begin
+  if Active then
+  begin
+    Result := JSValueToUnknownTValue(
+      FEngine.ExecAdditonalCode(StringToPAnsiChar(code),
+        StringToPAnsiChar(filename)),
+      Self);
+  end;
+end;
+
+function TJSEngine.RunIncludeFile(filename: string): TValue;
+begin
+  if Active then
+    Result := JSValueToUnknownTValue(
+      FEngine.ExecAdditionalFile(StringToPAnsiChar(filename)),
+      Self);
 end;
 
 procedure TJSEngine.RunString(code, filename: string);

@@ -174,6 +174,10 @@ type
     procedure ChangeWorkingDir(newDir: PAnsiChar); virtual; stdcall; abstract;
     function CallFunction(funcName: PAnsiChar; args: IJSArray): IJSValue;
       virtual; stdcall; abstract;
+    function ExecAdditionalFile(filename: PAnsiChar): IJSValue;
+      virtual; stdcall; abstract;
+    function ExecAdditonalCode(code, filename: PAnsiChar): IJSValue;
+      virtual; stdcall; abstract;
     procedure SetExternalCallback(cb: TBaseCallBack); virtual; stdcall; abstract;
 
     // if no script running it will return nil;
