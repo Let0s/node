@@ -1,4 +1,5 @@
 #include "delphi_intf.h"
+#include <sstream>
 namespace embed {
   // internal field count for wrapped delphi object
   const int CLASS_INTERNAL_FIELD_COUNT = 2;
@@ -205,6 +206,39 @@ namespace embed {
       }
     }
     return nullptr;
+  }
+
+  IJSValue * IEmbedEngine::ExecAdditionalFile(const char * filename)
+  {
+    if (IsRunning()) {
+      std::ifstream t(filename);
+      std::stringstream buffer;
+      buffer << t.rdbuf();
+      auto buf_str = buffer.str();
+      return ExecAdditionalCode(buf_str.data(), filename);
+    }
+    return nullptr;
+  }
+
+  IJSValue * IEmbedEngine::ExecAdditionalCode(const char * code,
+     const char * filename)
+  {
+    IJSValue * result = nullptr;
+    if (IsRunning()) {
+      v8::Local<v8::String> source = v8::String::NewFromUtf8(Isolate(), code,
+        v8::NewStringType::kNormal).ToLocalChecked();
+      v8::ScriptOrigin origin(v8::String::NewFromUtf8(Isolate(), filename,
+        v8::NewStringType::kNormal).ToLocalChecked());
+      auto context = Isolate()->GetCurrentContext();
+      v8::Local<v8::Script> script;
+      if (v8::Script::Compile(context, source, &origin).ToLocal(&script)) {
+        auto result_value = script->Run(context);
+        if (!result_value.IsEmpty()) {
+          result = MakeValue(result_value.ToLocalChecked());
+        }
+      }
+    }
+    return result;
   }
 
   void IEmbedEngine::SetExternalCallback(TBaseCallBack callback)

@@ -356,6 +356,10 @@ namespace embed {
     virtual void APIENTRY Launch(ILaunchArguments * args);
     virtual void APIENTRY ChangeWorkingDir(char * newDir);
     virtual IJSValue * APIENTRY CallFunction(char * fName, IJSArray * args);
+    // Just execute code from file in running global scope
+    virtual IJSValue * APIENTRY ExecAdditionalFile(const char * filename);
+    virtual IJSValue * APIENTRY ExecAdditionalCode(const char * code,
+      const char * filename);
     virtual void APIENTRY SetExternalCallback(TBaseCallBack callback);
 
     //these functions avaliable only when script running
