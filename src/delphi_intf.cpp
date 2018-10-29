@@ -610,6 +610,7 @@ namespace embed {
     v8::Local<v8::FunctionTemplate> templ)
   {
     auto proto = templ->PrototypeTemplate();
+    templ->SetClassName(v8::String::NewFromUtf8(isolate, classTypeName.c_str(), v8::NewStringType::kNormal).ToLocalChecked());
     proto->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
     {
       //dirty way - fix it later;
