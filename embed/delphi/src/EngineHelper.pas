@@ -8,6 +8,8 @@ uses
 
 type
   EScriptEngineException = class(Exception);
+  //should be thrown if JS value type is not compatible with delphi type
+  EScriptInvalidCast = class(EInvalidCast);
 
   TGarbageCollector = class;
 
@@ -348,11 +350,13 @@ end;
 
 procedure CheckConversion(value: IJSValue; typ: TRttiType; Engine: IJSEngine);
 begin
+  {$IFDEF DEBUG}
   if not (value.IsUndefined or value.IsNull) then
   begin
     if not CompareType(typ, value, Engine) then
-      raise EInvalidCast.Create('Type mismatch. Expected ' + typ.Name);
+      raise EScriptInvalidCast.Create('Type mismatch. Expected ' + typ.Name);
   end;
+  {$ENDIF}
 end;
 
 function JSValueToTValue(value: IJSValue; typ: TRttiType;
