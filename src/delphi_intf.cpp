@@ -186,6 +186,7 @@ namespace embed {
 
   IJSValue * IEmbedEngine::CallFunction(char * fName, IJSArray * args)
   {
+    v8::Isolate::Scope iso_scope(Isolate());
     auto context = Isolate()->GetCurrentContext();
     auto glo = context->Global();
     auto maybe_val = glo->Get(context,
@@ -225,6 +226,7 @@ namespace embed {
   {
     IJSValue * result = nullptr;
     if (IsRunning()) {
+      v8::Isolate::Scope iso_scope(Isolate());
       v8::Local<v8::String> source = v8::String::NewFromUtf8(Isolate(), code,
         v8::NewStringType::kNormal).ToLocalChecked();
       v8::ScriptOrigin origin(v8::String::NewFromUtf8(Isolate(), filename,
@@ -761,6 +763,7 @@ namespace embed {
   }
   v8::Local<v8::Object> IJSObject::V8Object()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->ToObject(isolate);
   }
   bool IJSObject::IsObject()
@@ -773,6 +776,7 @@ namespace embed {
   }
   void IJSObject::SetFieldValue(char * name, IJSValue * val)
   {
+    v8::Isolate::Scope iso_scope(isolate);
     if (val) {
       auto object = V8Object();
       object->CreateDataProperty(isolate->GetCurrentContext(),
@@ -782,6 +786,7 @@ namespace embed {
   }
   IJSValue * IJSObject::GetFieldValue(char * name)
   {
+    v8::Isolate::Scope iso_scope(isolate);
     IJSValue * result = nullptr;
     auto fieldValue = v8::Local<v8::Value>();
     auto object = V8Object();
@@ -812,20 +817,24 @@ namespace embed {
   }
   bool IJSValue::AsBool()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->BooleanValue();
   }
   int32_t IJSValue::AsInt32()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->Int32Value();
   }
   char * IJSValue::AsString()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     v8::String::Utf8Value str(V8Value());
     runStringResult = *str;
     return const_cast<char *>(runStringResult.c_str());
   }
   double IJSValue::AsNumber()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->NumberValue();
   }
   IJSObject * IJSValue::AsObject()
@@ -846,26 +855,32 @@ namespace embed {
   }
   bool IJSValue::IsUndefined()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsUndefined();
   }
   bool IJSValue::IsNull()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsNull();
   }
   bool IJSValue::IsBool()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsBoolean();
   }
   bool IJSValue::IsInt32()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsInt32();
   }
   bool IJSValue::IsString()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsString();
   }
   bool IJSValue::IsNumber()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value()->IsNumber();
   }
   IJSArray::IJSArray(v8::Isolate * iso, v8::Local<v8::Value> val) : IJSValue(
@@ -886,10 +901,12 @@ namespace embed {
   }
   int32_t IJSArray::GetCount()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Array()->Length();
   }
   IJSValue * IJSArray::GetValue(int32_t index)
   {
+    v8::Isolate::Scope iso_scope(isolate);
     IJSValue * result = nullptr;
     auto findresult = values.find(index);
     if (findresult == values.end())
@@ -904,6 +921,7 @@ namespace embed {
   }
   void IJSArray::SetValue(IJSValue * value, int32_t index)
   {
+    v8::Isolate::Scope iso_scope(isolate);
     if (value) {
       V8Array()->Set(index, value->V8Value());
     }
@@ -929,6 +947,7 @@ namespace embed {
   }
   v8::Local<v8::Function> IJSFunction::V8Function()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     return V8Value().As<v8::Function>();
   }
   bool IJSFunction::IsFunction()
@@ -941,6 +960,7 @@ namespace embed {
   }
   IJSValue * IJSFunction::Call(IJSArray * argv)
   {
+    v8::Isolate::Scope iso_scope(isolate);
     std::vector<v8::Local<v8::Value>> args;
     if (argv) {
       for (int32_t i = 0; i < argv->GetCount(); i++) {
@@ -967,6 +987,7 @@ namespace embed {
   }
   void * IJSDelphiObject::GetDelphiObject()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     void * result = nullptr;
     auto engine = IEmbedEngine::GetEngine(isolate);
     if (engine) {
@@ -976,6 +997,7 @@ namespace embed {
   }
   void * IJSDelphiObject::GetDelphiClasstype()
   {
+    v8::Isolate::Scope iso_scope(isolate);
     void * result = nullptr;
     auto engine = IEmbedEngine::GetEngine(isolate);
     if (engine) {

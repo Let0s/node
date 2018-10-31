@@ -59,13 +59,11 @@ namespace embed {
   class ScriptParams {
   public:
     inline ScriptParams(v8::Isolate * iso) : locker(iso),
-                                             isolate_scope(iso),
                                              h_scope(iso) {};
     ~ScriptParams() {
     };
   private:
     v8::Locker locker;
-    v8::Isolate::Scope isolate_scope;
     v8::HandleScope h_scope;
   };
 

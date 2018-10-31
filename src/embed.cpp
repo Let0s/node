@@ -80,6 +80,7 @@ namespace embed {
     iso = v8::Isolate::New(params);
     iso->SetData(ENGINE_SLOT, this);
     script_params = new ScriptParams(iso);
+    v8::Isolate::Scope iso_scope(iso);
 
     v8::Local<v8::Context> context = CreateContext(iso);
     context->Enter();
@@ -114,6 +115,7 @@ namespace embed {
   void BaseEngine::CheckEventLoop()
   {
     if (running) {
+      v8::Isolate::Scope iso_scope(iso);
       uv_run(env->event_loop(), UV_RUN_NOWAIT);
       //dont know if it is needed;
       v8_platform->DrainBackgroundTasks();
@@ -124,15 +126,18 @@ namespace embed {
   void BaseEngine::Stop()
   {
     if (running) {
-      env->CleanupHandles();
-      if (env->inspector_agent()->IsConnected()) {
-        env->inspector_agent()->WaitForDisconnect();
+      {
+        v8::Isolate::Scope iso_scope(iso);
+        env->CleanupHandles();
+        if (env->inspector_agent()->IsConnected()) {
+          env->inspector_agent()->WaitForDisconnect();
+        }
+        auto context = iso->GetCurrentContext();
+        context->Exit();
+        node::FreeEnvironment(env);
+        node::FreeIsolateData(isolate_data);
+        delete script_params;
       }
-      auto context = iso->GetCurrentContext();
-      context->Exit();
-      node::FreeEnvironment(env);
-      node::FreeIsolateData(isolate_data);
-      delete script_params;
       iso->Dispose();
       running = false;
       uv_loop_close(&event_loop);
