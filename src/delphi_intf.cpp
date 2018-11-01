@@ -696,14 +696,6 @@ namespace embed {
   {
     return argv;
   }
-  char * IMethodArgs::GetMethodName()
-  {
-    v8::Isolate * iso = args->GetIsolate();
-    v8::String::Utf8Value str(args->Callee()->GetName());
-    run_string_result = *str;
-    run_string_result.push_back(0);
-    return const_cast<char *>(run_string_result.c_str());
-  }
   void IMethodArgs::SetReturnValue(IJSValue * val)
   {
     if (val) {

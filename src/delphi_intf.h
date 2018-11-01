@@ -221,8 +221,6 @@ namespace embed {
     virtual IMethodArgs * APIENTRY AsMethodArgs();
     virtual IJSArray * APIENTRY GetArguments();
 
-    virtual char * APIENTRY GetMethodName();
-
     virtual void APIENTRY SetReturnValue(IJSValue * val);
 
     virtual void * APIENTRY GetDelphiMethod();

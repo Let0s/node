@@ -121,9 +121,6 @@ type
 
   IMethodArgs = class (IBaseArgs)
     function GetArgs: IJSArray; virtual; stdcall; abstract;
-
-    function GetMethodName: PAnsiChar; virtual; stdcall; abstract;
-
     function GetDelphiMethod: TObject; virtual; stdcall; abstract;
   end;
 
