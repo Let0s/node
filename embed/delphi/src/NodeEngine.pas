@@ -4,7 +4,8 @@ interface
 
 uses
   NodeInterface, SysUtils, RTTI, Types, TypInfo, EngineHelper, IOUtils,
-  Generics.Collections, Windows, Classes, Contnrs, ScriptAttributes;
+  Generics.Collections, Windows, Classes, Contnrs, ScriptAttributes,
+  Generics.Defaults, Math;
 
 type
   TJSEngine = class;
@@ -1109,14 +1110,50 @@ var
   i, j: Integer;
   Params: TArray<TRttiParameter>;
   MethodInfo: TClassMethod;
+  MethodArray: TArray<TClassMethod>;
+  ArgCount: Integer;
 begin
   Result := nil;
   if Count > 0 then
   begin
-    Result := Items[0];
+    SetLength(MethodArray, Count);
+    for i := 0 to Count - 1 do
+      MethodArray[i] := Items[i];
+    ArgCount := args.GetCount;
+    // Sort algorythm is following:
+    // 1. Check if passed args count less than method param count
+    // 2. If success, this method should be shifted to end of array
+    // 3. Else shift method to its place in descending order
+    TArray.Sort<TClassMethod>(MethodArray, TComparer<TClassMethod>.Construct(
+      function(const Left, Right: TClassMethod): Integer
+      var
+        LeftResult, RightResult: Integer;
+      begin
+        LeftResult := CompareValue(Length(Left.Method.GetParameters),
+          ArgCount);
+        RightResult := CompareValue(Length(Right.Method.GetParameters),
+          ArgCount);
+        if (RightResult = LessThanValue) xor (LeftResult = LessThanValue) then
+        begin
+          // left have less args, than was passed
+          if LeftResult = LessThanValue then
+            Result := GreaterThanValue
+          // right have less args, than was passed
+          else
+            Result := LessThanValue;
+        end
+        else
+          if (RightResult = LessThanValue) and (LeftResult = LessThanValue) then
+            Result := CompareValue(Length(Left.Method.GetParameters),
+              Length(Right.Method.GetParameters))
+          else
+            Result := CompareValue(Length(Right.Method.GetParameters),
+              Length(Left.Method.GetParameters));
+      end
+    ));
     for i := 0 to Count - 1 do
     begin
-      MethodInfo := Items[i];
+      MethodInfo := MethodArray[i];
       Params := MethodInfo.Method.GetParameters;
       for j := 0 to Length(Params) - 1 do
       begin
