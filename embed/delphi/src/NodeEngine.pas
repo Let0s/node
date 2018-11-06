@@ -52,6 +52,9 @@ type
     // or
     // 2. SomeFunc(123, '') //empty string as optional parameter
     function GetMethod(args: IJSArray): TClassMethod;
+    // Returns true if list already contains method with the same arguments
+    // count and type (high chance to detect method overrides)
+    function CheckDuplicate(Method: TRttiMethod): boolean;
   end;
 
   TClassWrapper = class(TObject)
@@ -1015,9 +1018,9 @@ begin
         FMethods.TryGetValue(Method.Name, Overloads) then
       begin
         CheckMethod(Method, Engine);
-        // TODO: think about overrided methods, that can be added as overloads
-        // Check by parameter count and types?
-        Overloads.Add(TClassMethod.Create(Method, nil));
+        // check if method is possible virtual method of parent class
+        if not Overloads.CheckDuplicate(Method) then
+          Overloads.Add(TClassMethod.Create(Method, nil));
       end;
     end;
   end;
@@ -1098,6 +1101,56 @@ begin
 end;
 
 { TRttiMethodList }
+
+function TRttiMethodList.CheckDuplicate(Method: TRttiMethod): boolean;
+var
+  i, ArgCount: integer;
+  ItemMethod: TRttiMethod;
+  ItemParams, MethodParams: TArray<TRttiParameter>;
+  ItemParam, MethodParam: TRttiParameter;
+  k: Integer;
+begin
+  Result := False;
+  for i := 0 to Count - 1 do
+  begin
+    ItemMethod := Items[i].Method;
+    ItemParams := ItemMethod.GetParameters;
+    MethodParams := Method.GetParameters;
+    ArgCount := Length(ItemParams);
+    if ArgCount = Length(MethodParams) then
+    begin
+      Result := True;
+      for k := 0 to ArgCount - 1 do
+      begin
+        MethodParam := MethodParams[k];
+        ItemParam := ItemParams[k];
+        if not Assigned(MethodParam.ParamType) then
+        begin
+          if not Assigned(ItemParam.ParamType) then
+            continue
+          else
+          begin
+            Result := False;
+            break;
+          end;
+        end
+        else if not Assigned(ItemParam.ParamType) then
+        begin
+          Result := False;
+          break;
+        end;
+        if MethodParam.ParamType.TypeKind <>
+          ItemParam.ParamType.TypeKind then
+        begin
+          Result := False;
+          break;
+        end;
+      end;
+      if Result then
+        break;
+    end;
+  end;
+end;
 
 constructor TRttiMethodList.Create(Engine: TJSEngine);
 begin
