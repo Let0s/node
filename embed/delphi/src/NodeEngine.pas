@@ -137,6 +137,7 @@ type
     function CallFunction(funcName: string): TValue; overload;
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
+    procedure TerminateExecution;
     procedure Stop;
     property Active: boolean read FActive;
     property GC: TGarbageCollector read GetGarbageCollector;
@@ -851,6 +852,12 @@ function TJSEngine.StringToPAnsiChar(const S: string): PAnsiChar;
 begin
   FUTF8String := UTF8String(S);
   Result := PAnsiChar(FUTF8String);
+end;
+
+procedure TJSEngine.TerminateExecution;
+begin
+  if FActive then
+    FEngine.TerminateExecution;
 end;
 
 procedure TJSEngine.SetDebugParam(param: string);

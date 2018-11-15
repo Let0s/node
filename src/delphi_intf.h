@@ -358,6 +358,7 @@ namespace embed {
     virtual IJSValue * APIENTRY ExecAdditionalFile(const char * filename);
     virtual IJSValue * APIENTRY ExecAdditionalCode(const char * code,
       const char * filename);
+    virtual void APIENTRY TerminateExecution();
     virtual void APIENTRY SetExternalCallback(TBaseCallBack callback);
 
     //these functions avaliable only when script running
