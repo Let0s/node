@@ -243,6 +243,16 @@ namespace embed {
     return result;
   }
 
+  void IEmbedEngine::TerminateExecution()
+  {
+    if (IsRunning()) {
+      Isolate()->TerminateExecution();
+      // Isolate should execute some native JS code to terminate execution
+      // Else some script code can be executed after "TerminateExectuion" call
+      ExecAdditionalCode("", "");
+    }
+  }
+
   void IEmbedEngine::SetExternalCallback(TBaseCallBack callback)
   {
     externalCallback = callback;

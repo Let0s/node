@@ -175,6 +175,7 @@ type
       virtual; stdcall; abstract;
     function ExecAdditonalCode(code, filename: PAnsiChar): IJSValue;
       virtual; stdcall; abstract;
+    procedure TerminateExecution(); virtual; stdcall; abstract;
     procedure SetExternalCallback(cb: TBaseCallBack); virtual; stdcall; abstract;
 
     // if no script running it will return nil;
