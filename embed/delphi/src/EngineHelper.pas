@@ -87,7 +87,7 @@ type
     constructor Create();
     destructor Destroy; override;
     procedure AddCallback(Event: TEventWrapper);
-    function GetCallBack(Method: TValue): TEventWrapper;
+    function GetCallBack(MethodValue: TValue): TEventWrapper;
     procedure AddObject(Obj: TObject);
     procedure Add(Value: TValue);
   end;
@@ -739,29 +739,23 @@ begin
   inherited;
 end;
 
-function TGarbageCollector.GetCallBack(Method: TValue): TEventWrapper;
+function TGarbageCollector.GetCallBack(MethodValue: TValue): TEventWrapper;
 var
   i: Integer;
-  MethodValue: TValue;
-  MethodPointer: Pointer;
   CallBack: TEventWrapper;
+  Method: TMethod;
 begin
   Result := nil;
-  // Convert from <TCustomEvent> (any event type) to Pointer TValue
-  TValue.Make(Method.GetReferenceToRawData, TypeInfo(Pointer), MethodValue);
-  // Convert from TValue to Pointer
-  MethodPointer := MethodValue.AsType<Pointer>;
-  if Assigned(MethodPointer) then
+  // Convert from TValue to TMethod
+  MethodValue.ExtractRawDataNoCopy(@Method);
+  for i := 0 to FCallbackList.Count - 1 do
   begin
-    for i := 0 to FCallbackList.Count - 1 do
+    CallBack := FCallbackList[i];
+    // Check if method equals to EventWrapper's method by code and data
+    if CallBack.FMethod = Method then
     begin
-      CallBack := FCallbackList[i];
-      // Check if method pointer equals to EventWrapper method code
-      if CallBack.FMethod.Code = MethodPointer then
-      begin
-        Result := CallBack;
-        break;
-      end;
+      Result := CallBack;
+      break;
     end;
   end;
 end;
