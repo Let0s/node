@@ -44,8 +44,7 @@ begin
       // 2. script path (for test should be the same as without debugging)
       if ParamCount = 2 then
       begin
-        Engine.AddAdditionalArgument(ParamStr(1));
-        Engine.RunFile(ParamStr(2));
+        Engine.RunFile(ParamStr(2), ParamStr(1));
       end
       else
         Engine.RunFile('../embed/delphi/test/test.js');
