@@ -130,7 +130,9 @@ type
     procedure AddGlobalVariable(Name: string; Variable: TObject);
     procedure AddPreCode(code: string);
     procedure RunString(code, filename: string);
-    procedure RunFile(filename: string);
+    // If DebugParam is empty string then debugging will be disabled
+    // Else DebugParam should be the same as nodejs' debug parameter
+    procedure RunFile(filename: string; DebugParam: string = '');
     procedure ClearAdditionalArguments;
     procedure AddAdditionalArgument(arg: string);
     function RunIncludeFile(filename: string): TValue;
@@ -780,7 +782,7 @@ begin
   end;
 end;
 
-procedure TJSEngine.RunFile(filename: string);
+procedure TJSEngine.RunFile(filename: string; DebugParam: string);
 var
   Args: ILaunchArguments;
   FullName: string;
@@ -796,6 +798,8 @@ begin
       FEngine.ChangeWorkingDir(StringToPAnsiChar(
         ExtractFileDir(FullName)));
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
+      if (DebugParam <> '') then
+        Args.AddArgument(StringToPAnsiChar(DebugParam));
       Args.AddArgument(StringToPAnsiChar(FullName));
       for i := 0 to FAdditionalArguments.Count - 1 do
       begin
