@@ -101,8 +101,8 @@ type
     FGarbageCollector: TGarbageCollector;
     FIgnoredExceptions: TList<TClass>;
     FActive: boolean;
-    // param for debugging
-    FDebugParam: string;
+    // additional arguments for nodejs
+    FAdditionalArguments: TStrings;
     // it is used for conversion to PAnsiChar
     FUTF8String: UTF8String;
   protected
@@ -128,10 +128,11 @@ type
     function GetClassWrapper(classType: TClass): TClassWrapper;
     procedure AddGlobal(Global: TObject);
     procedure AddGlobalVariable(Name: string; Variable: TObject);
-    procedure SetDebugParam(param: string);
     procedure AddPreCode(code: string);
     procedure RunString(code, filename: string);
     procedure RunFile(filename: string);
+    procedure ClearAdditionalArguments;
+    procedure AddAdditionalArgument(arg: string);
     function RunIncludeFile(filename: string): TValue;
     function RunIncludeCode(code: string; filename: string = ''): TValue;
     function CallFunction(funcName: string): TValue; overload;
@@ -676,6 +677,11 @@ begin
   end;
 end;
 
+procedure TJSEngine.ClearAdditionalArguments;
+begin
+  FAdditionalArguments.Clear;
+end;
+
 constructor TJSEngine.Create;
 begin
   try
@@ -692,6 +698,7 @@ begin
       FGarbageCollector := TGarbageCollector.Create;
       FEnumList := TList<PTypeInfo>.Create;
       FIgnoredExceptions := TList<TClass>.Create;
+      FAdditionalArguments := TStringList.Create;
       FActive := True;
     end;
   except
@@ -705,6 +712,7 @@ end;
 
 destructor TJSEngine.Destroy;
 begin
+  FAdditionalArguments.Free;
   FEnumList.Free;
   FClasses.Free;
   FGarbageCollector.Free;
@@ -776,6 +784,7 @@ procedure TJSEngine.RunFile(filename: string);
 var
   Args: ILaunchArguments;
   FullName: string;
+  i: integer;
 begin
   if Active then
   begin
@@ -787,9 +796,11 @@ begin
       FEngine.ChangeWorkingDir(StringToPAnsiChar(
         ExtractFileDir(FullName)));
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
-      if FDebugParam <> '' then
-        Args.AddArgument(StringToPAnsiChar(FDebugParam));
       Args.AddArgument(StringToPAnsiChar(FullName));
+      for i := 0 to FAdditionalArguments.Count - 1 do
+      begin
+        Args.AddArgument(StringToPAnsiChar(FAdditionalArguments[i]));
+      end;
       FEngine.Launch(Args);
     finally
       Args.Delete
@@ -820,6 +831,7 @@ procedure TJSEngine.RunString(code, filename: string);
 var
   Args: ILaunchArguments;
   FullName: string;
+  i: Integer;
 begin
   if Active then
   begin
@@ -836,6 +848,10 @@ begin
       Args.AddArgument(StringToPAnsiChar(ParamStr(0)));
       Args.AddArgument(StringToPAnsiChar('-e'));
       Args.AddArgument(StringToPAnsiChar(code));
+      for i := 0 to FAdditionalArguments.Count - 1 do
+      begin
+        Args.AddArgument(StringToPAnsiChar(FAdditionalArguments[i]));
+      end;
       FEngine.Launch(Args);
     finally
       Args.Delete
@@ -860,9 +876,9 @@ begin
     FEngine.TerminateExecution;
 end;
 
-procedure TJSEngine.SetDebugParam(param: string);
+procedure TJSEngine.AddAdditionalArgument(arg: string);
 begin
-  FDebugParam := param;
+  FAdditionalArguments.Add(arg);
 end;
 
 function TJSEngine._AddRef: integer;
