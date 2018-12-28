@@ -44,7 +44,7 @@ begin
       // 2. script path (for test should be the same as without debugging)
       if ParamCount = 2 then
       begin
-        Engine.SetDebugParam(ParamStr(1));
+        Engine.AddAdditionalArgument(ParamStr(1));
         Engine.RunFile(ParamStr(2));
       end
       else
