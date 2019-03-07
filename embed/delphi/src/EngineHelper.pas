@@ -27,6 +27,7 @@ type
   // Base helper class. Helpers are used to extend any class - add new methods
   // and props. All public props and methods will be added into JS as props
   // and methods of extended class.
+  [TScriptAttribute([satForbidden])]
   TJSClassHelper = class(TObject)
   private
     FSource: TObject;
@@ -41,6 +42,7 @@ type
   TJSHelperMap = TDictionary<TClass, TJSClassHelper>;
 
   // Wrapper, which allows to call native js function
+  [TScriptAttribute([satForbidden])]
   TJSFunctionWrapper = class
   private
     FFunc: IJSFunction;
@@ -51,6 +53,7 @@ type
     function Call: TValue; overload;
   end;
 
+  [TScriptAttribute([satForbidden])]
   TEventWrapper = class(TObject)
   private
     FEngine: IJSEngine;
@@ -79,6 +82,7 @@ type
   end;
 
   // It will collect all objects, were created by script
+  [TScriptAttribute([satForbidden])]
   TGarbageCollector = class(TObject)
   private
     FObjectList: TObjectList<TObject>;
