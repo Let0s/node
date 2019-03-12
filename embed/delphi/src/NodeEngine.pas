@@ -11,6 +11,7 @@ type
   TJSEngine = class;
 
   // Class method info
+  [TScriptAttribute([satForbidden])]
   TClassMethod = class
   public
     // Link to method, that can be called from JS
@@ -22,6 +23,7 @@ type
   end;
 
   //Class property info
+  [TScriptAttribute([satForbidden])]
   TClassProp = class
   public
     // Link to prop, that can be called from JS
@@ -32,6 +34,7 @@ type
     constructor Create(AProp: TRttiProperty; AHelper: TJSClassHelper);
   end;
 
+  [TScriptAttribute([satForbidden])]
   //list of overloaded methods
   TRttiMethodList = class(TObjectList<TClassMethod>)
   private
@@ -57,6 +60,7 @@ type
     function CheckDuplicate(Method: TRttiMethod): boolean;
   end;
 
+  [TScriptAttribute([satForbidden])]
   TClassWrapper = class(TObject)
   private
     FType: TClass;
@@ -88,6 +92,7 @@ type
     destructor Destroy; override;
   end;
 
+  [TScriptAttribute([satForbidden])]
   TJSEngine = class(TInterfacedObject, IJSEngine)
   private
     FEngine: INodeEngine;
