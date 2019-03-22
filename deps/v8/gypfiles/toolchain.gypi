@@ -1112,7 +1112,7 @@
             'Optimization': '0',
             'conditions': [
               ['component=="shared_library" or force_dynamic_crt==1', {
-                'RuntimeLibrary': '3',  # /MDd
+                'RuntimeLibrary': '1',  # /MTd
               }, {
                 'RuntimeLibrary': '1',  # /MTd
               }],
@@ -1164,7 +1164,7 @@
             'BasicRuntimeChecks': '0',
             'conditions': [
               ['component=="shared_library" or force_dynamic_crt==1', {
-                'RuntimeLibrary': '3',  #/MDd
+                'RuntimeLibrary': '1',  #/MTd
               }, {
                 'RuntimeLibrary': '1',  #/MTd
               }],
@@ -1351,7 +1351,7 @@
                 'StringPooling': 'true',
                 'conditions': [
                   ['component=="shared_library" or force_dynamic_crt==1', {
-                    'RuntimeLibrary': '2',  #/MD
+                    'RuntimeLibrary': '0',  #/MT
                   }, {
                     'RuntimeLibrary': '0',  #/MT
                   }],
