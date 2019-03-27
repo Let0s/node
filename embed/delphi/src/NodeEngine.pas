@@ -1302,9 +1302,25 @@ initialization
   begin
     CreatePipe(StdInRead, StdInWrite, nil, 0);
     CreatePipe(StdOutRead, StdOutWrite, nil, 0);
-    SetStdHandle(STD_INPUT_HANDLE, StdInRead);
-    SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
-    SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
+    // There is a trouble with Windows 7 (at least) - if non-console app was
+    // launched from desktop or windows explorer then SetStdHandle doesn't work
+    // for stdout and GetStdHandle for stdout will return zero. If app was
+    // launched from cmd or debugger - it works fine.
+    // More info: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-us/299c9401-c9c0-4425-ab78-6df04340aa84/setstdhandle-behaves-strangely-in-windows-7?forum=windowsgeneraldevelopmentissues
+    //
+    // That's why AllocConsole and FreeConsole are used
+    {$IFNDEF CONSOLE}
+    AllocConsole;
+    try
+    {$ENDIF}
+      SetStdHandle(STD_INPUT_HANDLE, StdInRead);
+      SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
+      SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
+    {$IFNDEF CONSOLE}
+    finally
+      FreeConsole;
+    end;
+    {$ENDIF}
   end;
 
 finalization
