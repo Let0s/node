@@ -191,6 +191,40 @@ var
 begin
   if not Initialized then
   begin
+    // Set std handles only on initialization because there can be application,
+    // that may use scripts optionally.
+
+    // Create STDIO if it is not exist. Nodejs will not work without STDIO
+    // It is fixed in next releases of nodejs:
+    //   https://github.com/nodejs/node/pull/20640
+    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
+                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
+    if not STDIOExist then
+    begin
+      CreatePipe(StdInRead, StdInWrite, nil, 0);
+      CreatePipe(StdOutRead, StdOutWrite, nil, 0);
+      // There is a trouble with Windows 7 (at least) - if non-console app was
+      // launched from desktop or windows explorer then SetStdHandle doesn't work
+      // for stdout and GetStdHandle for stdout will return zero. If app was
+      // launched from cmd or debugger - it works fine.
+      // More info: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-us/299c9401-c9c0-4425-ab78-6df04340aa84/setstdhandle-behaves-strangely-in-windows-7?forum=windowsgeneraldevelopmentissues
+      //
+      // That's why AllocConsole and FreeConsole are used
+      {$IFNDEF CONSOLE}
+      AllocConsole;
+      try
+      {$ENDIF}
+        SetStdHandle(STD_INPUT_HANDLE, StdInRead);
+        SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
+        SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
+      {$IFNDEF CONSOLE}
+      finally
+        FreeConsole;
+      end;
+      {$ENDIF}
+    end;
+
     // first callling node.dll function. STDIO should exist at this moment
     VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
       (EmbedMinorVersion >= EMBED_MINOR_VERSION);
@@ -1293,35 +1327,8 @@ begin
 end;
 
 initialization
-  // Create STDIO if it is not exist. Nodejs will not work without STDIO
-  // (It should be fixed soon: https://github.com/nodejs/node/pull/20640)
-  STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
-                     (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
-                     (GetStdHandle(STD_ERROR_HANDLE) = 0));
-  if not STDIOExist then
-  begin
-    CreatePipe(StdInRead, StdInWrite, nil, 0);
-    CreatePipe(StdOutRead, StdOutWrite, nil, 0);
-    // There is a trouble with Windows 7 (at least) - if non-console app was
-    // launched from desktop or windows explorer then SetStdHandle doesn't work
-    // for stdout and GetStdHandle for stdout will return zero. If app was
-    // launched from cmd or debugger - it works fine.
-    // More info: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-us/299c9401-c9c0-4425-ab78-6df04340aa84/setstdhandle-behaves-strangely-in-windows-7?forum=windowsgeneraldevelopmentissues
-    //
-    // That's why AllocConsole and FreeConsole are used
-    {$IFNDEF CONSOLE}
-    AllocConsole;
-    try
-    {$ENDIF}
-      SetStdHandle(STD_INPUT_HANDLE, StdInRead);
-      SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
-      SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
-    {$IFNDEF CONSOLE}
-    finally
-      FreeConsole;
-    end;
-    {$ENDIF}
-  end;
+  // set STDIOExist to True to prevent closing nonexistent pipe handles
+  STDIOExist := True;
 
 finalization
   if not STDIOExist then
