@@ -17,7 +17,6 @@ namespace embed {
       v8::V8::Initialize();
       node::tracing::TraceEventHelper::SetTracingController(
         new v8::TracingController());
-
       initialized = true;
     }
   }
@@ -39,6 +38,30 @@ namespace embed {
       Fini();
     }
   }finalizer;
+
+  void CloseHandle(uv_handle_t * handle, void * arg)
+  {
+    // some nodejs' timers work after script finish, so we clear their callbacks
+    if (uv_handle_get_type(handle) == UV_TIMER) {
+      auto timer = (uv_timer_t *)handle;
+      timer->timer_cb = NULL;
+    }
+    if (uv_has_ref(handle)) {
+      uv_unref(handle);
+    }
+    // There are some troubles with closing async handles (maybe because nodjs
+    // close some of them), so we dont close them
+    if (!(uv_handle_get_type(handle) == UV_ASYNC || uv_is_closing(handle)))
+      uv_close(handle, NULL);
+  }
+
+  void BaseEngine::CloseEventLoopHandles()
+  {
+    uv_stop(event_loop);
+    uv_walk(event_loop, CloseHandle, NULL);
+    uv_run(event_loop, UV_RUN_NOWAIT);
+    uv_run(event_loop, UV_RUN_NOWAIT);
+  }
 
   BaseEngine::BaseEngine()
   {
@@ -74,6 +97,8 @@ namespace embed {
   {
     Stop();
     node::ResetArguments();
+    event_loop = (uv_loop_t *)malloc(sizeof(uv_loop_t));
+    uv_loop_init(event_loop);
 
     v8::Isolate::CreateParams params;
     params.array_buffer_allocator = &allocator;
@@ -84,8 +109,7 @@ namespace embed {
 
     v8::Local<v8::Context> context = CreateContext(iso);
     context->Enter();
-    uv_loop_init(&event_loop);
-    isolate_data = node::CreateIsolateData(iso, &event_loop);
+    isolate_data = node::CreateIsolateData(iso, event_loop);
     int exec_argc;
     const char ** exec_argv;
     node::Init(&argc, argv, &exec_argc, &exec_argv);
@@ -128,10 +152,12 @@ namespace embed {
     if (running) {
       {
         v8::Isolate::Scope iso_scope(iso);
-        env->CleanupHandles();
+        v8_platform->DrainBackgroundTasks();
+        node::EmitExit(env);
         if (env->inspector_agent()->IsConnected()) {
           env->inspector_agent()->WaitForDisconnect();
         }
+        CloseEventLoopHandles();
         auto context = iso->GetCurrentContext();
         context->Exit();
         node::FreeEnvironment(env);
@@ -139,8 +165,10 @@ namespace embed {
         delete script_params;
       }
       iso->Dispose();
+      uv_stop(event_loop);
+      uv_loop_close(event_loop);
+      delete event_loop;
       running = false;
-      uv_loop_close(&event_loop);
     }
   }
   void IBaseIntf::Delete()

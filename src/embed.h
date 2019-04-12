@@ -70,6 +70,8 @@ namespace embed {
   //base class for JS engine 
   class BaseEngine : public IBaseIntf {
   private:
+    // Close handles before destroying this engine.
+    void CloseEventLoopHandles();
     ScriptParams * script_params;
     v8::Isolate* iso;
     node::ArrayBufferAllocator allocator;
@@ -77,7 +79,10 @@ namespace embed {
 
     node::IsolateData* isolate_data = nullptr;
     node::Environment* env;
-    uv_loop_t event_loop;
+    // Event loop for enigne instead of event loop for whole dll.
+    // There can be some engines, working at one time, so global loop can't
+    // be used.
+    uv_loop_t * event_loop;
 
   public:
     BaseEngine();
@@ -104,6 +109,8 @@ namespace embed {
     //stops script execution
     virtual void APIENTRY Stop();
   };
+  // is used for closing handles in engine's event loop before closing loop
+  void CloseHandle(uv_handle_t* handle, void * arg);
 
   // index of isolate's data slot, where engine is stored
   const uint32_t ENGINE_SLOT = 0;
