@@ -108,6 +108,10 @@ namespace embed {
     JSDelphiObjects.clear();
     jsIndexedPropObjects.clear();
     jsValues.clear();
+    if (globalTemplate)
+      globalTemplate->ResetTemplate();
+    for (auto &templ : classes)
+      templ->ResetTemplate();
     BaseEngine::Stop();
   }
 
@@ -674,6 +678,10 @@ namespace embed {
     v8::Isolate * isolate)
   {
     return v8Template.Get(isolate);
+  }
+  void IClassTemplate::ResetTemplate()
+  {
+    v8Template.Reset();
   }
   IMethodArgs::IMethodArgs(const v8::FunctionCallbackInfo<v8::Value>& newArgs)
   {

@@ -147,6 +147,8 @@ namespace embed {
       v8::Local<v8::FunctionTemplate> templ);
 
     v8::Local<v8::FunctionTemplate> FunctionTemplate(v8::Isolate * isolate);
+    // reset V8 template
+    void ResetTemplate();
     //pointer to delphi classtype
     void * dClass = nullptr;
     // class name
