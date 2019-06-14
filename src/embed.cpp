@@ -173,19 +173,25 @@ namespace embed {
     if (logger) {
       //write v8 log messages (e.g. JS error) into stdout
       fflush(stdout);
-      DWORD startSize = 32768;
+      const DWORD startSize = 4095;
       DWORD size = 0;
-      char * buf = new char[startSize];
       DWORD bytesRead = 0;
+      char * buf = new char[startSize];
       PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
       while (bytesRead > 0) {
+        // Reading result may have incorrect encoding, but it is fixed
+        // in Delphi code
         ReadFile(logger->stdOutRead, buf, size, &bytesRead, NULL);
+        // Increase length of log message for trailing zero symbol
+        bytesRead++;
         char * readBuf = new char[bytesRead];
         strncpy(readBuf, buf, bytesRead);
+        readBuf[bytesRead - 1] = '\0';
         result += readBuf;
         PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
+        delete readBuf;
       }
-      //char * buf = new char(32768);
+      delete buf;
       return result;
     }
   }
