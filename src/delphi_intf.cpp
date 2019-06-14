@@ -16,6 +16,9 @@ namespace embed {
   //full path to executable (argv0)
   std::string exeName;
 
+  // temp variable, keep result of GetNodeLog() function
+  std::string GUILog;
+
   IEmbedEngine::IEmbedEngine(void * dEng) : BaseEngine()
   {
     dEngine = dEng;
@@ -573,6 +576,11 @@ namespace embed {
   EMBED_EXTERN int EmbedMinorVersion()
   {
     return EMBED_MINOR_VERSION;
+  }
+  EMBED_EXTERN const char *WINAPIV GetNodeLog()
+  {
+    GUILog = GetGUILog();
+    return GUILog.data();
   }
   IClassProp::IClassProp(const char * pName, void * pObj,
     bool pRead, bool Pwrite)

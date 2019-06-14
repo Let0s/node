@@ -1,10 +1,12 @@
+#include <io.h>
 #include "embed.h"
 #include "node_platform.h"
 
-namespace embed {
+namespace embed {  
   const int DEFAULT_THREAD_POOL_SIZE = 4;
   bool initialized = false;
   node::NodePlatform* v8_platform;
+  IGUILogger * logger = nullptr;
 
   void Init() {
     if (!initialized) {
@@ -18,6 +20,12 @@ namespace embed {
       node::tracing::TraceEventHelper::SetTracingController(
         new v8::TracingController());
 
+      // check if std handles exists else create them
+      if (GetStdHandle(STD_OUTPUT_HANDLE) <= NULL ||
+        GetStdHandle(STD_ERROR_HANDLE) <= NULL)
+      {
+        logger = new IGUILogger();
+      }
       initialized = true;
     }
   }
@@ -109,8 +117,6 @@ namespace embed {
       env->inspector_agent()->Start(v8_platform, path, node::debug_options);
     }
     node::LoadEnvironment(env);
-    //write v8 log messages (e.g. JS error) into stdout
-    fflush(stdout);
   }
   void BaseEngine::CheckEventLoop()
   {
@@ -150,5 +156,37 @@ namespace embed {
   int IBaseIntf::Test()
   {
     return 101;
+  }
+
+  IGUILogger::IGUILogger()
+  {
+    int pipefd[2];
+    CreatePipe(&stdOutRead, &stdOutWrite, NULL, 0);
+    auto fd = _open_osfhandle((intptr_t)stdOutWrite, 0);
+    dup2(fd, 1);
+    dup2(fd, 2);
+    close(fd);
+  }
+  std::string GetGUILog()
+  {
+    std::string result = "";
+    if (logger) {
+      //write v8 log messages (e.g. JS error) into stdout
+      fflush(stdout);
+      DWORD startSize = 32768;
+      DWORD size = 0;
+      char * buf = new char[startSize];
+      DWORD bytesRead = 0;
+      PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
+      while (bytesRead > 0) {
+        ReadFile(logger->stdOutRead, buf, size, &bytesRead, NULL);
+        char * readBuf = new char[bytesRead];
+        strncpy(readBuf, buf, bytesRead);
+        result += readBuf;
+        PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
+      }
+      //char * buf = new char(32768);
+      return result;
+    }
   }
 }

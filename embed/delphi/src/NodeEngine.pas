@@ -197,33 +197,34 @@ begin
     // Create STDIO if it is not exist. Nodejs will not work without STDIO
     // It is fixed in next releases of nodejs:
     //   https://github.com/nodejs/node/pull/20640
-    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
-                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
-                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
-    if not STDIOExist then
-    begin
-      CreatePipe(StdInRead, StdInWrite, nil, 0);
-      CreatePipe(StdOutRead, StdOutWrite, nil, 0);
-      // There is a trouble with Windows 7 (at least) - if non-console app was
-      // launched from desktop or windows explorer then SetStdHandle doesn't work
-      // for stdout and GetStdHandle for stdout will return zero. If app was
-      // launched from cmd or debugger - it works fine.
-      // More info: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-us/299c9401-c9c0-4425-ab78-6df04340aa84/setstdhandle-behaves-strangely-in-windows-7?forum=windowsgeneraldevelopmentissues
-      //
-      // That's why AllocConsole and FreeConsole are used
-      {$IFNDEF CONSOLE}
-      AllocConsole;
-      try
-      {$ENDIF}
-        SetStdHandle(STD_INPUT_HANDLE, StdInRead);
-        SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
-        SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
-      {$IFNDEF CONSOLE}
-      finally
-        FreeConsole;
-      end;
-      {$ENDIF}
-    end;
+//    STDIOExist := not ((GetStdHandle(STD_INPUT_HANDLE) = 0) or
+//                       (GetStdHandle(STD_OUTPUT_HANDLE) = 0) or
+//                       (GetStdHandle(STD_ERROR_HANDLE) = 0));
+    STDIOExist := True;
+//    if not STDIOExist then
+//    begin
+//      CreatePipe(StdInRead, StdInWrite, nil, 0);
+//      CreatePipe(StdOutRead, StdOutWrite, nil, 0);
+//      // There is a trouble with Windows 7 (at least) - if non-console app was
+//      // launched from desktop or windows explorer then SetStdHandle doesn't work
+//      // for stdout and GetStdHandle for stdout will return zero. If app was
+//      // launched from cmd or debugger - it works fine.
+//      // More info: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-us/299c9401-c9c0-4425-ab78-6df04340aa84/setstdhandle-behaves-strangely-in-windows-7?forum=windowsgeneraldevelopmentissues
+//      //
+//      // That's why AllocConsole and FreeConsole are used
+//      {$IFNDEF CONSOLE}
+//      AllocConsole;
+//      try
+//      {$ENDIF}
+//        SetStdHandle(STD_INPUT_HANDLE, StdInRead);
+//        SetStdHandle(STD_OUTPUT_HANDLE, StdOutWrite);
+//        SetStdHandle(STD_ERROR_HANDLE, StdOutWrite);
+//      {$IFNDEF CONSOLE}
+//      finally
+//        FreeConsole;
+//      end;
+//      {$ENDIF}
+//    end;
 
     // first callling node.dll function. STDIO should exist at this moment
     VersionEqual := (EmbedMajorVersion = EMBED_MAJOR_VERSION) and
@@ -239,28 +240,34 @@ begin
 end;
 
 function GetNodeLog: string;
+//var
+//  TextBuffer: array[1..32767] of AnsiChar;
+//  SlicedBuffer: AnsiString;
+//  TextString: String;
+//  BytesRead: Cardinal;
+//  PipeSize: Integer;
 var
-  TextBuffer: array[1..32767] of AnsiChar;
-  SlicedBuffer: AnsiString;
-  TextString: String;
-  BytesRead: Cardinal;
-  PipeSize: Integer;
+  Log: PAnsiChar;
 begin
-  Result := '';
-  if STDIOExist then
-    Exit;
-  PipeSize := Sizeof(TextBuffer);
-  // check if there is something to read in pipe
-  PeekNamedPipe(StdOutRead, @TextBuffer, PipeSize, @BytesRead, @PipeSize, nil);
-  if bytesread > 0 then
-  begin
-    ReadFile(StdOutRead, TextBuffer, pipesize, bytesread, nil);
-    // write all useful bytes to Ansi string
-    SlicedBuffer := Copy(TextBuffer, 0, BytesRead);
-    // convert Ansi string to utf8 string
-    TextString := UTF8ToUnicodeString(RawByteString(SlicedBuffer));
-    Result := TextString;
-  end;
+//  Result := '';
+//  if STDIOExist then
+//    Exit;
+//  begin
+//    PipeSize := Sizeof(TextBuffer);
+//    // check if there is something to read in pipe
+//    PeekNamedPipe(StdOutRead, @TextBuffer, PipeSize, @BytesRead, @PipeSize, nil);
+//    if bytesread > 0 then
+//    begin
+//      ReadFile(StdOutRead, TextBuffer, pipesize, bytesread, nil);
+//      // write all useful bytes to Ansi string
+//      SlicedBuffer := Copy(TextBuffer, 0, BytesRead);
+//      // convert Ansi string to utf8 string
+//      TextString := UTF8ToUnicodeString(RawByteString(SlicedBuffer));
+//      Result := TextString;
+//    end;
+//  end;
+  Log := NodeInterface.GetNodeLog;
+  Result := UTF8ToUnicodeString(RawByteString(Log));
 end;
 
 function GetDelphiObject(Args: IBaseArgs): TObject;
