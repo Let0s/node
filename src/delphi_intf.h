@@ -445,5 +445,6 @@ namespace embed {
     EMBED_EXTERN void WINAPIV InitNode(char * executableName);
     EMBED_EXTERN int WINAPIV EmbedMajorVersion();
     EMBED_EXTERN int WINAPIV EmbedMinorVersion();
+    EMBED_EXTERN const char * WINAPIV GetNodeLog();
   }
 }

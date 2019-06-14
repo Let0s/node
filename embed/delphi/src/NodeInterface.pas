@@ -196,5 +196,6 @@ type
     external LIB_NAME delayed;
   function EmbedMajorVersion: integer; cdecl; external LIB_NAME delayed;
   function EmbedMinorVersion: integer; cdecl; external LIB_NAME delayed;
+  function GetNodeLog: PAnsiChar; cdecl; external LIB_NAME delayed;
 implementation
 end.

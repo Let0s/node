@@ -1,10 +1,12 @@
+#include <io.h>
 #include "embed.h"
 #include "node_platform.h"
 
-namespace embed {
+namespace embed {  
   const int DEFAULT_THREAD_POOL_SIZE = 4;
   bool initialized = false;
   node::NodePlatform* v8_platform;
+  IGUILogger * logger = nullptr;
 
   void Init() {
     if (!initialized) {
@@ -18,6 +20,12 @@ namespace embed {
       node::tracing::TraceEventHelper::SetTracingController(
         new v8::TracingController());
 
+      // check if std handles exists else create them
+      if (GetStdHandle(STD_OUTPUT_HANDLE) <= NULL ||
+        GetStdHandle(STD_ERROR_HANDLE) <= NULL)
+      {
+        logger = new IGUILogger();
+      }
       initialized = true;
     }
   }
@@ -109,8 +117,6 @@ namespace embed {
       env->inspector_agent()->Start(v8_platform, path, node::debug_options);
     }
     node::LoadEnvironment(env);
-    //write v8 log messages (e.g. JS error) into stdout
-    fflush(stdout);
   }
   void BaseEngine::CheckEventLoop()
   {
@@ -150,5 +156,43 @@ namespace embed {
   int IBaseIntf::Test()
   {
     return 101;
+  }
+
+  IGUILogger::IGUILogger()
+  {
+    int pipefd[2];
+    CreatePipe(&stdOutRead, &stdOutWrite, NULL, 0);
+    auto fd = _open_osfhandle((intptr_t)stdOutWrite, 0);
+    dup2(fd, 1);
+    dup2(fd, 2);
+    close(fd);
+  }
+  std::string GetGUILog()
+  {
+    std::string result = "";
+    if (logger) {
+      //write v8 log messages (e.g. JS error) into stdout
+      fflush(stdout);
+      const DWORD startSize = 4095;
+      DWORD size = 0;
+      DWORD bytesRead = 0;
+      char * buf = new char[startSize];
+      PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
+      while (bytesRead > 0) {
+        // Reading result may have incorrect encoding, but it is fixed
+        // in Delphi code
+        ReadFile(logger->stdOutRead, buf, size, &bytesRead, NULL);
+        // Increase length of log message for trailing zero symbol
+        bytesRead++;
+        char * readBuf = new char[bytesRead];
+        strncpy(readBuf, buf, bytesRead);
+        readBuf[bytesRead - 1] = '\0';
+        result += readBuf;
+        PeekNamedPipe(logger->stdOutRead, buf, startSize, &bytesRead, &size, NULL);
+        delete readBuf;
+      }
+      delete buf;
+      return result;
+    }
   }
 }

@@ -107,4 +107,15 @@ namespace embed {
 
   // index of isolate's data slot, where engine is stored
   const uint32_t ENGINE_SLOT = 0;
+
+  // Is used to redirect stdout, stderr if these handles are not exist
+  class IGUILogger : public IBaseIntf {
+  private:
+  public:
+    HANDLE /*stdInRead, stdInWrite, */stdOutRead, stdOutWrite;
+    IGUILogger();
+  };
+
+  std::string GetGUILog();
+  
 }
