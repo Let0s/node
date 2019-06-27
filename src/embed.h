@@ -110,10 +110,18 @@ namespace embed {
 
   // Is used to redirect stdout, stderr if these handles are not exist
   class IGUILogger : public IBaseIntf {
-  private:
   public:
+    std::string errorLog;
     HANDLE /*stdInRead, stdInWrite, */stdOutRead, stdOutWrite;
     IGUILogger();
+    ~IGUILogger();
+    // V8 checks for valid output handle and if handle is valid it writes
+    // output (e.g js errors) to stdout, else it uses OutputDebugString.
+    // Check VPrintHelper and HasConsole functions in platform-win32.cc
+    // SetStdHandle has some bugs with GUI in windows, so this function
+    // captures V8 messages about errors and add them to log.
+    static void OnMessage(v8::Local<v8::Message> message,
+      v8::Local<v8::Value> error);
   };
 
   std::string GetGUILog();

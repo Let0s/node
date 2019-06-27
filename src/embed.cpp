@@ -87,6 +87,7 @@ namespace embed {
     params.array_buffer_allocator = &allocator;
     iso = v8::Isolate::New(params);
     iso->SetData(ENGINE_SLOT, this);
+    iso->AddMessageListener(IGUILogger::OnMessage);
     script_params = new ScriptParams(iso);
     v8::Isolate::Scope iso_scope(iso);
 
@@ -158,6 +159,14 @@ namespace embed {
     return 101;
   }
 
+  void IGUILogger::OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
+  {
+    if (!(error->IsUndefined() || error->IsNull())) {
+      v8::String::Utf8Value utf8Value(v8::Isolate::GetCurrent(), error);
+      logger->errorLog += *utf8Value;
+    }
+  }
+
   IGUILogger::IGUILogger()
   {
     int pipefd[2];
@@ -167,12 +176,20 @@ namespace embed {
     dup2(fd, 2);
     close(fd);
   }
+  IGUILogger::~IGUILogger()
+  {
+    CloseHandle(stdOutRead);
+    CloseHandle(stdOutWrite);
+  }
   std::string GetGUILog()
   {
-    std::string result = "";
+    //write errors first
+    std::string result = logger->errorLog;
+    logger->errorLog = "";
     if (logger) {
       //write v8 log messages (e.g. JS error) into stdout
       fflush(stdout);
+      fflush(stderr);
       const DWORD startSize = 4095;
       DWORD size = 0;
       DWORD bytesRead = 0;
@@ -192,7 +209,7 @@ namespace embed {
         delete readBuf;
       }
       delete buf;
-      return result;
     }
+    return result;
   }
 }
