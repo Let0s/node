@@ -67,6 +67,31 @@ namespace embed {
     v8::HandleScope h_scope;
   };
 
+  class IV8Error : IBaseIntf {
+  public:
+    IV8Error(v8::Local<v8::Message> message, v8::Local<v8::Value> error);
+    virtual const char * APIENTRY GetV8Error();
+    virtual const char * APIENTRY GetScriptName();
+    virtual int APIENTRY GetLine();
+    virtual int APIENTRY GetColumn();
+  private:
+    std::string v8Error;
+    int line;
+    int column;
+    std::string scriptName;
+  };
+
+  class IV8ErrorList : IBaseIntf {
+  public:
+    virtual int APIENTRY GetCount();
+    virtual IV8Error * APIENTRY GetError(int index);
+    virtual void APIENTRY Clear();
+
+    IV8Error * AddError(v8::Local<v8::Message> message, v8::Local<v8::Value> error);
+  private:
+    std::vector<std::unique_ptr<IV8Error>> list;
+  };
+
   //base class for JS engine 
   class BaseEngine : public IBaseIntf {
   private:
@@ -78,6 +103,14 @@ namespace embed {
     node::IsolateData* isolate_data = nullptr;
     node::Environment* env;
     uv_loop_t event_loop;
+    IV8ErrorList v8ErrorList;
+    // V8 checks for valid output handle and if handle is valid it writes
+    // output (e.g js errors) to stdout, else it uses OutputDebugString.
+    // Check VPrintHelper and HasConsole functions in platform-win32.cc
+    // SetStdHandle has some bugs with GUI in windows, so this function
+    // captures V8 error messages and add them to engine's log.
+    static void OnMessage(v8::Local<v8::Message> message,
+      v8::Local<v8::Value> error);
 
   public:
     BaseEngine();
@@ -103,6 +136,7 @@ namespace embed {
     virtual void APIENTRY CheckEventLoop();
     //stops script execution
     virtual void APIENTRY Stop();
+    virtual IV8ErrorList * APIENTRY GetV8ErrorList();
   };
 
   // index of isolate's data slot, where engine is stored
@@ -111,17 +145,9 @@ namespace embed {
   // Is used to redirect stdout, stderr if these handles are not exist
   class IGUILogger : public IBaseIntf {
   public:
-    std::string errorLog;
     HANDLE /*stdInRead, stdInWrite, */stdOutRead, stdOutWrite;
     IGUILogger();
     ~IGUILogger();
-    // V8 checks for valid output handle and if handle is valid it writes
-    // output (e.g js errors) to stdout, else it uses OutputDebugString.
-    // Check VPrintHelper and HasConsole functions in platform-win32.cc
-    // SetStdHandle has some bugs with GUI in windows, so this function
-    // captures V8 messages about errors and add them to log.
-    static void OnMessage(v8::Local<v8::Message> message,
-      v8::Local<v8::Value> error);
   };
 
   std::string GetGUILog();
