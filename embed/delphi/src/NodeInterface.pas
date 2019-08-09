@@ -26,6 +26,19 @@ type
     function Test: Integer; virtual; stdcall; abstract;
   end;
 
+  IV8Error = class (IBaseInterface)
+    function GetV8Error: PAnsiChar; virtual; stdcall; abstract;
+    function GetScriptName: PAnsiChar; virtual; stdcall; abstract;
+    function GetLine: integer; virtual; stdcall; abstract;
+    function GetColumn: integer; virtual; stdcall; abstract;
+  end;
+
+  IV8ErrorList = class(IBaseInterface)
+    function GetCount: integer; virtual; stdcall; abstract;
+    function GetError(index: integer): IV8Error; virtual; stdcall; abstract;
+    procedure Clear; virtual; stdcall; abstract;
+  end;
+
   IBaseEngine = class(IBaseInterface)
     //do not call
     function _CreateContext(param: Pointer): Pointer; virtual; abstract;
@@ -34,6 +47,7 @@ type
     //check for result of async node actions if event loop is alive
     procedure CheckEventLoop(); virtual; stdcall; abstract;
     procedure Stop(); virtual; stdcall; abstract;
+    function GetV8ErrorList: IV8ErrorList; virtual; stdcall; abstract;
   end;
 
   IJSValue = class(IBaseInterface)

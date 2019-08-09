@@ -87,6 +87,7 @@ namespace embed {
     params.array_buffer_allocator = &allocator;
     iso = v8::Isolate::New(params);
     iso->SetData(ENGINE_SLOT, this);
+    iso->AddMessageListener(OnMessage);
     script_params = new ScriptParams(iso);
     v8::Isolate::Scope iso_scope(iso);
 
@@ -149,6 +150,16 @@ namespace embed {
       uv_loop_close(&event_loop);
     }
   }
+  IV8ErrorList * BaseEngine::GetV8ErrorList()
+  {
+    return &v8ErrorList;
+  }
+  void BaseEngine::OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
+  {
+    auto iso = v8::Isolate::GetCurrent();
+    BaseEngine * eng = static_cast<BaseEngine *>(iso->GetData(ENGINE_SLOT));
+    eng->v8ErrorList.AddError(message, error);
+  }
   void IBaseIntf::Delete()
   {
     delete this;
@@ -160,19 +171,25 @@ namespace embed {
 
   IGUILogger::IGUILogger()
   {
-    int pipefd[2];
     CreatePipe(&stdOutRead, &stdOutWrite, NULL, 0);
     auto fd = _open_osfhandle((intptr_t)stdOutWrite, 0);
     dup2(fd, 1);
     dup2(fd, 2);
     close(fd);
   }
+  IGUILogger::~IGUILogger()
+  {
+    CloseHandle(stdOutRead);
+    CloseHandle(stdOutWrite);
+  }
   std::string GetGUILog()
   {
+    //write errors first
     std::string result = "";
     if (logger) {
       //write v8 log messages (e.g. JS error) into stdout
       fflush(stdout);
+      fflush(stderr);
       const DWORD startSize = 4095;
       DWORD size = 0;
       DWORD bytesRead = 0;
@@ -192,7 +209,55 @@ namespace embed {
         delete readBuf;
       }
       delete buf;
-      return result;
     }
+    return result;
+  }
+  IV8Error::IV8Error(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
+  {
+    auto iso = v8::Isolate::GetCurrent();
+    v8::String::Utf8Value utf8Value(iso, error);
+    v8Error = *utf8Value;
+    v8::String::Utf8Value scriptResuourceName(iso, message->GetScriptResourceName());
+    scriptName = *scriptResuourceName;
+    line = message->GetLineNumber();
+    column = message->GetStartColumn();
+  }
+  const char * IV8Error::GetV8Error()
+  {
+    return v8Error.c_str();
+  }
+  const char * IV8Error::GetScriptName()
+  {
+    return scriptName.c_str();
+  }
+  int IV8Error::GetLine()
+  {
+    return line;
+  }
+  int IV8Error::GetColumn()
+  {
+    return column;
+  }
+  int IV8ErrorList::GetCount()
+  {
+    return list.size();
+  }
+  IV8Error * IV8ErrorList::GetError(int index)
+  {
+    return list[index].get();
+  }
+  void IV8ErrorList::Clear()
+  {
+    list.clear();
+  }
+  IV8Error * IV8ErrorList::AddError(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
+  {
+    if (!(error->IsUndefined() || error->IsNull())) {
+      auto errorObject = new IV8Error(message, error);
+      std::unique_ptr<IV8Error> ptr(errorObject);
+      list.push_back(std::move(ptr));
+      return errorObject;
+    }
+    return nullptr;
   }
 }

@@ -92,6 +92,21 @@ type
     destructor Destroy; override;
   end;
 
+  TJSError = class(TObject)
+  private
+    FScriptName: string;
+    FDescription: string;
+    FColumn: integer;
+    FLine: integer;
+  public
+    property Description: string read FDescription write FDescription;
+    property ScriptName: string read FScriptName write FScriptName;
+    property Line: integer read FLine write FLine;
+    property Column: integer read FColumn write FColumn;
+  end;
+
+  TJSErrorList = TObjectList<TJSError>;
+
   [TScriptAttribute([satForbidden])]
   TJSEngine = class(TInterfacedObject, IJSEngine)
   private
@@ -110,6 +125,7 @@ type
     FPostArgs, FPreArgs: TStrings;
     // it is used for conversion to PAnsiChar
     FUTF8String: UTF8String;
+    FJSErrors: TJSErrorList;
   protected
     function StringToPAnsiChar(const S: string): PAnsiChar;
     function PAnsiCharToString(P: PAnsiChar): string;
@@ -148,10 +164,12 @@ type
     function CallFunction(funcName: string): TValue; overload;
     function CallFunction(funcName: string; args: TValueArray): TValue; overload;
     procedure CheckEventLoop;
+    procedure UpdateV8ErrorLog();
     procedure TerminateExecution;
     procedure Stop;
     property Active: boolean read FActive;
     property GC: TGarbageCollector read GetGarbageCollector;
+    property JSErrors: TJSErrorList read FJSErrors;
   end;
 
   // unwrap delphi object from js object in arguments
@@ -690,6 +708,7 @@ begin
       FIgnoredExceptions := TList<TClass>.Create;
       FPostArgs := TStringList.Create;
       FPreArgs := TStringList.Create;
+      FJSErrors := TJSErrorList.Create;
       FActive := True;
     end;
   except
@@ -703,6 +722,7 @@ end;
 
 destructor TJSEngine.Destroy;
 begin
+  FJSErrors.Free;
   FPostArgs.Free;
   FPreArgs.Free;
   FEnumList.Free;
@@ -876,6 +896,27 @@ procedure TJSEngine.TerminateExecution;
 begin
   if FActive then
     FEngine.TerminateExecution;
+end;
+
+procedure TJSEngine.UpdateV8ErrorLog;
+var
+  V8Errors: IV8ErrorList;
+  V8Error: IV8Error;
+  JSError: TJSError;
+  i: Integer;
+begin
+  V8Errors := FEngine.GetV8ErrorList;
+  for i := 0 to V8Errors.GetCount - 1 do
+  begin
+    V8Error := V8Errors.GetError(i);
+    JSError := TJSError.Create;
+    JSError.Description := PAnsiCharToString(V8Error.GetV8Error);
+    JSError.ScriptName := PAnsiCharToString(V8Error.GetScriptName);
+    JSError.Line := V8Error.GetLine;
+    JSError.Column := V8Error.GetColumn;
+    JSErrors.Add(JSError);
+  end;
+  V8Errors.Clear;
 end;
 
 procedure TJSEngine.AddAdditionalArgument(arg: string; PreArg: boolean);
