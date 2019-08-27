@@ -883,7 +883,8 @@ end;
 
 procedure TJSEngine.Stop;
 begin
-  FEngine.Stop;
+  if Active then
+    FEngine.Stop;
 end;
 
 function TJSEngine.StringToPAnsiChar(const S: string): PAnsiChar;
@@ -894,7 +895,7 @@ end;
 
 procedure TJSEngine.TerminateExecution;
 begin
-  if FActive then
+  if Active then
     FEngine.TerminateExecution;
 end;
 
