@@ -10,6 +10,32 @@ namespace embed {
   class IJSArray;
   class IJSFunction;
 
+  enum ExternalDataType {
+    Unknown = 0,
+    DelphiObject = 1,
+    CustomObject = 2
+  };
+
+  class DelphiObjectData {
+  public:
+    DelphiObjectData(void * classType, void * obj);
+    virtual void * GetDelphiClass();
+    virtual void * GetDelphiObj();
+  private:
+    void * _dObj;
+    void * _dClass;
+  };
+
+  class ExternalObjectData {
+  public:
+    ExternalObjectData(int type, void * data);
+    virtual int APIENTRY GetType();
+    virtual void * APIENTRY GetData();
+  private:
+    int _type;
+    void * _data;
+  };
+
 
   //wrapper for JS value
   class IJSValue: public IBaseIntf {
@@ -378,6 +404,7 @@ namespace embed {
     void * DelphiEngine();
     void* GetDelphiObject(v8::Local<v8::Object> holder);
     void* GetDelphiClasstype(v8::Local<v8::Object> obj);
+    ExternalObjectData * GetExternalData(v8::Local<v8::Object> obj);
     IClassTemplate * GetDelphiClassTemplate(void * classType);
     static IEmbedEngine * GetEngine(v8::Isolate * isolate);
     v8::Local<v8::Object> GetIndexedPropertyObject(void * obj,

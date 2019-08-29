@@ -416,6 +416,17 @@ namespace embed {
     return result;
   }
 
+  ExternalObjectData * IEmbedEngine::GetExternalData(v8::Local<v8::Object> obj)
+  {
+    ExternalObjectData * result = nullptr;
+    if (obj->InternalFieldCount() > 0) {
+      auto field = obj->GetInternalField(0);
+      if (field->IsExternal())
+        result = static_cast<ExternalObjectData *>(field.As<v8::External>()->Value);
+    }
+    return result;
+  }
+
   IClassTemplate * IEmbedEngine::GetDelphiClassTemplate(void * classType)
   {
     for (auto &clas : classes) {
@@ -1329,5 +1340,31 @@ namespace embed {
   IEmbedEngine * IBaseArgs::Engine()
   {
     return engine;
+  }
+  ExternalObjectData::ExternalObjectData(int type, void * data)
+  {
+    _type = type;
+    _data = data;
+  }
+  int ExternalObjectData::GetType()
+  {
+    return _type;
+  }
+  void * ExternalObjectData::GetData()
+  {
+    return _data;
+  }
+  DelphiObjectData::DelphiObjectData(void * classType, void * obj)
+  {
+    _dClass = classType;
+    _dObj = obj;
+  }
+  void * DelphiObjectData::GetDelphiClass()
+  {
+    return _dClass;
+  }
+  void * DelphiObjectData::GetDelphiObj()
+  {
+    return _dObj;
   }
 }
