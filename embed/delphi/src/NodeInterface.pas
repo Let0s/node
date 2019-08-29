@@ -4,7 +4,7 @@ interface
   const LIB_NAME = 'node.dll';
   //these version consts will use to check node.dll
   const EMBED_MAJOR_VERSION = 0;
-  const EMBED_MINOR_VERSION = 1;
+  const EMBED_MINOR_VERSION = 2;
 
 type
   IJSObject = class;

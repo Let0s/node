@@ -3,7 +3,7 @@
 //version defines (based on code from node_version.h)
 
 #define EMBED_MAJOR_VERSION 0
-#define EMBED_MINOR_VERSION 1
+#define EMBED_MINOR_VERSION 2
 #define EMBED_PATCH_VERSION 0
 
 #define EMBED_VERSION_IS_RELEASE 0

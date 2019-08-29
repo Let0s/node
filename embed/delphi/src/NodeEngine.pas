@@ -8,6 +8,9 @@ uses
   Generics.Defaults, Math;
 
 type
+
+  EJSEngineError = class(Exception);
+
   TJSEngine = class;
 
   // Class method info
@@ -126,6 +129,8 @@ type
     // it is used for conversion to PAnsiChar
     FUTF8String: UTF8String;
     FJSErrors: TJSErrorList;
+    FLastError: string;
+    function GetLastError: string;
   protected
     function StringToPAnsiChar(const S: string): PAnsiChar;
     function PAnsiCharToString(P: PAnsiChar): string;
@@ -170,6 +175,7 @@ type
     property Active: boolean read FActive;
     property GC: TGarbageCollector read GetGarbageCollector;
     property JSErrors: TJSErrorList read FJSErrors;
+    property LastError: string read GetLastError;
   end;
 
   // unwrap delphi object from js object in arguments
@@ -212,7 +218,13 @@ begin
     begin
       utfStr := UTF8String(ParamStr(0));
       InitNode(PAnsiChar(utfStr));
-    end;
+    end
+    else
+      raise EJSEngineError.Create(Format(
+        'node.dll version mismatch. Expected version %d.%d,' +
+          ' but library version is %d.%d',
+        [EMBED_MAJOR_VERSION, EMBED_MINOR_VERSION,
+          EmbedMajorVersion, EmbedMinorVersion]));
     Initialized := True;
   end;
   Result := VersionEqual;
@@ -716,6 +728,11 @@ begin
     begin
       //TODO: Raise special exception
       // := 'Failed to initialize node.dll';
+      FLastError := 'Failed to initialize node.dll. Check if library file exists';
+    end;
+    on E: EJSEngineError do
+    begin
+      FLastError := E.Message;
     end;
   end;
 end;
@@ -731,7 +748,8 @@ begin
   FJSHelperMap.Free;
   FJSHelperList.Free;
   FIgnoredExceptions.Free;
-  FEngine.Delete;
+  if Active then  
+    FEngine.Delete;
   inherited;
 end;
 
@@ -749,6 +767,11 @@ end;
 function TJSEngine.GetGarbageCollector: TGarbageCollector;
 begin
   Result := FGarbageCollector;
+end;
+
+function TJSEngine.GetLastError: string;
+begin
+  Result := FLastError;
 end;
 
 procedure TJSEngine.IgnoreExceptionType(ExceptionType: TClass);
