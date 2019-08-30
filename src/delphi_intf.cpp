@@ -1,17 +1,10 @@
 #include "delphi_intf.h"
 #include <sstream>
 namespace embed {
-  // internal field count for wrapped delphi object
-  const int CLASS_INTERNAL_FIELD_COUNT = 2;
-  // index of internal field with stored object classtype
-  const int CLASSTYPE_INTERNAL_FIELD_NUMBER = 0;
-  // index of internal field with stored pointer to object
-  const int OBJECT_INTERNAL_FIELD_NUMBER = 1;
-
-  //indexed property object has one more field for pointer to property
-  const int INDEXED_PROP_OBJ_FIELD_COUNT = 3;
-  // index of internal field with stored pointer to indexed property
-  const int INDEXED_PROP_FIELD_INDEX = 2;
+  // internal field count for objects with delphi data
+  const int EMBED_INTERNAL_FIELD_COUNT = 1;
+  // index of internal field with external delphi data
+  const int OBJECT_DATA_FIELD_NUMBER = 0;
 
   //full path to executable (argv0)
   std::string exeName;
@@ -46,7 +39,7 @@ namespace embed {
       }
       // create template for indexed property object
       indexedObjectTemplate = v8::ObjectTemplate::New(isolate);
-      indexedObjectTemplate->SetInternalFieldCount(INDEXED_PROP_OBJ_FIELD_COUNT);
+      indexedObjectTemplate->SetInternalFieldCount(EMBED_INTERNAL_FIELD_COUNT);
       // set handler for indexed property with number index
       indexedObjectTemplate->SetIndexedPropertyHandler(IndexedPropGetter, IndexedPropSetter);
       // set handler for indexed property with string index
@@ -57,13 +50,13 @@ namespace embed {
       // Entering context is needed to create v8::Object for enumerators
       v8::Context::Scope scope(context);
       auto globalObject = context->Global();
-      CHECK(globalObject->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT);
-      globalObject->SetInternalField(
-        CLASSTYPE_INTERNAL_FIELD_NUMBER,
-        v8::External::New(isolate, globalTemplate->dClass));
-      globalObject->SetInternalField(
-        OBJECT_INTERNAL_FIELD_NUMBER,
-        v8::Undefined(isolate));
+      CHECK(globalObject->InternalFieldCount() == EMBED_INTERNAL_FIELD_COUNT);
+      {
+        DelphiObjectData * objData = new DelphiObjectData(globalTemplate->dClass, nullptr);
+        auto extData = std::make_unique<ExternalObjectData>(ExternalDataType::DelphiObject, objData);
+        globalObject->SetInternalField(OBJECT_DATA_FIELD_NUMBER, v8::External::New(isolate, extData.get()));
+        datalist.push_back(std::move(extData));
+      }
       for (auto &enumerator : enums) {
         if (enumerator->values.size() > 0) {
           auto enumObj = v8::Object::New(isolate);
@@ -356,10 +349,12 @@ namespace embed {
         if (!funcTemplate.IsEmpty()) {
           auto obj = funcTemplate->InstanceTemplate()->NewInstance();
           if (!obj.IsEmpty()) {
-            obj->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER,
-              v8::External::New(Isolate(), cType));
-            obj->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
-              v8::External::New(Isolate(), value));
+            {
+              DelphiObjectData * objData = new DelphiObjectData(globalTemplate->dClass, value);
+              auto extData = std::make_unique<ExternalObjectData>(ExternalDataType::DelphiObject, objData);
+              obj->SetInternalField(OBJECT_DATA_FIELD_NUMBER, v8::External::New(Isolate(), extData.get()));
+              datalist.push_back(std::move(extData));
+            }
             result = IJSValue::MakeValue(Isolate(), obj)->AsDelphiObject();
             if (result) {
               auto ptr = std::unique_ptr<IJSDelphiObject>(result);
@@ -391,27 +386,21 @@ namespace embed {
   void * IEmbedEngine::GetDelphiObject(v8::Local<v8::Object> holder)
   {
     void* result = nullptr;
-    if (holder->InternalFieldCount() > OBJECT_INTERNAL_FIELD_NUMBER) {
-      auto internalfield = holder->GetInternalField(
-        OBJECT_INTERNAL_FIELD_NUMBER);
-      if (internalfield->IsExternal()) {
-        auto classtype = internalfield.As<v8::External>();
-        result = classtype->Value();
-      }
+    auto data = GetExternalData(holder);
+    if (data->GetType() == ExternalDataType::DelphiObject) {
+      auto objData = static_cast<DelphiObjectData *>(data->GetData());
+      result = objData->GetDelphiObj();
     }
     return result;
   }
 
   void * IEmbedEngine::GetDelphiClasstype(v8::Local<v8::Object> obj)
   {
-    void * result = nullptr;
-    if ((obj->InternalFieldCount() > CLASSTYPE_INTERNAL_FIELD_NUMBER)) {
-      auto internalfield = obj->GetInternalField(
-        CLASSTYPE_INTERNAL_FIELD_NUMBER);
-      if (internalfield->IsExternal()) {
-        auto classtype = internalfield.As<v8::External>();
-        result = classtype->Value();
-      }
+    void* result = nullptr;
+    auto data = GetExternalData(obj);
+    if (data->GetType() == ExternalDataType::DelphiObject) {
+      auto objData = static_cast<DelphiObjectData *>(data->GetData());
+      result = objData->GetDelphiClass();
     }
     return result;
   }
@@ -419,10 +408,10 @@ namespace embed {
   ExternalObjectData * IEmbedEngine::GetExternalData(v8::Local<v8::Object> obj)
   {
     ExternalObjectData * result = nullptr;
-    if (obj->InternalFieldCount() > 0) {
-      auto field = obj->GetInternalField(0);
+    if (obj->InternalFieldCount() >= EMBED_INTERNAL_FIELD_COUNT) {
+      auto field = obj->GetInternalField(OBJECT_DATA_FIELD_NUMBER);
       if (field->IsExternal())
-        result = static_cast<ExternalObjectData *>(field.As<v8::External>()->Value);
+        result = static_cast<ExternalObjectData *>(field.As<v8::External>()->Value());
     }
     return result;
   }
@@ -461,12 +450,12 @@ namespace embed {
       if (!templ.IsEmpty()) {
         auto indexedPropObject = templ->NewInstance();
         if (!indexedPropObject.IsEmpty()) {
-          indexedPropObject->SetInternalField(CLASSTYPE_INTERNAL_FIELD_NUMBER,
-            v8::External::New(Isolate(), cType));
-          indexedPropObject->SetInternalField(OBJECT_INTERNAL_FIELD_NUMBER,
-            v8::External::New(Isolate(), obj));
-          indexedPropObject->SetInternalField(INDEXED_PROP_FIELD_INDEX,
-            v8::External::New(Isolate(), indexedProp));
+          {
+            auto indexedPropData = new DelphiIndexedPropObjectData(globalTemplate->dClass, obj, indexedProp);
+            auto extData = std::make_unique<ExternalObjectData>(ExternalDataType::DelphiObject, indexedPropData);
+            indexedPropObject->SetInternalField(OBJECT_DATA_FIELD_NUMBER, v8::External::New(Isolate(), extData.get()));
+            datalist.push_back(std::move(extData));
+          }
           v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>> obj(
             Isolate(), indexedPropObject);
           jsIndexedPropObjects.emplace(std::make_pair(hash, obj));
@@ -646,10 +635,10 @@ namespace embed {
   {
     auto proto = templ->PrototypeTemplate();
     templ->SetClassName(v8::String::NewFromUtf8(isolate, classTypeName.c_str(), v8::NewStringType::kNormal).ToLocalChecked());
-    proto->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
+    proto->SetInternalFieldCount(EMBED_INTERNAL_FIELD_COUNT);
     {
       //dirty way - fix it later;
-      templ->InstanceTemplate()->SetInternalFieldCount(CLASS_INTERNAL_FIELD_COUNT);
+      templ->InstanceTemplate()->SetInternalFieldCount(EMBED_INTERNAL_FIELD_COUNT);
     }
     for (auto &method : methods) {
       v8::Local<v8::FunctionTemplate> methodCallBack =
@@ -768,12 +757,18 @@ namespace embed {
       }
       else if (val->IsObject()) {
         auto obj = val->ToObject();
-        if (obj->InternalFieldCount() == CLASS_INTERNAL_FIELD_COUNT) {
-          result = new IJSDelphiObject(isolate, val);
-        }
-        else {
+        auto data = IEmbedEngine::GetEngine(isolate)->GetExternalData(obj);
+        if (data)
+          switch (data->GetType())
+          {
+            case ExternalDataType::DelphiObject:
+              result = new IJSDelphiObject(isolate, val);
+              break;
+          default:
+            break;
+          }
+        else
           result = new IJSObject(isolate, val);
-        }
       }
     }
     return result;
@@ -1160,13 +1155,10 @@ namespace embed {
   {
     void * result = nullptr;
     auto holder = propinfo->This();
-    if (holder->InternalFieldCount() >= INDEXED_PROP_OBJ_FIELD_COUNT) {
-      auto internalfield = holder->GetInternalField(
-        INDEXED_PROP_FIELD_INDEX);
-      if (internalfield->IsExternal()) {
-        auto prop = internalfield.As<v8::External>();
-        result = prop->Value();
-      }
+    auto data = Engine()->GetExternalData(holder);
+    if (data->GetType() == ExternalDataType::DelphiIndexedPropObject) {
+      auto indexData = static_cast<DelphiIndexedPropObjectData *>(data->GetData());
+      result = indexData->GetIndexedProp();
     } //else if we call default indexed property
     else if (propinfo->Data()->IsExternal()){
       auto data = propinfo->Data().As<v8::External>();
@@ -1224,13 +1216,10 @@ namespace embed {
   {
     void * result = nullptr;
     auto holder = propinfo->This();
-    if (holder->InternalFieldCount() >= INDEXED_PROP_OBJ_FIELD_COUNT) {
-      auto internalfield = holder->GetInternalField(
-        INDEXED_PROP_FIELD_INDEX);
-      if (internalfield->IsExternal()) {
-        auto prop = internalfield.As<v8::External>();
-        result = prop->Value();
-      }
+    auto data = Engine()->GetExternalData(holder);
+    if (data->GetType() == ExternalDataType::DelphiIndexedPropObject) {
+      auto indexData = static_cast<DelphiIndexedPropObjectData *>(data->GetData());
+      result = indexData->GetIndexedProp();
     } //else if we call default indexed property
     else if (propinfo->Data()->IsExternal()) {
       auto data = propinfo->Data().As<v8::External>();
@@ -1341,16 +1330,20 @@ namespace embed {
   {
     return engine;
   }
-  ExternalObjectData::ExternalObjectData(int type, void * data)
+  ExternalObjectData::ExternalObjectData(ExternalDataType type, ExternalData * data)
   {
     _type = type;
     _data = data;
   }
-  int ExternalObjectData::GetType()
+  ExternalObjectData::~ExternalObjectData()
+  {
+    delete _data;
+  }
+  ExternalDataType ExternalObjectData::GetType()
   {
     return _type;
   }
-  void * ExternalObjectData::GetData()
+  ExternalData * ExternalObjectData::GetData()
   {
     return _data;
   }
@@ -1366,5 +1359,17 @@ namespace embed {
   void * DelphiObjectData::GetDelphiObj()
   {
     return _dObj;
+  }
+  ExternalData::~ExternalData()
+  {
+  }
+  DelphiIndexedPropObjectData::DelphiIndexedPropObjectData(void * classType, void * obj, void * indexedProp):
+    DelphiObjectData(classType, obj)
+  {
+    _indexedProp = indexedProp;
+  }
+  void * DelphiIndexedPropObjectData::GetIndexedProp()
+  {
+    return _indexedProp;
   }
 }

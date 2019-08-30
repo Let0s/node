@@ -13,27 +13,41 @@ namespace embed {
   enum ExternalDataType {
     Unknown = 0,
     DelphiObject = 1,
-    CustomObject = 2
+    DelphiIndexedPropObject = 2
   };
 
-  class DelphiObjectData {
+  class ExternalData {
+  public:
+    virtual ~ExternalData();
+  };
+
+  class DelphiObjectData: public ExternalData {
   public:
     DelphiObjectData(void * classType, void * obj);
-    virtual void * GetDelphiClass();
-    virtual void * GetDelphiObj();
+    void * GetDelphiClass();
+    void * GetDelphiObj();
   private:
     void * _dObj;
     void * _dClass;
   };
 
+  class DelphiIndexedPropObjectData : public DelphiObjectData {
+  public:
+    DelphiIndexedPropObjectData(void * classType, void * obj, void * indexedProp);
+    void * GetIndexedProp();
+  private:
+    void * _indexedProp;
+  };
+
   class ExternalObjectData {
   public:
-    ExternalObjectData(int type, void * data);
-    virtual int APIENTRY GetType();
-    virtual void * APIENTRY GetData();
+    ExternalObjectData(ExternalDataType type, ExternalData * data);
+    ~ExternalObjectData();
+    virtual ExternalDataType GetType();
+    virtual ExternalData * GetData();
   private:
-    int _type;
-    void * _data;
+    ExternalDataType _type;
+    ExternalData * _data;
   };
 
 
@@ -425,6 +439,7 @@ namespace embed {
       v8::CopyablePersistentTraits<v8::Object>>> jsIndexedPropObjects;
     std::vector<std::unique_ptr<ObjectVariableLink>> objectLinks;
     std::vector<std::unique_ptr<IJSValue>> jsValues;
+    std::vector<std::unique_ptr<ExternalObjectData>> datalist;
     // code, that will be executed before script execution (without NodeJS features)
     std::string preCode;
   };
