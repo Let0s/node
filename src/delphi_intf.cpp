@@ -387,7 +387,7 @@ namespace embed {
   {
     void* result = nullptr;
     auto data = GetExternalData(holder);
-    if (data->GetType() == ExternalDataType::DelphiObject) {
+    if (data->GetType() >= ExternalDataType::DelphiObject) {
       auto objData = static_cast<DelphiObjectData *>(data->GetData());
       result = objData->GetDelphiObj();
     }
@@ -398,7 +398,7 @@ namespace embed {
   {
     void* result = nullptr;
     auto data = GetExternalData(obj);
-    if (data->GetType() == ExternalDataType::DelphiObject) {
+    if (data->GetType() >= ExternalDataType::DelphiObject) {
       auto objData = static_cast<DelphiObjectData *>(data->GetData());
       result = objData->GetDelphiClass();
     }
@@ -452,7 +452,7 @@ namespace embed {
         if (!indexedPropObject.IsEmpty()) {
           {
             auto indexedPropData = new DelphiIndexedPropObjectData(globalTemplate->dClass, obj, indexedProp);
-            auto extData = std::make_unique<ExternalObjectData>(ExternalDataType::DelphiObject, indexedPropData);
+            auto extData = std::make_unique<ExternalObjectData>(ExternalDataType::DelphiIndexedPropObject, indexedPropData);
             indexedPropObject->SetInternalField(OBJECT_DATA_FIELD_NUMBER, v8::External::New(Isolate(), extData.get()));
             datalist.push_back(std::move(extData));
           }
