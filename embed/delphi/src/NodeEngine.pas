@@ -525,6 +525,7 @@ procedure IndexedPropSetter(Args: IIndexedSetterArgs); stdcall;
 var
   Engine: TJSEngine;
   Prop: TRttiIndexedProperty;
+  PropIndex: TValue;
   Obj: TObject;
   Result: TValue;
 begin
@@ -540,10 +541,10 @@ begin
       Prop := Args.GetPropPointer as TRttiIndexedProperty;
       if Assigned(Prop) then
       begin
-        Prop.SetValue(Obj, [args.GetPropIndex],
+        PropIndex := JSValueToUnknownTValue(args.GetPropIndex, Engine);
+        Prop.SetValue(Obj, [PropIndex],
           JSValueToTValue(args.GetValue, Prop.PropertyType, Engine));
-        Result := Prop.GetValue(Obj,
-          [JSValueToUnknownTValue(args.GetPropIndex, Engine)]);
+        Result := Prop.GetValue(Obj, [PropIndex]);
         SetReturnValue(Args, Result);
       end;
     end;
