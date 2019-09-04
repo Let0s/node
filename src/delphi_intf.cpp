@@ -387,10 +387,11 @@ namespace embed {
   {
     void* result = nullptr;
     auto data = GetExternalData(holder);
-    if (data->GetType() >= ExternalDataType::DelphiObject) {
-      auto objData = static_cast<DelphiObjectData *>(data->GetData());
-      result = objData->GetDelphiObj();
-    }
+    if (data)
+      if (data->GetType() >= ExternalDataType::DelphiObject) {
+        auto objData = static_cast<DelphiObjectData *>(data->GetData());
+        result = objData->GetDelphiObj();
+      }
     return result;
   }
 
@@ -398,10 +399,11 @@ namespace embed {
   {
     void* result = nullptr;
     auto data = GetExternalData(obj);
-    if (data->GetType() >= ExternalDataType::DelphiObject) {
-      auto objData = static_cast<DelphiObjectData *>(data->GetData());
-      result = objData->GetDelphiClass();
-    }
+    if (data)
+      if (data->GetType() >= ExternalDataType::DelphiObject) {
+        auto objData = static_cast<DelphiObjectData *>(data->GetData());
+        result = objData->GetDelphiClass();
+      }
     return result;
   }
 
