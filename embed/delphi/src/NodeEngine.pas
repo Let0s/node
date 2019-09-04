@@ -1276,26 +1276,37 @@ begin
       var
         LeftResult, RightResult: Integer;
       begin
-        LeftResult := CompareValue(Length(Left.Method.GetParameters),
-          ArgCount);
-        RightResult := CompareValue(Length(Right.Method.GetParameters),
-          ArgCount);
-        if (RightResult = LessThanValue) xor (LeftResult = LessThanValue) then
+        Result := EqualsValue;
+        if Assigned(Left.Helper) then
         begin
-          // left have less args, than was passed
-          if LeftResult = LessThanValue then
-            Result := GreaterThanValue
-          // right have less args, than was passed
-          else
+          if not Assigned(Right.Helper) then
             Result := LessThanValue;
         end
-        else
-          if (RightResult = LessThanValue) and (LeftResult = LessThanValue) then
-            Result := CompareValue(Length(Left.Method.GetParameters),
-              Length(Right.Method.GetParameters))
+        else if Assigned(Right.Helper) then
+          Result := GreaterThanValue;
+        if Result = EqualsValue then
+        begin
+          LeftResult := CompareValue(Length(Left.Method.GetParameters),
+            ArgCount);
+          RightResult := CompareValue(Length(Right.Method.GetParameters),
+            ArgCount);
+          if (RightResult = LessThanValue) xor (LeftResult = LessThanValue) then
+          begin
+            // left have less args, than was passed
+            if LeftResult = LessThanValue then
+              Result := GreaterThanValue
+            // right have less args, than was passed
+            else
+              Result := LessThanValue;
+          end
           else
-            Result := CompareValue(Length(Right.Method.GetParameters),
-              Length(Left.Method.GetParameters));
+            if (RightResult = LessThanValue) and (LeftResult = LessThanValue) then
+              Result := CompareValue(Length(Left.Method.GetParameters),
+                Length(Right.Method.GetParameters))
+            else
+              Result := CompareValue(Length(Right.Method.GetParameters),
+                Length(Left.Method.GetParameters));
+        end;
       end
     ));
     for i := 0 to Count - 1 do
