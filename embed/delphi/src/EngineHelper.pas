@@ -575,6 +575,8 @@ var
   Int64Value: Int64;
   FloatValue: Double;
 begin
+  if value.IsUndefined then
+    Exit(True);
   Result := False;
   case typ.TypeKind of
     tkUnknown: ;
@@ -585,7 +587,7 @@ begin
     tkFloat: Result := value.IsNumber or
       TryStrToFloat(Engine.PAnsiCharToString(value.AsString), FloatValue);
     tkSet: ;
-    tkClass: Result := value.IsDelphiObject;
+    tkClass: Result := value.IsDelphiObject or value.IsNull;
     tkMethod: Result := value.IsFunction;
     tkVariant: Result := True;
     tkArray, tkDynArray: Result := value.IsArray;
