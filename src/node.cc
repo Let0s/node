@@ -4656,6 +4656,16 @@ NODE_EXTERN void ResetArguments()
   modlist_builtin = nullptr;
   modlist_internal = nullptr;
   modlist_linked = nullptr;
+  // free all connected .node modules to include them at next start
+  for (auto mp = modlist_addon; mp != nullptr;) {
+    if (mp->nm_dso_handle) {
+      uv_lib_t lib;
+      lib.errmsg = NULL;
+      lib.handle = HMODULE(mp->nm_dso_handle);
+      mp = mp->nm_link;
+      uv_dlclose(&lib);
+    }
+  }
   modlist_addon = nullptr;
   debug_options.Reset();
 }
